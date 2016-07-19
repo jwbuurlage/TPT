@@ -7,7 +7,7 @@ int main() {
     int k = 128;
 
     // create a 2D volume of size k x k
-    auto v = tomo::volume<2_D>({k, k});
+    auto v = tomo::volume<2_D>(k, k);
 
     auto f = tomo::modified_shepp_logan_phantom<double>(v);
     tomo::ascii_plot(f);

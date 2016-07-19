@@ -39,7 +39,7 @@ template <typename T>
 void ascii_plot(const image<2_D, T>& f) {
     int limit = 40;
     if (f.size(0) > limit || f.size(1) > limit) {
-        ascii_plot_output(downscale_(f, volume<2_D>({limit, limit})),
+        ascii_plot_output(downscale_(f, volume<2_D>(limit, limit)),
                           {limit, limit});
     } else {
         ascii_plot_output(f, {f.size(0), f.size(1)});
@@ -77,10 +77,5 @@ void ascii_plot_output(const ImageLike& image, math::vec2<int> dimensions) {
         std::cout << "\n";
     }
 }
-
-// template <typename T>
-// void ascii_plot(const sinogram<2_D, T>& f) {
-//
-//}
 
 } // namespace tomo

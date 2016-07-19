@@ -38,8 +38,8 @@ class geometry {
   public:
     geometry(int line_count) : line_count_(line_count) {}
 
-    virtual Iterator begin() const;
-    virtual Iterator end() const;
+    virtual Iterator begin() const = 0;
+    virtual Iterator end() const = 0;
 
     int lines() const { return line_count_; }
 

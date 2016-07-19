@@ -18,6 +18,8 @@ class sinogram {
     T& operator[] (int i) { return data_[i]; }
     const T& operator[] (int i) const { return data_[i]; }
 
+    std::vector<T>& mutable_data() { return data_; }
+
     const Geometry& geometry() const { return geometry_; }
 
   private:

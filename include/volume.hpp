@@ -14,6 +14,9 @@ class volume {
   public:
     volume(std::array<int, Dimension> dimensions) : dimensions_(dimensions) {}
 
+    template <typename... Ts>
+    volume(Ts... dims) : dimensions_(std::array<int, Dimension>{dims...}) {}
+
     /**
      * Obtain the size of the first dimension
      * @return number of voxels in first dimension
@@ -47,7 +50,7 @@ class volume {
      * @param i the index of the dimension
      * @return number of voxels in the the i-th dimension
      */
-    int operator[] (size_t i) const { return dimensions_[i]; }
+    int operator[](size_t i) const { return dimensions_[i]; }
 
     size_t index(std::array<int, Dimension> xs) const {
         int result = xs[0];
@@ -58,6 +61,8 @@ class volume {
         }
         return result;
     }
+
+    std::array<int, Dimension> dimensions() const { return dimensions_; }
 
   private:
     std::array<int, Dimension> dimensions_;

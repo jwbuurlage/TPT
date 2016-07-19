@@ -130,7 +130,7 @@ class parallel_line_iterator<2_D, T>
         //            /
         //         <--
 
-        std::array<std::array<math::vec2<T>, 2>, 3> lines = {
+        const std::array<std::array<math::vec2<T>, 2>, 3> lines = {
             std::array<math::vec2<T>, 2>{math::vec2<T>(0, 0),
                                          math::vec2<T>(0, vol.y())},
             std::array<math::vec2<T>, 2>{math::vec2<T>(0, vol.y()),

@@ -36,10 +36,12 @@ class image {
 
     int size(int i) const { return v_[i]; }
 
-    std::vector<Type>& data() { return data_; };
+    std::vector<Type>& mutable_data() { return data_; };
     const std::vector<Type>& data() const { return data_; };
 
     volume<Dimension> get_volume() const { return v_; }
+
+    std::array<int, Dimension> dimensions() const { return v_.dimensions(); }
 
   private:
     volume<Dimension> v_;
