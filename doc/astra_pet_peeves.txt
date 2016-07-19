@@ -1,0 +1,13 @@
+[ ] Documentation refers to *sample code* for illustration of concepts
+[ ] Not explicitely checking *GPU compatibility* of geometry
+[ ] Abbreviations in naming (I think only in MATLAB/Python interfaces)
+[ ] Names starting with underscore are reserved, should be trailing underscore
+[ ] Why not use `stdint` instead of typedefs, look up if float is guarenteed 32, may have to do with uniform cuda syntax
+[ ] Can this be used as a C++ library instead of matlab/python interface? At least there are no examples
+[ ] Sample should be Example? (CUDA uses sample)
+[ ] Why the 'config' to create an algorithm instead of arguments? More specifically, why a 'general config' instead of setters or a factory like construct.
+[ ] Uses inl files, not sure if a good or bad thing
+[ ] Python examples use pylab for imaging instead of 'recommmended' OO-style plotting
+[ ] Uses GPL
+[ ] No 80 character line limit
+[ ] 'Java' OO style instead of using more C++/STL style
