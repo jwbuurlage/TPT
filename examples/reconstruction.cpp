@@ -27,7 +27,7 @@ int main() {
     // run an algorithm to reconstruct the image
     auto y = tomo::sart(v, g, sino);
     std::cout << "SART: " << std::endl;
-    tomo::ascii_plot(x);
+    tomo::ascii_plot(y);
 
     // run an algorithm to reconstruct the image
     auto z = tomo::sirt(v, g, sino);

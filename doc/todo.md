@@ -1,14 +1,16 @@
 # CONTINUE:
-* [ ] Start implementing SART and SIRT
+* [x] Start implementing SART and SIRT
 * [x] Add iterations to ART, how to add initial guess (which is now of type
     'std::optional') to Python (A: ignore initial guess for now)
-* [ ] Expand Python functionality (better plots, performance / convergence
+* [x] Expand Python functionality (better plots, performance / convergence
     graphs)
 * [ ] Make simple profiling environment
-* [ ] 3D / cone / slices
 * [ ] CUDA / Distributed is next
-* [ ] Future: work on visualizer?
+* [ ] Optimize CPU algorithms (cache-use, limit recomputations, data-oriented, ...)
+* [ ] 3D / cone / slices
+* [ ] Future: work on visualizer? Parallel marching cubes? How to deal with massive amount of data on network
 * [ ] We want the objects to be able to morph into matrices and vectors for algorithm operations
+* [ ] Should cache 'R', 'C' and 'w_norms' somewhere so we can perform iterations independently
 
 
 # List of ideas
