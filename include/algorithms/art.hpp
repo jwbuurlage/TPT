@@ -15,6 +15,7 @@ namespace tomo {
 template <dimension D, typename T, class Geometry, class Projector>
 image<D, T> art(const volume<D>& v, const Geometry& g,
                 const sinogram<D, T, Geometry, Projector>& p, double beta = 0.5,
+                int iterations = 10,
                 optional<image<D, T>> initial = optional<image<D, T>>()) {
     image<D, T> f(v);
     if (initial)
@@ -31,8 +32,7 @@ image<D, T> art(const volume<D>& v, const Geometry& g,
         ++line_number;
     }
 
-    int m = 16;
-    for (int k = 0; k < m; ++k) {
+    for (int k = 0; k < iterations; ++k) {
         int row = 0;
         for (auto line : g) {
             if (w_norms[row] < math::epsilon)

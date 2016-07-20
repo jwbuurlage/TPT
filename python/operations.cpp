@@ -6,7 +6,7 @@ namespace py = pybind11;
 
 void init_operations(py::module& m) {
     m.def(
-        "fb",
+        "forward_project",
         &tomo::forward_projection<2_D, double, tomo::parallel_geometry<2_D, double>>,
         "forward project phantom");
 }

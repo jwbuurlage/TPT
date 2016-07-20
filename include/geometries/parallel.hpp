@@ -40,7 +40,7 @@ class parallel_geometry<2_D, T>
                                      detector_step);
         }
 
-        this->dimensions_ = {angle_count, detector_count};
+        this->dimensions_ = {detector_count, angle_count};
     }
 
     iterator_type begin() const override { return iterator_type(0, *this); }

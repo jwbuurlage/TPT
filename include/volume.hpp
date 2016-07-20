@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 
 #include "common.hpp"
@@ -63,6 +64,11 @@ class volume {
     }
 
     std::array<int, Dimension> dimensions() const { return dimensions_; }
+
+    int cells() const {
+        return std::accumulate(dimensions_.begin(), dimensions_.end(), 1,
+                               std::multiplies<int>());
+    }
 
   private:
     std::array<int, Dimension> dimensions_;

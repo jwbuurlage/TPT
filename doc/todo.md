@@ -1,3 +1,16 @@
+# CONTINUE:
+* [ ] Start implementing SART and SIRT
+* [x] Add iterations to ART, how to add initial guess (which is now of type
+    'std::optional') to Python (A: ignore initial guess for now)
+* [ ] Expand Python functionality (better plots, performance / convergence
+    graphs)
+* [ ] Make simple profiling environment
+* [ ] 3D / cone / slices
+* [ ] CUDA / Distributed is next
+* [ ] Future: work on visualizer?
+* [ ] We want the objects to be able to morph into matrices and vectors for algorithm operations
+
+
 # List of ideas
 * Vectors and intersection algorithms, kernels. Which file and what do we implement ourselves?
 * Templated accelerator functions (or component like objects)
