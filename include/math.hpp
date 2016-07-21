@@ -124,10 +124,9 @@ bool inside(typename vec<D, T>::type a, volume<D> vol) {
 }
 
 template <dimension D, typename T>
-std::vector<matrix_element<T>> interpolate(typename vec<D, T>::type a,
-                                           volume<D> vol) {
+void interpolate(typename vec<D, T>::type a, volume<D> vol,
+                 std::vector<math::matrix_element<T>>& queue) {
     static_assert(D == 2, "only bilinear interpolation is supported");
-    std::vector<matrix_element<T>> elements;
 
     // find neighbouring cells
     // we are looking for the cells with closest centers to our point
@@ -149,11 +148,9 @@ std::vector<matrix_element<T>> interpolate(typename vec<D, T>::type a,
             auto value =
                 1.0 - ((distance(a, vec2<T>(cell[0] + 0.5, cell[1] + 0.5))) /
                        sqrt(2.0));
-            elements.push_back({index, value});
+            queue.push_back({index, value});
         }
     }
-
-    return elements;
 }
 
 } // namespace math

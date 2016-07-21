@@ -17,6 +17,7 @@ link_directories("../../bin")
 
 set(BINDING_NAME "py_galactica")
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -Wall -Wfatal-errors -Wextra -O3")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/..)
 
 pybind11_add_module(${BINDING_NAME} ${BINDING_SOURCES})

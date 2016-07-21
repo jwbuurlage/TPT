@@ -32,8 +32,7 @@ class linear_projector_iterator
     using Base = projector<D, T, linear_projector_iterator<D, T>>;
     using vecD = typename math::vec<D, T>::type;
 
-    linear_projector_iterator(const Base& projector)
-        : projector_(projector) {
+    linear_projector_iterator(const Base& projector) : projector_(projector) {
         current_point_ = projector_.get_line().origin;
 
         // i think this is specific to 2d
@@ -72,15 +71,9 @@ class linear_projector_iterator
     }
 
     void fill_queue() {
-        if (!math::inside<D, T>(current_point_, projector_.get_volume())) {
-            TOMO_LOG_VAR(current_point_.x);
-            TOMO_LOG_VAR(current_point_.y);
-            TOMO_LOG_VAR("queue");
-        }
         while (math::inside<D, T>(current_point_, projector_.get_volume())) {
-            auto new_points = math::interpolate<D, T>(current_point_,
-                                                      projector_.get_volume());
-            queue_.insert(queue_.end(), new_points.begin(), new_points.end());
+            math::interpolate<D, T>(current_point_, projector_.get_volume(),
+                                    queue_);
             current_point_ += projector_.get_line().delta;
         }
     }
