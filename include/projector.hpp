@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "common.hpp"
 #include "geometry.hpp"
 #include "logging.hpp"
@@ -31,19 +33,22 @@ class linear_projector_iterator
     using vecD = typename math::vec<D, T>::type;
 
     linear_projector_iterator(const Base& projector)
-        : projector_(projector), finished_(false) {
+        : projector_(projector) {
         current_point_ = projector_.get_line().origin;
+
+        // i think this is specific to 2d
+        queue_.reserve((int)(math::sqrt(2.0) * 4 * projector_.get_volume()[0]));
+
         fill_queue();
-        next_element();
     }
 
     // used for end
-    linear_projector_iterator(const Base& projector, bool finished)
-        : projector_(projector), finished_(finished) {}
+    linear_projector_iterator(const Base& projector, bool)
+        : projector_(projector) {}
 
     linear_projector_iterator(const linear_projector_iterator& other)
         : projector_(other.projector_), current_point_(other.current_point_),
-          finished_(other.finished_), queue_(other.queue_) {}
+          queue_(other.queue_) {}
 
     linear_projector_iterator& operator++(int) {
         auto current = *this;
@@ -52,54 +57,40 @@ class linear_projector_iterator
     }
 
     bool operator==(const linear_projector_iterator& other) const {
-        return finished_ == other.finished_;
+        return (i_ == queue_.size()) == (other.i_ == other.queue_.size());
     }
 
     bool operator!=(const linear_projector_iterator& other) const {
         return !(*this == other);
     }
 
-    math::matrix_element<T> operator*() {
-        if (finished_)
-            return math::matrix_element<T>{-1, (T)0};
-        return current_element_;
-    }
+    math::matrix_element<T> operator*() { return queue_[i_]; }
 
     linear_projector_iterator& operator++() {
-        if (queue_.empty()) {
-            current_point_ += projector_.get_line().delta;
-            if (!math::inside<D, T>(current_point_, projector_.get_volume())) {
-                finished_ = true;
-                return *this;
-            }
-            fill_queue();
-        }
-
-        next_element();
+        i_++;
         return *this;
     }
 
     void fill_queue() {
-        queue_ =
-            math::interpolate<D, T>(current_point_, projector_.get_volume());
-    }
-
-    void next_element() {
-        if (queue_.empty())
-            return;
-
-        current_element_ = queue_.back();
-        queue_.pop_back();
+        if (!math::inside<D, T>(current_point_, projector_.get_volume())) {
+            TOMO_LOG_VAR(current_point_.x);
+            TOMO_LOG_VAR(current_point_.y);
+            TOMO_LOG_VAR("queue");
+        }
+        while (math::inside<D, T>(current_point_, projector_.get_volume())) {
+            auto new_points = math::interpolate<D, T>(current_point_,
+                                                      projector_.get_volume());
+            queue_.insert(queue_.end(), new_points.begin(), new_points.end());
+            current_point_ += projector_.get_line().delta;
+        }
     }
 
   private:
     const Base& projector_;
+    size_t i_ = 0;
 
     vecD current_point_;
-    math::matrix_element<T> current_element_ =
-        math::matrix_element<T>{-1, (T)0};
 
-    bool finished_;
     std::vector<math::matrix_element<T>> queue_;
 };
 

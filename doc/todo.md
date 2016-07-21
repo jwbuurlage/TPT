@@ -5,8 +5,8 @@
 * [x] Expand Python functionality (better plots, performance / convergence
     graphs)
 * [ ] Make simple profiling environment
-* [ ] CUDA / Distributed is next
 * [ ] Optimize CPU algorithms (cache-use, limit recomputations, data-oriented, ...)
+* [ ] CUDA / Distributed is next
 * [ ] 3D / cone / slices
 * [ ] Future: work on visualizer? Parallel marching cubes? How to deal with massive amount of data on network
 * [ ] We want the objects to be able to morph into matrices and vectors for algorithm operations

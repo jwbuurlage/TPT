@@ -65,7 +65,7 @@ def test_algorithm(alg, volume, geometry, sino, betas, iterations, phantom):
             f = alg(volume, geometry, sino, betas[i], f)
             k += 1
             errors[i][0].append(k)
-            errors[i][1].append(l1(f, phantom))
+            errors[i][1].append(l2(f, phantom))
 
     fig.tight_layout()
 
@@ -76,6 +76,5 @@ def test_algorithm(alg, volume, geometry, sino, betas, iterations, phantom):
         ax.plot(errors[i][0], errors[i][1], label="beta = {:.2f}".format(betas[i]))
     ax.set_title("errors")
     ax.set_yscale("log")
-    ax.relim()
-    ax.autoscale_view()
+    ax.autoscale()
     ax.legend()

@@ -117,7 +117,7 @@ vec2<T> intersection(vec2<T> p, vec2<T> p2, vec2<T> q, vec2<T> q2) {
 template <dimension D, typename T>
 bool inside(typename vec<D, T>::type a, volume<D> vol) {
     for (int dim = 0; dim < D; ++dim) {
-        if (a[dim] < 0.0 || a[dim] > vol[dim])
+        if (a[dim] + epsilon < 0 || a[dim] - epsilon > vol[dim])
             return false;
     }
     return true;

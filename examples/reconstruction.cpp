@@ -18,6 +18,7 @@ int main() {
 
     // simulate the experiment
     auto sino = tomo::forward_projection<2_D, double>(f, g);
+    tomo::ascii_plot(sino);
 
     // run an algorithm to reconstruct the image
     auto x = tomo::art(v, g, sino);
