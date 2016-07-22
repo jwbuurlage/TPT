@@ -12,7 +12,7 @@ namespace tomo {
 template <dimension D, typename T, typename Iterator>
 class projector {
   public:
-    projector(volume<D> vol) : volume_(vol), line_({{0,0},{0,0}}) {
+    projector(volume<D> vol) : volume_(vol), line_({{0, 0}, {0, 0}}) {
         queue_.reserve((int)(math::sqrt2 * 4 * volume_[0]));
     }
 
@@ -40,6 +40,7 @@ class projector {
 };
 
 template <dimension D, typename T = default_scalar_type>
-using linear_projector = projector<D, T, typename std::vector<math::matrix_element<T>>::iterator>;
+using linear_projector =
+    projector<D, T, typename std::vector<math::matrix_element<T>>::iterator>;
 
 } // namespace tomo

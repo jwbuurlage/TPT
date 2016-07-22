@@ -15,8 +15,7 @@ def plot_helper_(f, ax):
                        len(data) // dim[0]),
               interpolation="none",
               cmap='bone',
-              extent=[0, dim[0], 0, dim[1]],
-              aspect='auto')
+              extent=[0, dim[0], 0, dim[1]])
 
 
 def plot(f):

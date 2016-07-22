@@ -14,3 +14,5 @@
 [ ] Overloading function  but calling parent functions? See getInformation in algorithm(s).
 [ ] no namespace scoping for constants such as 'eps', unclear where it originates
 [ ] ART does not work with cpu? maybe projector incompatible
+[ ] See policies in DataProjector.h, why is this necessary? In any case, could be resolved by variadic templates
+[ ] Many code commented out
