@@ -12,6 +12,7 @@ image<D, T> sart(const volume<D>& v, const Geometry& g,
     image<D, T> f(v);
     if (initial)
         f = initial.value();
+    Projector proj(v);
 
     // the size of a single block
     int k = g.groups()[0];
@@ -20,7 +21,7 @@ image<D, T> sart(const volume<D>& v, const Geometry& g,
     std::vector<T> w_norms(g.lines());
     int line_number = 0;
     for (auto line : g) {
-        Projector proj(line, v);
+        proj.reset(line);
         for (auto elem : proj) {
             w_norms[line_number] += elem.value * elem.value;
         }
@@ -35,6 +36,7 @@ image<D, T> sart(const volume<D>& v, const Geometry& g,
 
         int row = 0;
         for (auto line : g) {
+            proj.reset(line);
             if (s == k) {
                 // we now update the image
                 if (t > 0)
@@ -46,7 +48,6 @@ image<D, T> sart(const volume<D>& v, const Geometry& g,
             if (w_norms[row] < math::epsilon)
                 continue;
 
-            Projector proj(line, v);
             T alpha = 0.0;
             for (auto elem : proj)
                 alpha += f[elem.index] * elem.value;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <stddef.h>
 #include <type_traits>
 #include <vector>
@@ -42,6 +43,8 @@ class image {
     volume<Dimension> get_volume() const { return v_; }
 
     std::array<int, Dimension> dimensions() const { return v_.dimensions(); }
+
+    void clear() { std::fill(data_.begin(), data_.end(), 0); }
 
   private:
     volume<Dimension> v_;

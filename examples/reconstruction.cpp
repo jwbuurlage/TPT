@@ -17,7 +17,8 @@ int main() {
     auto g = tomo::parallel_geometry<2_D>(k / 2, k / 2, v);
 
     // simulate the experiment
-    auto sino = tomo::forward_projection<2_D, double>(f, g);
+    auto proj = tomo::linear_projector<2_D, double>(v);
+    auto sino = tomo::forward_projection<2_D, double>(f, g, proj);
 
     // run an algorithm to reconstruct the image
     auto x = tomo::art(v, g, sino);

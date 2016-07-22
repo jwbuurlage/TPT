@@ -1,5 +1,8 @@
 #pragma once
 
+#include <experimental/optional>
+using std::experimental::optional;
+
 #include <string>
 
 #include "common.hpp"
@@ -13,12 +16,13 @@ namespace tomo {
 template <dimension D, typename T, class Geometry,
           class Projector = linear_projector<D, T>>
 sinogram<D, T, Geometry, Projector> forward_projection(const image<D, T>& f,
-                                            const Geometry& g) {
+                                                       const Geometry& g,
+                                                       Projector& proj) {
     auto sino = sinogram<D, T, Geometry, Projector>(g);
 
     int line_number = 0;
     for (auto line : g) {
-        Projector proj(line, f.get_volume());
+        proj.reset(line);
         for (auto elem : proj) {
             sino[line_number] += f[elem.index] * elem.value;
         }

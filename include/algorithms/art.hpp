@@ -20,12 +20,13 @@ image<D, T> art(const volume<D>& v, const Geometry& g,
     image<D, T> f(v);
     if (initial)
         f = initial.value();
+    Projector proj(v);
 
     // compute $w_i \cdot w_i$
     std::vector<T> w_norms(g.lines());
     int line_number = 0;
     for (auto line : g) {
-        Projector proj(line, v);
+        proj.reset(line);
         for (auto elem : proj) {
             w_norms[line_number] += elem.value * elem.value;
         }
@@ -35,10 +36,7 @@ image<D, T> art(const volume<D>& v, const Geometry& g,
     for (int k = 0; k < iterations; ++k) {
         int row = 0;
         for (auto line : g) {
-            if (w_norms[row] < math::epsilon)
-                continue;
-
-            Projector proj(line, v);
+            proj.reset(line);
             T alpha = 0.0;
             for (auto elem : proj)
                 alpha += f[elem.index] * elem.value;

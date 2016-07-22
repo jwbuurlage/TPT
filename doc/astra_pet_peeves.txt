@@ -11,3 +11,6 @@
 [ ] Uses GPL
 [ ] No 80 character line limit
 [ ] 'Java' OO style instead of using more C++/STL style
+[ ] Overloading function  but calling parent functions? See getInformation in algorithm(s).
+[ ] no namespace scoping for constants such as 'eps', unclear where it originates
+[ ] ART does not work with cpu? maybe projector incompatible

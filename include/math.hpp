@@ -18,6 +18,7 @@ namespace math {
 
 constexpr double epsilon = 1e-8;
 constexpr auto pi = glm::pi<double>();
+constexpr double sqrt2 = 1.41421356237;
 
 // matrices are given by line distributions
 template <typename T = default_scalar_type>
@@ -140,14 +141,13 @@ void interpolate(typename vec<D, T>::type a, volume<D> vol,
     // i-1, j-1  |   i,j-1
 
     using cell_type = vec2<int>;
-    std::vector<cell_type> cells = {
-        {i - 1, j - 1}, {i, j - 1}, {i - 1, j}, {i, j}};
+    cell_type cells[] = {{i - 1, j - 1}, {i, j - 1}, {i - 1, j}, {i, j}};
     for (auto cell : cells) {
         if (inside<D, double>(vec2<double>(cell) + vec2<double>(0.5), vol)) {
             int index = vol.index({cell[0], cell[1]});
             auto value =
-                1.0 - ((distance(a, vec2<T>(cell[0] + 0.5, cell[1] + 0.5))) /
-                       sqrt(2.0));
+                1.0 -
+                ((distance(a, vec2<T>(cell[0] + 0.5, cell[1] + 0.5))) / sqrt2);
             queue.push_back({index, value});
         }
     }

@@ -31,13 +31,10 @@ class parallel_geometry<2_D, T>
             angles_.push_back(angle);
         }
 
-        // detector is at (x - (N - 1) / 2) * d
-        auto center = (volume.y() - 1) * (T)0.5;
         auto detector_step = (T)volume.y() / detector_count;
         for (int detector = 0; detector < detector_count; detector++) {
-            detectors_.push_back(center +
-                                 (detector - (detector_count - 1) * 0.5) *
-                                     detector_step);
+            detectors_.push_back((detector - (detector_count - 1) * 0.5) *
+                                 detector_step);
         }
 
         this->dimensions_ = {detector_count, angle_count};
@@ -100,8 +97,6 @@ class parallel_line_iterator<2_D, T>
         // center, and maybe we even want to cache these results somehow
         auto vol = geometry_.get_volume();
         auto origin = math::vec2<T>(-vol.x(), current_detector);
-        auto image_center = math::vec2<T>(0.5 * vol.x(), 0.5 * vol.y());
-        origin -= image_center;
 
         auto c = math::cos(-current_angle);
         auto s = math::sin(-current_angle);
@@ -109,6 +104,7 @@ class parallel_line_iterator<2_D, T>
         origin = math::vec2<T>(c * origin[0] - s * origin[1],
                                s * origin[0] + c * origin[1]);
 
+        auto image_center = math::vec2<T>(0.5 * vol.x(), 0.5 * vol.y());
         origin += image_center;
 
         auto delta = math::vec2<T>(c, s);
@@ -130,7 +126,7 @@ class parallel_line_iterator<2_D, T>
         //            /
         //         <--
 
-        const std::array<std::array<math::vec2<T>, 2>, 3> lines = {
+        static const std::array<std::array<math::vec2<T>, 2>, 3> lines = {
             std::array<math::vec2<T>, 2>{math::vec2<T>(0, 0),
                                          math::vec2<T>(0, vol.y())},
             std::array<math::vec2<T>, 2>{math::vec2<T>(0, vol.y()),

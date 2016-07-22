@@ -1,5 +1,8 @@
 #pragma once
 
+#include <experimental/optional>
+using std::experimental::optional;
+
 #include <vector>
 
 namespace tomo {
@@ -12,52 +15,54 @@ image<D, T> sirt(const volume<D>& v, const Geometry& g,
     image<D, T> f(v);
     if (initial)
         f = initial.value();
+    Projector proj(v);
 
     // first we compute R and C
     std::vector<T> R(g.lines());
-    std::vector<T> C(v.cells());
+    std::vector<T> bC(v.cells());
     int line_number = 0;
+
     for (auto line : g) {
-        Projector proj(line, v);
+        proj.reset(line);
         for (auto elem : proj) {
             R[line_number] += elem.value;
-            C[elem.index] += elem.value;
+            bC[elem.index] += elem.value;
         }
         ++line_number;
     }
 
     for (auto& r : R)
         r = 1.0 / r;
-    for (auto& c : C)
-        c = 1.0 / c;
+    for (auto& bc : bC)
+        bc = beta / bc;
 
     sinogram<D, T, Geometry, Projector> s1(g);
     image<D, T> s2(v);
-
     for (int k = 0; k < iterations; ++k) {
-        // next we compute Wx
-        auto Wx = forward_projection(f, g);
+        // compute Wx
+        auto Wx = forward_projection(f, g, proj);
 
         // compute R(p - Wx)
         for (int j = 0; j < g.lines(); ++j) {
             s1[j] = (p[j] - Wx[j]) * R[j];
         }
+
         // zero the image
-        s2 = image<D, T>(v);
+        s2.clear();
 
         // multiply with W^T
         int row = 0;
         for (auto line : g) {
-            Projector proj(line, v);
+            proj.reset(line);
             for (auto elem : proj) {
                 s2[elem.index] += elem.value * s1[row];
             }
             ++row;
         }
 
-        // update image while scaling with C
+        // update image while scaling with beta * C
         for (int j = 0; j < v.cells(); ++j) {
-            f[j] += beta * C[j] * s2[j];
+            f[j] += bC[j] * s2[j];
         }
     }
 
