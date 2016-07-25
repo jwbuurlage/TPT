@@ -66,10 +66,14 @@ auto sin(T obj) {
     return glm::sin(obj);
 }
 
-// operations
 template <typename T>
 auto floor(T obj) {
     return glm::floor(obj);
+}
+
+template <typename T>
+auto abs(T obj) {
+    return glm::abs(obj);
 }
 
 template <typename T>
@@ -77,9 +81,16 @@ auto sqrt(T obj) {
     return glm::sqrt(obj);
 }
 
+// vector properties
 template <dimension D, typename T>
 T distance(typename vec<D, T>::type a, typename vec<D, T>::type b) {
     return glm::distance(a, b);
+}
+
+// vector properties
+template <typename T>
+T distance(T a, T b) {
+    return math::abs(a - b);
 }
 
 template <dimension D, typename T>
@@ -131,17 +142,17 @@ void interpolate(typename vec<D, T>::type a, volume<D> vol,
 
     // find neighbouring cells
     // we are looking for the cells with closest centers to our point
-    int i = floor(a[0] + 0.5);
-    int j = floor(a[1] + 0.5);
+    int x = floor(a[0] + 0.5);
+    int y = floor(a[1] + 0.5);
 
-    // i-1, j    |   i,j
+    // x-1, y    |   x,y
     //           |
-    // ------- (i,j)--------
+    // ------- (x,y)--------
     //           |
-    // i-1, j-1  |   i,j-1
+    // x-1, y-1  |   x,y-1
 
     using cell_type = vec2<int>;
-    cell_type cells[] = {{i - 1, j - 1}, {i, j - 1}, {i - 1, j}, {i, j}};
+    cell_type cells[] = {{x - 1, y - 1}, {x, y - 1}, {x - 1, y}, {x, y}};
     for (auto cell : cells) {
         if (inside<D, double>(vec2<double>(cell) + vec2<double>(0.5), vol)) {
             int index = vol.index({cell[0], cell[1]});

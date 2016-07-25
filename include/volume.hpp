@@ -53,7 +53,7 @@ class volume {
      */
     int operator[](size_t i) const { return dimensions_[i]; }
 
-    size_t index(std::array<int, Dimension> xs) const {
+    int index(std::array<int, Dimension> xs) const {
         int result = xs[0];
         int offset = dimensions_[0];
         for (int i = 1; i < Dimension; ++i) {

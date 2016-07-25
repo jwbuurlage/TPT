@@ -17,14 +17,14 @@ std::ostream& operator<<(std::ostream& os, const line<Dimension, Type>& line) {
 
 
 template <typename T>
-std::ostream& operator<<(std::ostream& os, const math::matrix_element<double>& elem) {
+std::ostream& operator<<(std::ostream& os, const math::matrix_element<T>& elem) {
     os << "[" << elem.index << ": " << elem.value << "]";
     return os;
 }
 
 
 template <typename T>
-std::ostream& operator<<(std::ostream& os, const math::vec2<double>& vec) {
+std::ostream& operator<<(std::ostream& os, typename glm::tvec2<T> vec) {
     os << "{" << vec[0] << ", " << vec[1] << "}";
     return os;
 }

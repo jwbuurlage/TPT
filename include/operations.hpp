@@ -8,6 +8,7 @@ using std::experimental::optional;
 #include "common.hpp"
 #include "image.hpp"
 #include "projector.hpp"
+#include "projectors/linear.hpp"
 #include "sinogram.hpp"
 #include "volume.hpp"
 
@@ -15,9 +16,8 @@ namespace tomo {
 
 template <dimension D, typename T, class Geometry,
           class Projector = linear_projector<D, T>>
-sinogram<D, T, Geometry, Projector> forward_projection(const image<D, T>& f,
-                                                       const Geometry& g,
-                                                       Projector& proj) {
+sinogram<D, T, Geometry, Projector>
+forward_projection(const image<D, T>& f, const Geometry& g, Projector& proj) {
     auto sino = sinogram<D, T, Geometry, Projector>(g);
 
     int line_number = 0;
