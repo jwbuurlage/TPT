@@ -12,8 +12,7 @@ template <dimension Dimension, typename T = default_scalar_type>
 struct line {
     using vecD = typename math::vec<Dimension, T>::type;
 
-    line(vecD origin_in, vecD delta_in)
-        : origin(origin_in), delta(delta_in) {}
+    line(vecD origin_in, vecD delta_in) : origin(origin_in), delta(delta_in) {}
 
     line(std::initializer_list<vecD> vectors)
         : line(*vectors.begin(), *(vectors.begin() + 1)) {
@@ -36,6 +35,10 @@ template <dimension Dimension, typename T = default_scalar_type,
           class Iterator = void>
 class geometry {
   public:
+    // IDEA: use a generic iterator here, that calls upon a 'queue' of the
+    // geometry object, that has a certain maximum size, no iterator template required
+    class iterator {};
+
     geometry(int line_count) : line_count_(line_count) {}
 
     virtual Iterator begin() const = 0;

@@ -134,7 +134,7 @@ class parallel_line_iterator<2_D, T>
             std::array<math::vec2<T>, 2>{math::vec2<T>(vol.x(), vol.y()),
                                          math::vec2<T>(vol.x(), 0)}};
 
-        auto end = origin + 3.0 * vol.x() * delta;
+        auto end = origin + (T)3.0 * vol.x() * delta;
 
         T min_distance = std::numeric_limits<T>::max();
         math::vec2<T> best_point;
@@ -143,7 +143,7 @@ class parallel_line_iterator<2_D, T>
                 origin, end, line_segment[0], line_segment[1]);
             if (intersection_point != math::vec2<T>(0, 0)) {
                 auto dist =
-                    math::distance<2_D, double>(origin, intersection_point);
+                    math::distance<2_D, T>(origin, intersection_point);
                 if (dist < min_distance) {
                     best_point = intersection_point;
                     min_distance = dist;

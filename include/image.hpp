@@ -51,19 +51,4 @@ class image {
     std::vector<Type> data_;
 };
 
-//// unroll index loops ourselves for 2D and 3D
-//template <typename Type>
-//class image<2_D, Type> {
-//    size_t index(std::array<int, 2> xs) const {
-//        return xs[0] + xs[1] * this->v_[0];
-//    }
-//};
-//
-//template <typename Type>
-//class image<3_D, Type> {
-//    size_t index(std::array<int, 3> xs) const {
-//        return xs[0] + xs[1] * this->v_[0] + xs[2] * this->v_[0] * this->v_[1];
-//    }
-//};
-
 } // namespace tomo

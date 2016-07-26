@@ -1,7 +1,7 @@
 # TODAY'S GOAL
-- Make a line-container, and implement Joseph kernel for fair comparison with Astra.
-- Run ART on GPU, using Hemi(?), compare efficiency.
-- Set up unit tests, set up documentation
+[ ] Generalize projectors in python interface
+[ ] Run ART on GPU, using Hemi(?), compare efficiency.
+[ ] Set up unit tests, set up documentation
 
 # CONTINUE:
 * [ ] Optimize CPU algorithms (cache-use, limit recomputations, data-oriented, ...)

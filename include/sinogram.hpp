@@ -6,6 +6,8 @@
 
 namespace tomo {
 
+// the projector template argument is there so the reconstruction algorithms can
+// construct an projector themselves when solving for the sinogram
 template <dimension Dimension, typename T, class Geometry, class Projector>
 class sinogram {
   public:

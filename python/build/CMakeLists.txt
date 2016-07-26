@@ -5,18 +5,14 @@ add_subdirectory(pybind11)
 
 set(
     BINDING_SOURCES
-    "../algorithms.cpp"
-    "../geometry.cpp"
-    "../image.cpp"
-    "../module.cpp"
-    "../operations.cpp"
+    "../src/module.cpp"
 )
 
 include_directories("../../include" "../include")
 link_directories("../../bin")
 
 set(BINDING_NAME "py_galactica")
-
+set(CMAKE_CXX_COMPILER "clang++")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -Wall -Wfatal-errors -Wextra -O3")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/..)
 

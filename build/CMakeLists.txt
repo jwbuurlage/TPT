@@ -35,12 +35,23 @@ set(
 )
 
 set(
+    CUDA_SOURCES
+    "cuda_reconstruction.cpp"
+)
+
+set(
     LIB_NAMES
     "pthread"
     "galactica"
 )
 
 foreach(source_file ${EXAMPLE_SOURCES})
+    string(REPLACE ".cpp" "" source_name ${source_file})
+    add_executable(${source_name} ${EXAMPLE_DIR}${source_file})
+    target_link_libraries( ${source_name} ${LIB_NAMES} )
+endforeach(source_file)
+
+foreach(source_file ${CUDA_SOURCES})
     string(REPLACE ".cpp" "" source_name ${source_file})
     add_executable(${source_name} ${EXAMPLE_DIR}${source_file})
     target_link_libraries( ${source_name} ${LIB_NAMES} )

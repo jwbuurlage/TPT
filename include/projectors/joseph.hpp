@@ -30,7 +30,7 @@ class joseph_projector : public projector<2_D, T, joseph_iterator<T>> {
             cells[1][dimension] += 1;
 
             for (auto cell : cells) {
-                auto distance = 1.0 - math::distance(cell[dimension] + 0.5,
+                auto distance = (T)1.0 - math::distance(cell[dimension] + (T)0.5,
                                                      position[dimension]);
                 if (cell[dimension] < this->volume_[dimension] &&
                     distance > math::epsilon) {
@@ -45,7 +45,7 @@ class joseph_projector : public projector<2_D, T, joseph_iterator<T>> {
             (math::abs(line.delta.x) > math::abs(line.delta.y)) ? 1 : 0;
 
         auto step = line.delta / math::abs(line.delta[1 - dimension]);
-        current_point += 0.5 * step;
+        current_point += (T)0.5 * step;
 
         while (math::inside<2_D, T>(current_point, this->volume_)) {
             interpolate(current_point, dimension);

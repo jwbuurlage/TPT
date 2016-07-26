@@ -70,8 +70,6 @@ void ascii_plot_output(const ImageLike& image, math::vec2<int> dimensions) {
             auto idx = (unsigned int)(math::sqrt(image[cur++] / max) * chars.size());
             if (idx >= chars.size())
                 idx = chars.size() - 1;
-            if (idx < 0)
-                idx = 0;
             std::cout << chars[idx] << " ";
         }
         std::cout << "\n";

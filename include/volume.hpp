@@ -61,6 +61,14 @@ class volume {
             offset *= dimensions_[i];
         }
         return result;
+
+        //    size_t index(std::array<int, 2> xs) const {
+        //        return xs[0] + xs[1] * this->v_[0];
+        //    }
+        //    size_t index(std::array<int, 3> xs) const {
+        //        return xs[0] + xs[1] * this->v_[0] + xs[2] * this->v_[0] *
+        //        this->v_[1];
+        //    }
     }
 
     std::array<int, Dimension> dimensions() const { return dimensions_; }
