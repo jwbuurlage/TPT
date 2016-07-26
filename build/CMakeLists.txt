@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 3.0.0)
 
+
 project(tomo)
 
 include_directories(
     "../include"
+    "../ext/hemi/"
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -Wall -Wfatal-errors -Wextra -O3 -g")
@@ -34,10 +36,6 @@ set(
     "reconstruction.cpp"
 )
 
-set(
-    CUDA_SOURCES
-    "cuda_reconstruction.cpp"
-)
 
 set(
     LIB_NAMES
@@ -51,10 +49,21 @@ foreach(source_file ${EXAMPLE_SOURCES})
     target_link_libraries( ${source_name} ${LIB_NAMES} )
 endforeach(source_file)
 
-foreach(source_file ${CUDA_SOURCES})
-    string(REPLACE ".cpp" "" source_name ${source_file})
-    add_executable(${source_name} ${EXAMPLE_DIR}${source_file})
-    target_link_libraries( ${source_name} ${LIB_NAMES} )
-endforeach(source_file)
+
+find_package(CUDA 7.5 REQUIRED)
+
+set(CUDA_64_BIT_DEVICE_CODE ON)
+set(CUDA_PROPAGATE_HOST_FLAGS OFF)
+
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11 --expt-extended-lambda")
+
+set(
+    CUDA_SOURCES
+    "../examples/cuda_reconstruction.cpp"
+    "../cuda/forward_project.cu"
+)
+
+cuda_add_executable("cuda_reconstruction" ${CUDA_SOURCES})
+#target_link_libraries("cuda_reconstruction" ${LIB_NAMES})
 
 # add_subdirectory(../test/build ../test/build)

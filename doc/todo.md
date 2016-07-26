@@ -1,5 +1,6 @@
 # TODAY'S GOAL
-[ ] Generalize projectors in python interface
+[x] Generalize projectors in python interface
+[ ] Fix SART failing (see python)
 [ ] Run ART on GPU, using Hemi(?), compare efficiency.
 [ ] Set up unit tests, set up documentation
 
