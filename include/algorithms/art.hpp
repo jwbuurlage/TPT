@@ -1,8 +1,5 @@
 #pragma once
 
-#include <experimental/optional>
-using std::experimental::optional;
-
 #include "../common.hpp"
 #include "../geometry.hpp"
 #include "../image.hpp"
@@ -15,11 +12,8 @@ namespace tomo {
 template <dimension D, typename T, class Geometry, class Projector>
 image<D, T> art(const volume<D>& v, const Geometry& g,
                 const sinogram<D, T, Geometry, Projector>& p, double beta = 0.5,
-                int iterations = 10,
-                optional<image<D, T>> initial = optional<image<D, T>>()) {
+                int iterations = 10) {
     image<D, T> f(v);
-    if (initial)
-        f = initial.value();
     Projector proj(v);
 
     // compute $w_i \cdot w_i$

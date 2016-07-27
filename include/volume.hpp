@@ -1,6 +1,6 @@
 #pragma once
 
-#include <algorithm>
+#include <numeric>
 #include <array>
 
 #include "common.hpp"

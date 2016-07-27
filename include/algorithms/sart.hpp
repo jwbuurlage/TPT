@@ -10,11 +10,8 @@ namespace tomo {
 template <dimension D, typename T, class Geometry, class Projector>
 image<D, T> sart(const volume<D>& v, const Geometry& g,
                  const sinogram<D, T, Geometry, Projector>& p,
-                 double beta = 0.5, int iterations = 10,
-                 optional<image<D, T>> initial = optional<image<D, T>>()) {
+                 double beta = 0.5, int iterations = 10) {
     image<D, T> f(v);
-    if (initial)
-        f = initial.value();
     Projector proj(v);
 
     // the size of a single block

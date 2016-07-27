@@ -52,21 +52,23 @@ foreach(source_file ${EXAMPLE_SOURCES})
 endforeach(source_file)
 
 
-find_package(CUDA 7.5 REQUIRED)
+find_package(CUDA 7.5 QUIET)
 
-set(CUDA_64_BIT_DEVICE_CODE ON)
-set(CUDA_PROPAGATE_HOST_FLAGS OFF)
+if(CUDA_FOUND)
+    set(CUDA_64_BIT_DEVICE_CODE ON)
+    set(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
-set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11 --expt-extended-lambda")
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11 --expt-extended-lambda")
 
-set(
-    CUDA_SOURCES
-    "../examples/cuda_reconstruction.cpp"
-    "../cuda/forward_project.cu"
-    "../cuda/sart.cu"
-)
+    set(
+        CUDA_SOURCES
+        "../examples/cuda_reconstruction.cpp"
+        "../cuda/forward_project.cu"
+        "../cuda/sart.cu"
+    )
 
-cuda_add_executable("cuda_reconstruction" ${CUDA_SOURCES})
-target_link_libraries("cuda_reconstruction" ${LIB_NAMES})
+    cuda_add_executable("cuda_reconstruction" ${CUDA_SOURCES})
+    target_link_libraries("cuda_reconstruction" ${LIB_NAMES})
 
-# add_subdirectory(../test/build ../test/build)
+    # add_subdirectory(../test/build ../test/build)
+endif(CUDA_FOUND)
