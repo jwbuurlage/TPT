@@ -11,7 +11,7 @@ template <dimension D, typename T, class Geometry, class Projector>
 image<D, T> sirt(const volume<D>& v, const Geometry& g,
                  const sinogram<D, T, Geometry, Projector>& p,
                  double beta = 0.5, int iterations = 10,
-                 optional<image<D, T>> initial = optional<image<D, T>>()) {
+                 optional<image<D, T>> initial = {}) {
     image<D, T> f(v);
     if (initial)
         f = initial.value();
@@ -39,12 +39,21 @@ image<D, T> sirt(const volume<D>& v, const Geometry& g,
     sinogram<D, T, Geometry, Projector> s1(g);
     image<D, T> s2(v);
     for (int k = 0; k < iterations; ++k) {
+        s1.clear();
+
         // compute Wx
-        auto Wx = forward_projection(f, g, proj);
+        int line_number = 0;
+        for (auto line : g) {
+            proj.reset(line);
+            for (auto elem : proj) {
+                s1[line_number] += f[elem.index] * elem.value;
+            }
+            ++line_number;
+        }
 
         // compute R(p - Wx)
         for (int j = 0; j < g.lines(); ++j) {
-            s1[j] = (p[j] - Wx[j]) * R[j];
+            s1[j] = (p[j] - s1[j]) * R[j];
         }
 
         // zero the image

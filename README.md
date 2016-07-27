@@ -8,3 +8,19 @@ Personal goal: convince that ASTRA 2.0 is needed with the following features:
 * Better build system (CMake)
 * Data oriented => faster
 * No or very little specific code for 2D or 3D in main code
+
+# Dependencies
+
+We use:
+
+* Catch
+* fmtlib/fmt
+* glm
+* boost::hana
+* pybind11
+
+Build
+
+* cmake
+* cuda
+* modern compiler

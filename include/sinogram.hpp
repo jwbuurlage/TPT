@@ -20,9 +20,12 @@ class sinogram {
     T& operator[] (int i) { return data_[i]; }
     const T& operator[] (int i) const { return data_[i]; }
 
+    const std::vector<T>& data() const { return data_; }
     std::vector<T>& mutable_data() { return data_; }
 
     const Geometry& geometry() const { return geometry_; }
+
+    void clear() { std::fill(data_.begin(), data_.end(), 0); }
 
   private:
     const Geometry& geometry_;

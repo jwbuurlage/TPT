@@ -1,6 +1,9 @@
 #pragma once
 
+#include <iostream>
 #include <vector>
+
+#include "../logging.hpp"
 
 namespace tomo {
 
@@ -39,16 +42,18 @@ image<D, T> sart(const volume<D>& v, const Geometry& g,
             proj.reset(line);
             if (s == k) {
                 // we now update the image
-                if (t > 0)
+                if (t > 0) {
                     f = f_next;
+                }
                 ++t;
                 s = 0;
             }
 
             if (w_norms[row] > math::epsilon) {
                 T alpha = 0.0;
-                for (auto elem : proj)
+                for (auto elem : proj) {
                     alpha += f[elem.index] * elem.value;
+                }
 
                 auto factor = beta * ((p[row] - alpha) / w_norms[row]);
                 for (auto elem : proj)
@@ -58,7 +63,6 @@ image<D, T> sart(const volume<D>& v, const Geometry& g,
             ++row;
             ++s;
         }
-
     }
 
     return f;

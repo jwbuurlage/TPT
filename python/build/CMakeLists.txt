@@ -8,7 +8,7 @@ set(
     "../src/module.cpp"
 )
 
-include_directories("../../include" "../include")
+include_directories("../../include" "../../ext/fmt" "../include")
 link_directories("../../bin")
 
 set(BINDING_NAME "py_galactica")

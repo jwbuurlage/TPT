@@ -6,6 +6,7 @@ project(tomo)
 include_directories(
     "../include"
     "../ext/hemi/"
+    "../ext/fmt/"
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -Wall -Wfatal-errors -Wextra -O3 -g")
@@ -22,6 +23,7 @@ set(LIB_NAME "galactica")
 set(
     LIB_SOURCES
     "../src/phantoms.cpp"
+    "../ext/fmt/fmt/format.cc"
 )
 
 add_library( ${LIB_NAME} STATIC ${LIB_SOURCES} )
@@ -61,9 +63,10 @@ set(
     CUDA_SOURCES
     "../examples/cuda_reconstruction.cpp"
     "../cuda/forward_project.cu"
+    "../cuda/sart.cu"
 )
 
 cuda_add_executable("cuda_reconstruction" ${CUDA_SOURCES})
-#target_link_libraries("cuda_reconstruction" ${LIB_NAMES})
+target_link_libraries("cuda_reconstruction" ${LIB_NAMES})
 
 # add_subdirectory(../test/build ../test/build)

@@ -4,3 +4,6 @@
 [submodule "ext/hemi"]
 	path = ext/hemi
 	url = https://github.com/harrism/hemi
+[submodule "ext/fmt"]
+	path = ext/fmt
+	url = https://github.com/fmtlib/fmt

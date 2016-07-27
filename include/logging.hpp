@@ -3,8 +3,10 @@
 #include <iostream>
 #include <vector>
 
-#include "math.hpp"
+#include "fmt/format.h"
+
 #include "geometry.hpp"
+#include "math.hpp"
 
 namespace tomo {
 
@@ -15,13 +17,12 @@ std::ostream& operator<<(std::ostream& os, const line<Dimension, Type>& line) {
     return os;
 }
 
-
 template <typename T>
-std::ostream& operator<<(std::ostream& os, const math::matrix_element<T>& elem) {
+std::ostream& operator<<(std::ostream& os,
+                         const math::matrix_element<T>& elem) {
     os << "[" << elem.index << ": " << elem.value << "]";
     return os;
 }
-
 
 template <typename T>
 std::ostream& operator<<(std::ostream& os, typename glm::tvec2<T> vec) {
@@ -41,6 +42,6 @@ std::ostream& operator<<(std::ostream& os, const std::vector<T>& vec) {
     return os;
 }
 
-#define TOMO_LOG_VAR(VAR) (std::cout << #VAR << " = " << VAR << std::endl)
+#define TOMO_LOG_VAR(VAR) (fmt::print(#VAR " = {}\n", VAR))
 
 } // namespace tomo

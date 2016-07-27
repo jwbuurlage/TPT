@@ -6,7 +6,7 @@
 int main() {
     using T = double;
 
-    int k = 128;
+    int k = 256;
 
     // create a 2D volume of size k x k
     auto v = tomo::volume<2_D>(k, k);
@@ -16,7 +16,7 @@ int main() {
 
     // create a parallel geometry for the volume with k / 2 detectors and
     // k / 2 angles, for two dimensions
-    auto g = tomo::parallel_geometry<2_D, T>(k / 2, k / 2, v);
+    auto g = tomo::parallel_geometry<2_D, T>(180, 250, v);
 
     // simulate the experiment
     //auto proj = tomo::linear_projector<2_D, T>(v);

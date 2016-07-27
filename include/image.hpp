@@ -46,6 +46,9 @@ class image {
 
     void clear() { std::fill(data_.begin(), data_.end(), 0); }
 
+    auto begin() { return data_.begin(); }
+    auto end() { return data_.end(); }
+
   private:
     volume<Dimension> v_;
     std::vector<Type> data_;
