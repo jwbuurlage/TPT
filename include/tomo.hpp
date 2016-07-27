@@ -19,5 +19,6 @@
 #include "geometries/list.hpp"
 #include "geometries/parallel.hpp"
 
+#include "projectors/closest.hpp"
 #include "projectors/linear.hpp"
 #include "projectors/joseph.hpp"
