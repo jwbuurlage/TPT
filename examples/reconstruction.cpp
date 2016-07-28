@@ -14,8 +14,8 @@ int main() {
     auto f = tomo::modified_shepp_logan_phantom<T>(v);
     tomo::ascii_plot(f);
 
-    // create a parallel geometry for the volume with k / 2 detectors and
-    // k / 2 angles, for two dimensions
+    // create a parallel geometry for the volume with 250 detectors and
+    // 180 angles, for two dimensions
     auto g = tomo::parallel_geometry<2_D, T>(180, 250, v);
 
     // simulate the experiment

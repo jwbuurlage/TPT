@@ -18,6 +18,7 @@ We use:
 * glm
 * boost::hana
 * pybind11
+* thrust
 
 Build
 

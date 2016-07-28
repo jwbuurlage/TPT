@@ -1,9 +1,11 @@
-#include "hemi/parallel_for.h"
 #include <cmath>
-
-#include "device_data.hpp"
+#include <thrust/device_vector.h>
 
 #include "fmt/format.h"
+#include "hemi/parallel_for.h"
+
+#include "device_data.hpp"
+#include "projectors/closest.cu.hpp"
 
 namespace tomo {
 namespace cuda {
@@ -11,109 +13,65 @@ namespace cuda {
 #define EPSILON 1e-6
 
 template <typename T>
-__global__ void w_norms_kernel(const device_line<T>* device_lines,
-                               device_volume v, T* w_norms) {
-    // gpu, first just 'closest' kernel (value 1)
+__global__ void w_norms_kernel(const device::line<T>* device_lines,
+                               device::volume v, T* w_norms) {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
 
     T result = 0;
-    vec2<T> current = device_lines[i].origin;
-    while (current.x <= v.x + EPSILON && current.y <= v.y + EPSILON &&
-           current.x + EPSILON >= 0 && current.y + EPSILON >= 0) {
-        int index = (int)(current.x) + v.x * (int)(current.y);
-        if (index < v.x * v.y && index >= 0) {
-            result += (T)1.0;
-        }
-
-        current.x += device_lines[i].delta.x;
-        current.y += device_lines[i].delta.y;
-    }
-
+    project_closest(device_lines[i], v, [&result](int index) { result += 1; });
     w_norms[i] = result;
 }
 
 template <typename T>
-__global__ void sart_kernel(T* device_image, const device_line<T>* device_lines,
-                            const T* device_sino, device_volume v, T beta,
-                            const T* w_norms) {
+__global__ void
+sart_kernel(T* device_image, const device::line<T>* device_lines,
+            const T* device_sino, device::volume v, T beta, const T* w_norms) {
     // gpu, first just 'closest' kernel (value 1)
     int i = blockDim.x * blockIdx.x + threadIdx.x;
 
-    if (w_norms[i] < EPSILON)
-        return;
-
     T alpha = 0;
-    vec2<T> current = device_lines[i].origin;
-    while (current.x <= v.x + EPSILON && current.y <= v.y + EPSILON &&
-           current.x + EPSILON >= 0 && current.y + EPSILON >= 0) {
-        int index = (int)(current.x) + v.x * (int)(current.y);
-        if (index < v.x * v.y && index >= 0) {
-            alpha += device_image[index];
-        }
-
-        current.x += device_lines[i].delta.x;
-        current.y += device_lines[i].delta.y;
-    }
+    project_closest(device_lines[i], v, [&alpha, &device_image](int index) {
+        alpha += device_image[index];
+    });
 
     auto factor = beta * (device_sino[i] - alpha) / w_norms[i];
 
-    current = device_lines[i].origin;
-    while (current.x <= v.x + EPSILON && current.y <= v.y + EPSILON &&
-           current.x + EPSILON >= 0 && current.y + EPSILON >= 0) {
-        int index = (int)(current.x) + v.x * (int)(current.y);
-        if (index < v.x * v.y && index >= 0) {
-            device_image[index] += factor;
-        }
-
-        current.x += device_lines[i].delta.x;
-        current.y += device_lines[i].delta.y;
-    }
+    project_closest(device_lines[i], v, [&factor, &device_image](int index) {
+        device_image[index] += factor;
+    });
 }
 
 template <typename T>
-void run_sart(device_volume v, device_line<T>* device_lines, int lines,
+void run_sart(device::volume v, device::line<T>* device_lines, int lines,
               T* device_sino, T* host_image, int group_count, T beta = 0.5,
               int iterations = 10) {
-    T* device_image = nullptr;
-    auto image_bytes = v.x * v.y * sizeof(T);
-
-    cudaMalloc(&device_image, image_bytes);
-    cudaMemset(device_image, 0, image_bytes);
+    thrust::device_vector<T> device_image(v.x * v.y);
 
     int group_size = lines / group_count;
     int threads = 256;
 
-    T* w_norms = nullptr;
-    auto w_norms_bytes = lines * sizeof(T);
-    cudaMalloc(&w_norms, w_norms_bytes);
-    cudaMemset(w_norms, 0, w_norms_bytes);
-    w_norms_kernel<<<lines / threads, threads>>>(device_lines, v, w_norms);
-
-    cudaDeviceSynchronize();
-    std::vector<T> w(lines);
-    cudaMemcpy(w.data(), w_norms, w_norms_bytes, cudaMemcpyDeviceToHost);
-    cudaDeviceSynchronize();
+    thrust::device_vector<T> w_norms(lines);
+    w_norms_kernel<<<lines / threads, threads>>>(device_lines, v,
+                                                 w_norms.data().get());
 
     for (int i = 0; i < iterations; ++i) {
         for (int k = 0; k < group_count; ++k) {
             sart_kernel<<<group_size / threads, threads>>>(
-                device_image, &device_lines[k * group_size],
+                device_image.data().get(), &device_lines[k * group_size],
                 &device_sino[k * group_size], v, beta,
-                &w_norms[k * group_size]);
+                &w_norms.data().get()[k * group_size]);
         }
     }
 
-    cudaMemcpy(host_image, device_image, image_bytes, cudaMemcpyDeviceToHost);
-
-    cudaFree(w_norms);
-    cudaFree(device_image);
+    cudaMemcpy(host_image, device_image.data().get(),
+               device_image.size() * sizeof(T), cudaMemcpyDeviceToHost);
 }
 
-template void run_sart(device_volume v, device_line<float>* device_lines,
+template void run_sart(device::volume v, device::line<float>* device_lines,
                        int lines, float* device_sino, float* host_image, int,
                        float beta, int iterations);
 
-template void run_sart(device_volume v, device_line<double>* device_lines,
+template void run_sart(device::volume v, device::line<double>* device_lines,
                        int lines, double* device_sino, double* host_image,
                        int group_count, double beta, int iterations);
 

@@ -1,12 +1,13 @@
 # TODAY'S GOAL
-[x] Generalize projectors in python interface
-[ ] Run SART on GPU, using Hemi(?), compare efficiency.
-[ ] Start optimizing SART and clean up code, think of simple abstractions
-[ ] Implement 'closest kernel' in CPU, see if we get the same result
 [ ] Python interface to CUDA backend
-[ ] Set up unit tests, set up documentation
+[ ] Add CLI args to reconstruction cpp examples
+[ ] Start optimizing CUDA SART
+
+[x] Implement 'closest kernel' in CPU, see if we get the same result (ANS: not quite, but fixed a gpu bug)
+[x] Clean up GPU code, think of simple abstractions
 
 # CONTINUE:
+* [ ] Set up unit tests, set up documentation
 * [ ] Optimize CPU algorithms (cache-use, limit recomputations, data-oriented, ...)
 * [ ] CUDA and Distributed is next
 * [ ] Need *good* abstractions for GPU / Distributed objects (geometry, projectors, ...)
@@ -29,5 +30,5 @@
 # Preparation and utilities
 * [ ] Run unit tests in C++, interact through python front-end
 
-# known bugs:
+# Known bugs:
 - SART fails (diverges) when using linear projector on over determined system.
