@@ -9,19 +9,21 @@ namespace cuda {
 
 template <typename T>
 void run_sart(device_volume v, device_line<T>* device_lines, int lines,
-             T* device_sino, T* host_image, T beta = 0.5, int iterations = 10);
+              T* device_sino, T* host_image, int group_count, T beta = 0.5,
+              int iterations = 10);
 
 extern template void run_sart(device_volume v, device_line<float>* device_lines,
-                             int lines, float* device_sino, float* host_image,
-                             float beta, int iterations);
-extern template void run_sart(device_volume v, device_line<double>* device_lines,
-                             int lines, double* device_sino, double* host_image,
-                             double beta, int iterations);
+                              int lines, float* device_sino, float* host_image,
+                              int group_count, float beta, int iterations);
+extern template void run_sart(device_volume v,
+                              device_line<double>* device_lines, int lines,
+                              double* device_sino, double* host_image,
+                              int group_count, double beta, int iterations);
 
 template <dimension D, typename T, class Geometry, class Projector>
 image<D, T> sart(const volume<D>& v, const Geometry& g,
-                const sinogram<D, T, Geometry, Projector>& p, T beta = (T)0.5,
-                int iterations = 10) {
+                 const sinogram<D, T, Geometry, Projector>& p,
+                 T beta = (T)0.5, int iterations = 10) {
     image<D, T> f(v);
 
     // FIXME: this duplicates FP code, would be really cool to make abstractions
@@ -53,7 +55,7 @@ image<D, T> sart(const volume<D>& v, const Geometry& g,
 
     // 2. run alg
     run_sart(device_v, device_lines, g.lines(), device_sino,
-            f.mutable_data().data(), beta, iterations);
+             f.mutable_data().data(), g.groups()[0], beta, iterations);
 
     // 3. free memory
     cudaFree(device_lines);

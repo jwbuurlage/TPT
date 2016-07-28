@@ -20,7 +20,7 @@ __global__ void w_norms_kernel(const device_line<T>* device_lines,
     vec2<T> current = device_lines[i].origin;
     while (current.x <= v.x + EPSILON && current.y <= v.y + EPSILON &&
            current.x + EPSILON >= 0 && current.y + EPSILON >= 0) {
-        int index = (int)(current.x + (T)0.5) + v.x * (int)(current.y + (T)0.5);
+        int index = (int)(current.x) + v.x * (int)(current.y);
         if (index < v.x * v.y && index >= 0) {
             result += (T)1.0;
         }
@@ -46,7 +46,7 @@ __global__ void sart_kernel(T* device_image, const device_line<T>* device_lines,
     vec2<T> current = device_lines[i].origin;
     while (current.x <= v.x + EPSILON && current.y <= v.y + EPSILON &&
            current.x + EPSILON >= 0 && current.y + EPSILON >= 0) {
-        int index = (int)(current.x + (T)0.5) + v.x * (int)(current.y + (T)0.5);
+        int index = (int)(current.x) + v.x * (int)(current.y);
         if (index < v.x * v.y && index >= 0) {
             alpha += device_image[index];
         }
@@ -56,17 +56,13 @@ __global__ void sart_kernel(T* device_image, const device_line<T>* device_lines,
     }
 
     auto factor = beta * (device_sino[i] - alpha) / w_norms[i];
-    //    printf("w_norms[%i] = %f, factor = %f, device_sino[%i] = %f, alpha =
-    //    %f\n",
-    //           i, w_norms[i], factor, i, device_sino[i], alpha);
 
     current = device_lines[i].origin;
     while (current.x <= v.x + EPSILON && current.y <= v.y + EPSILON &&
            current.x + EPSILON >= 0 && current.y + EPSILON >= 0) {
-        int index = (int)(current.x + (T)0.5) + v.x * (int)(current.y + (T)0.5);
+        int index = (int)(current.x) + v.x * (int)(current.y);
         if (index < v.x * v.y && index >= 0) {
             device_image[index] += factor;
-            // printf("device_image[%i] = %f\n", index, device_image[index]);
         }
 
         current.x += device_lines[i].delta.x;
@@ -76,7 +72,7 @@ __global__ void sart_kernel(T* device_image, const device_line<T>* device_lines,
 
 template <typename T>
 void run_sart(device_volume v, device_line<T>* device_lines, int lines,
-              T* device_sino, T* host_image, T beta = 0.5,
+              T* device_sino, T* host_image, int group_count, T beta = 0.5,
               int iterations = 10) {
     T* device_image = nullptr;
     auto image_bytes = v.x * v.y * sizeof(T);
@@ -84,6 +80,7 @@ void run_sart(device_volume v, device_line<T>* device_lines, int lines,
     cudaMalloc(&device_image, image_bytes);
     cudaMemset(device_image, 0, image_bytes);
 
+    int group_size = lines / group_count;
     int threads = 256;
 
     T* w_norms = nullptr;
@@ -97,12 +94,12 @@ void run_sart(device_volume v, device_line<T>* device_lines, int lines,
     cudaMemcpy(w.data(), w_norms, w_norms_bytes, cudaMemcpyDeviceToHost);
     cudaDeviceSynchronize();
 
-    int detectors = 256;
     for (int i = 0; i < iterations; ++i) {
-        for (int k = 0; k < detectors; ++k) {
-            sart_kernel<<<lines / (threads * detectors), threads>>>(
-                device_image, device_lines + (k * 256), device_sino, v, beta,
-                w_norms + (k * 256));
+        for (int k = 0; k < group_count; ++k) {
+            sart_kernel<<<group_size / threads, threads>>>(
+                device_image, &device_lines[k * group_size],
+                &device_sino[k * group_size], v, beta,
+                &w_norms[k * group_size]);
         }
     }
 
@@ -113,12 +110,12 @@ void run_sart(device_volume v, device_line<T>* device_lines, int lines,
 }
 
 template void run_sart(device_volume v, device_line<float>* device_lines,
-                       int lines, float* device_sino, float* host_image,
+                       int lines, float* device_sino, float* host_image, int,
                        float beta, int iterations);
 
 template void run_sart(device_volume v, device_line<double>* device_lines,
                        int lines, double* device_sino, double* host_image,
-                       double beta, int iterations);
+                       int group_count, double beta, int iterations);
 
 } // namespace cuda
 } // namespace tomo

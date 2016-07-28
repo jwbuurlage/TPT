@@ -4,7 +4,7 @@
 #include "tomo.hpp"
 
 int main() {
-    using T = double;
+    using T = float;
 
     int k = 256;
 
