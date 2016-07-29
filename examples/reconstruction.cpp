@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
         tomo::ascii_plot(z);
     }
 
-    fmt::print("Parameters: size = {}x{}, iterations = {}, beta = {}", k, k,
+    fmt::print("Parameters: size = {}x{}, iterations = {}, beta = {}\n", k, k,
                iterations, beta);
 
     return 0;

@@ -28,7 +28,7 @@ set(
     "../ext/fmt/fmt/format.cc"
 )
 
-add_library( ${LIB_NAME} STATIC ${LIB_SOURCES} )
+add_library( ${LIB_NAME} SHARED ${LIB_SOURCES} )
 
 set(
     EXAMPLE_DIR
@@ -64,14 +64,22 @@ if(CUDA_FOUND)
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11 --expt-extended-lambda")
 
     set(
-        CUDA_SOURCES
-        "../examples/cuda_reconstruction.cpp"
+        CUDA_LIB_SOURCES
         "../cuda/forward_project.cu"
         "../cuda/sart.cu"
     )
 
-    cuda_add_executable("cuda_reconstruction" ${CUDA_SOURCES})
-    target_link_libraries("cuda_reconstruction" ${LIB_NAMES})
+    set(
+        CUDA_EXAMPLE_SOURCES
+        "../examples/cuda_reconstruction.cpp"
+    )
 
-    # add_subdirectory(../test/build ../test/build)
+    set(CUDA_LIB_NAME "galactica_cuda")
+
+    cuda_add_library(${CUDA_LIB_NAME} SHARED ${CUDA_LIB_SOURCES})
+    cuda_add_executable("cuda_reconstruction" ${CUDA_EXAMPLE_SOURCES})
+    target_link_libraries("cuda_reconstruction" ${LIB_NAMES} ${CUDA_LIB_NAME})
+
 endif(CUDA_FOUND)
+
+# add_subdirectory(../test/build ../test/build)

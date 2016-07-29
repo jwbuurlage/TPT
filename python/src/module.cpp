@@ -5,55 +5,11 @@ namespace py = pybind11;
 #include "python_common.hpp"
 #include "tomo.hpp"
 
+#ifdef USE_CUDA
+#include "tomo_cuda.hpp"
+#endif
+
 using namespace tomo::python;
-
-template <typename Geometry, typename Projector>
-tomo::image<2_D, double>
-art_wrapper(const tomo::volume<2_D>& v, const Geometry& g,
-            const tomo::sinogram<2_D, double, Geometry, Projector>& p,
-            double beta = 0.5, int iterations = 10) {
-    return tomo::art(v, g, p, beta, iterations);
-}
-
-template <typename Geometry, typename Projector>
-tomo::image<2_D, double>
-sart_wrapper(const tomo::volume<2_D>& v, const Geometry& g,
-             const tomo::sinogram<2_D, double, Geometry, Projector>& p,
-             double beta = 0.5, int iterations = 10) {
-    return tomo::sart(v, g, p, beta, iterations);
-}
-
-template <typename Geometry, typename Projector>
-tomo::image<2_D, double>
-sirt_wrapper(const tomo::volume<2_D>& v, const Geometry& g,
-             const tomo::sinogram<2_D, double, Geometry, Projector>& p,
-             double beta = 0.5, int iterations = 10) {
-    return tomo::sirt(v, g, p, beta, iterations);
-}
-
-template <typename Geometry, typename Projector>
-tomo::image<2_D, double>
-art_wrapper_initial(const tomo::volume<2_D>& v, const Geometry& g,
-                    const tomo::sinogram<2_D, double, Geometry, Projector>& p,
-                    double beta, tomo::image<2_D, double> initial) {
-    return tomo::art(v, g, p, beta, 1, optional<decltype(initial)>(initial));
-}
-
-template <typename Geometry, typename Projector>
-tomo::image<2_D, double>
-sart_wrapper_initial(const tomo::volume<2_D>& v, const Geometry& g,
-                     const tomo::sinogram<2_D, double, Geometry, Projector>& p,
-                     double beta, tomo::image<2_D, double> initial) {
-    return tomo::sart(v, g, p, beta, 1, optional<decltype(initial)>(initial));
-}
-
-template <typename Geometry, typename Projector>
-tomo::image<2_D, double>
-sirt_wrapper_initial(const tomo::volume<2_D>& v, const Geometry& g,
-                     const tomo::sinogram<2_D, double, Geometry, Projector>& p,
-                     double beta, tomo::image<2_D, double> initial) {
-    return tomo::sirt(v, g, p, beta, 1, optional<decltype(initial)>(initial));
-}
 
 template <typename Sinogram>
 std::array<int, 2> sino_dimensions(Sinogram& sino) {
@@ -122,30 +78,45 @@ void init_algorithm(py::module& m, Ps ps, Gs gs) {
         using G = typename decltype(+(x[0_c][1_c]))::type;
         using P = typename decltype(+x[1_c][1_c])::type;
 
-        m.def("art", &art_wrapper<G, P>, "ART reconstruction algorithm",
+        m.def("art", &tomo::art<2_D, T, G, P>, "ART reconstruction algorithm",
               py::arg("volume"), py::arg("geometry"), py::arg("projection"),
               py::arg("beta") = 0.5, py::arg("iterations") = 10);
-        m.def("sart", &sart_wrapper<G, P>, "SART reconstruction algorithm",
-              py::arg("volume"), py::arg("geometry"), py::arg("projection"),
-              py::arg("beta") = 0.5, py::arg("iterations") = 10);
-        m.def("sirt", &sirt_wrapper<G, P>, "SIRT reconstruction algorithm",
-              py::arg("volume"), py::arg("geometry"), py::arg("projection"),
-              py::arg("beta") = 0.5, py::arg("iterations") = 10);
-
-        m.def("art_iteration", &art_wrapper_initial<G, P>,
-              "ART reconstruction algorithm", py::arg("volume"),
-              py::arg("geometry"), py::arg("projection"), py::arg("beta"),
-              py::arg("initial"));
-        m.def("sart_iteration", &sart_wrapper_initial<G, P>,
+        m.def("sart", &tomo::sart<2_D, T, G, P>,
               "SART reconstruction algorithm", py::arg("volume"),
-              py::arg("geometry"), py::arg("projection"), py::arg("beta"),
-              py::arg("initial"));
-        m.def("sirt_iteration", &sirt_wrapper_initial<G, P>,
+              py::arg("geometry"), py::arg("projection"), py::arg("beta") = 0.5,
+              py::arg("iterations") = 10);
+        m.def("sirt", &tomo::sirt<2_D, T, G, P>,
               "SIRT reconstruction algorithm", py::arg("volume"),
-              py::arg("geometry"), py::arg("projection"), py::arg("beta"),
-              py::arg("initial"));
+              py::arg("geometry"), py::arg("projection"), py::arg("beta") = 0.5,
+              py::arg("iterations") = 10);
     });
 }
+
+#ifdef USE_CUDA
+template <typename Gs>
+void init_cuda(py::module& m, Gs gs) {
+    hana::for_each(gs, [&](auto x) {
+        using G = typename decltype(+(x[1_c]))::type;
+        m.def("cuda_forward_project",
+              &tomo::cuda::forward_projection<2_D, T, G>);
+
+        using Sinogram =
+            tomo::sinogram<2_D, T, G, tomo::cuda::external_cuda_projector>;
+        auto name = "sinogram_" + x[0_c] + "_cuda"s;
+        py::class_<Sinogram>(m, name.c_str())
+            .def("data", &Sinogram::mutable_data,
+                 "obtain the underlying image data")
+            .def("dimensions", &sino_dimensions<Sinogram>,
+                 "obtain the sinogram dimensions");
+
+        m.def("cuda_sart",
+              &tomo::cuda::sart<2_D, T, G, tomo::cuda::external_cuda_projector>,
+              "SART reconstruction algorithm using CUDA", py::arg("volume"),
+              py::arg("geometry"), py::arg("projection"), py::arg("beta") = 0.5,
+              py::arg("iterations") = 10);
+    });
+}
+#endif
 
 PYBIND11_PLUGIN(py_galactica) {
     py::module m("py_galactica", "bindings for galactica");
@@ -155,7 +126,8 @@ PYBIND11_PLUGIN(py_galactica) {
     auto ps = hana::make_tuple(
         hana::make_tuple("linear"s,
                          hana::type_c<tomo::linear_projector<2_D, T>>),
-        hana::make_tuple("joseph"s, hana::type_c<tomo::joseph_projector<T>>));
+        hana::make_tuple("joseph"s, hana::type_c<tomo::joseph_projector<T>>),
+        hana::make_tuple("closest"s, hana::type_c<tomo::closest_projector<T>>));
 
     // the third entry is the signature of the constructor
     auto gs = hana::make_tuple(
@@ -169,6 +141,10 @@ PYBIND11_PLUGIN(py_galactica) {
     init_geometry(m, ps, gs);
     init_operations(m, ps, gs);
     init_algorithm(m, ps, gs);
+
+#ifdef USE_CUDA
+    init_cuda(m, gs);
+#endif
 
     return m.ptr();
 }

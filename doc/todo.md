@@ -1,8 +1,9 @@
 # TODAY'S GOAL
-[ ] Python interface to CUDA backend
-[ ] Add CLI args to reconstruction cpp examples
 [ ] Start optimizing CUDA SART
 
+[x] Python interface to CUDA backend
+[x] Make 'cuda galactica' into a separate library
+[x] Add CLI args to reconstruction cpp examples
 [x] Implement 'closest kernel' in CPU, see if we get the same result (ANS: not quite, but fixed a gpu bug)
 [x] Clean up GPU code, think of simple abstractions
 
@@ -16,6 +17,7 @@
 
 # List of ideas
 * We want the objects to be able to 'morph' into matrices and vectors for algorithm operations
+* Set up proper profiling code, look into `boost::accumulator` (see Benchmarking C++ @ CppCon 2015).
 * Should cache 'R', 'C' and 'w_norms' somewhere so we can perform iterations independently for testing. This can be done for example by objectifying the reconstruction algorithms.
 * Vectors and intersection algorithms, kernels. Which file and what do we implement ourselves?
 * Templated accelerator functions (or component like objects)
