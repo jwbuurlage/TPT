@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.0.0)
 
 project(tomo)
 
+link_directories("~/.local/lib")
+
 include_directories(
     "../include"
     "../ext/hemi/"
@@ -43,6 +45,7 @@ set(
     LIB_NAMES
     "pthread"
     "galactica"
+    "boost_program_options"
 )
 
 foreach(source_file ${EXAMPLE_SOURCES})

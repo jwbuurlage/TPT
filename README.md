@@ -17,6 +17,7 @@ We use:
 * fmtlib/fmt
 * glm
 * boost::hana
+* boost::program_options
 * pybind11
 * thrust
 
