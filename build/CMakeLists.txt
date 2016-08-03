@@ -9,6 +9,7 @@ include_directories(
     "../include"
     "../ext/hemi/"
     "../ext/fmt/"
+    "../ext/date/"
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -Wall -Wfatal-errors -Wextra -O3 -g")
@@ -67,6 +68,7 @@ if(CUDA_FOUND)
         CUDA_LIB_SOURCES
         "../cuda/forward_project.cu"
         "../cuda/sart.cu"
+        "../cuda/sirt.cu"
     )
 
     set(

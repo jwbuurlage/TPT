@@ -10,8 +10,6 @@
 namespace tomo {
 namespace cuda {
 
-#define EPSILON 1e-6
-
 template <typename T>
 __global__ void w_norms_kernel(const device::line<T>* device_lines,
                                device::volume v, T* w_norms) {

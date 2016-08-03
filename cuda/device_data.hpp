@@ -16,6 +16,7 @@ template <typename T>
 struct line {
     vec2<T> origin;
     vec2<T> delta;
+    int steps;
 };
 
 struct volume {

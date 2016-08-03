@@ -1,5 +1,6 @@
 # TODAY'S GOAL
-[ ] Start optimizing CUDA SART
+[ ] Start optimizing CUDA SART / SIRT
+[ ] CONTINUE: working on textures in GPU implementation
 
 [x] Python interface to CUDA backend
 [x] Make 'cuda galactica' into a separate library

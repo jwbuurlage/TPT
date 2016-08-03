@@ -7,3 +7,6 @@
 [submodule "ext/fmt"]
 	path = ext/fmt
 	url = https://github.com/fmtlib/fmt
+[submodule "ext/date"]
+	path = ext/date
+	url = https://github.com/HowardHinnant/date

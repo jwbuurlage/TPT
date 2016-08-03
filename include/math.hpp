@@ -1,6 +1,8 @@
 // We hide our math (vectors, intersections, ...) in this file.
 // currently the intention is to forward as much as possible to glm, but maybe
 // modify the syntax for our use cases
+//
+// FIXME: this is becoming a mess with glm types and our own
 
 #pragma once
 
@@ -108,6 +110,9 @@ T cross(typename vec<2_D, T>::type a, typename vec<2_D, T>::type b) {
     return a.x * b.y - a.y * b.x;
 }
 
+/* compute the intersection of the line p --> p2, with the line q --> q2, or
+ * returning origin if there is no such point
+ * TODO: return pair of boolean here better than origin as error */
 template <typename T>
 vec2<T> intersection(vec2<T> p, vec2<T> p2, vec2<T> q, vec2<T> q2) {
     auto r = p2 - p;
@@ -124,6 +129,38 @@ vec2<T> intersection(vec2<T> p, vec2<T> p2, vec2<T> q, vec2<T> q2) {
     }
 
     return vec2<T>(0, 0);
+}
+
+/* FIXME: we assume a more or less square box */
+template <typename T>
+vec2<T> box_intersection(typename vec2<T>::type p, typename vec2<T>::type p2,
+                         typename vec2<T>::type box) {
+    static const std::array<std::array<math::vec2<T>, 2>, 4> lines = {
+        std::array<math::vec2<T>, 2>{math::vec2<T>(0, 0),
+                                     math::vec2<T>(0, box.y)},
+        std::array<math::vec2<T>, 2>{math::vec2<T>(0, box.y),
+                                     math::vec2<T>(box.x, box.y)},
+        std::array<math::vec2<T>, 2>{math::vec2<T>(box.x, 0),
+                                     math::vec2<T>(box.x, box.y)},
+        std::array<math::vec2<T>, 2>{math::vec2<T>(0, 0),
+                                     math::vec2<T>(box.x, 0)}};
+
+    T min_distance = std::numeric_limits<T>::max();
+    math::vec2<T> best_point;
+    best_point.x = -1;
+    for (auto& line_segment : lines) {
+        auto intersection_point =
+            math::intersection<T>(p, p2, line_segment[0], line_segment[1]);
+        if (intersection_point != math::vec2<T>(0, 0)) {
+            auto dist = math::distance<2_D, T>(p, intersection_point);
+            if (dist < min_distance) {
+                best_point = intersection_point;
+                min_distance = dist;
+            }
+        }
+    }
+
+    return best_point;
 }
 
 template <dimension D, typename T>
@@ -154,7 +191,7 @@ void interpolate(typename vec<D, T>::type a, volume<D> vol,
     using cell_type = vec2<int>;
     cell_type cells[] = {{x - 1, y - 1}, {x, y - 1}, {x - 1, y}, {x, y}};
     for (auto cell : cells) {
-        if (inside<D, double>(vec2<double>(cell) + vec2<double>(0.5), vol)) {
+        if (inside<D, T>(vec2<T>(cell) + vec2<T>(0.5), vol)) {
             int index = vol.index({cell[0], cell[1]});
             auto value =
                 1.0 -
