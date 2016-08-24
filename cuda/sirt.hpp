@@ -10,17 +10,13 @@ namespace tomo {
 namespace cuda {
 
 template <typename T>
-void run_sirt(cudaTextureObject_t, cudaSurfaceObject_t, cudaTextureObject_t,
-              cudaSurfaceObject_t, device::volume v,
+void run_sirt(cudaTextureObject_t, cudaSurfaceObject_t, device::volume v,
               device::line<T>* device_lines, int lines, T* device_sino,
-              int group_count, T beta = 0.5,
-              int iterations = 10);
+              int group_count, T beta = 0.5, int iterations = 10);
 
 extern template void run_sirt(cudaTextureObject_t, cudaSurfaceObject_t,
-                              cudaTextureObject_t, cudaSurfaceObject_t,
                               device::volume, device::line<float>*, int,
-                              float* device_sino, int, float,
-                              int);
+                              float* device_sino, int, float, int);
 
 template <dimension D, typename T, class Geometry, class Projector>
 image<D, T> sirt(const volume<D>& v, const Geometry& g,
@@ -35,14 +31,11 @@ image<D, T> sirt(const volume<D>& v, const Geometry& g,
 
     // 1b. allocate buffers
     device::image_bridge<T> image(v);
-    device::image_bridge<T> image_buffer(v);
 
     // 2. run alg
-    run_sirt(image.get_texture(), image.get_surface(),
-             image_buffer.get_texture(), image_buffer.get_surface(),
-             device_volume.get(), device_geometry.get(), g.lines(),
-             device_sino.get(), g.groups()[0], beta,
-             iterations);
+    run_sirt(image.get_texture(), image.get_surface(), device_volume.get(),
+             device_geometry.get(), g.lines(), device_sino.get(), g.groups()[0],
+             beta, iterations);
 
     // 3. copy image from device
     image.copy_to(f);

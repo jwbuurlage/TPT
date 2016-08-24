@@ -10,3 +10,6 @@
 [submodule "ext/date"]
 	path = ext/date
 	url = https://github.com/HowardHinnant/date
+[submodule "ext/bulk"]
+	path = ext/bulk
+	url = https://github.com/jwbuurlage/Bulk.git

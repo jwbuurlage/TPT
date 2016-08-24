@@ -36,6 +36,7 @@ class closest_projector : public projector<2_D, T, closest_iterator<T>> {
     closest_iterator<T> begin() override { return queue_.begin(); }
     closest_iterator<T> end() override { return queue_.end(); }
 
+
   private:
     std::vector<math::matrix_element<T>> queue_;
 };

@@ -10,6 +10,8 @@ To compare: CPU takes 9.346s, ASTRA takes 0.44s
 
 Made the mistake of writing to global memory in inner loop of FP. (no effect, gets optimized)
 
+
+
 IDEAS:
 - First, no longer fill but do it in a kernel, no effect.
 - Allocate using pitch. Logical width of 2d array is called 'pitch'

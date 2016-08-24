@@ -1,20 +1,13 @@
 # TODAY'S GOAL
-[ ] Start optimizing CUDA SART / SIRT
-[ ] CONTINUE: working on textures in GPU implementation
-
-[x] Python interface to CUDA backend
-[x] Make 'cuda galactica' into a separate library
-[x] Add CLI args to reconstruction cpp examples
-[x] Implement 'closest kernel' in CPU, see if we get the same result (ANS: not quite, but fixed a gpu bug)
-[x] Clean up GPU code, think of simple abstractions
+* [ ] Learn MPI, write Bulk backend
 
 # CONTINUE:
 * [ ] A 'CUDA stream' can have associated buffers (geometry, image, sino bridges), which stay alive while the stream stays alive.
 * [ ] Set up unit tests, set up documentation
 * [ ] Optimize CPU algorithms (cache-use, limit recomputations, data-oriented, ...)
 * [ ] CUDA and Distributed is next
-* [ ] Need *good* abstractions for GPU / Distributed objects (geometry, projectors, ...)
 * [ ] 3D / cone / slices
+* [x] Need *good* abstractions for GPU / Distributed objects (geometry, projectors, ...)
 
 # List of ideas
 * We want the objects to be able to 'morph' into matrices and vectors for algorithm operations

@@ -33,9 +33,10 @@ __global__ void invert_sums(T* row, T* col, T beta) {
 }
 
 template <typename T>
-__global__ void sirt_fp(const device::line<T>* device_lines, T* sino_buffer,
-                        const T* device_sino, device::volume v, const T* r,
-                        cudaTextureObject_t image_texture) {
+__global__ void sirt_forward_project(const device::line<T>* device_lines,
+                                     T* sino_buffer, const T* device_sino,
+                                     device::volume v, const T* r,
+                                     cudaTextureObject_t image_texture) {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
 
     T result = 0;
@@ -47,46 +48,44 @@ __global__ void sirt_fp(const device::line<T>* device_lines, T* sino_buffer,
     sino_buffer[i] = (device_sino[i] - result) * r[i];
 }
 
+// FIXME rewrite this to be 'voxel-centric'
+// - we have 48 kb per block, if we want to assign subvolume to block
+// 12 000 floats, +- 100 x 100 size subvolumes, could write atomically to
+// shared memory, and then once atomically to global memory
+// - could also do the step idea
+// - slow solution is to have another buffer we can write atomically to (current
+// impl)
 template <typename T>
-__global__ void sirt_bp(cudaSurfaceObject_t image_buffer_surface,
-                        const device::line<T>* device_lines, T* sino_buffer,
-                        device::volume v) {
+__global__ void sirt_back_project(const device::line<T>* device_lines,
+                                  T* sino_buffer, device::volume v,
+                                  T* image_second_buffer) {
+    // one thread per line..
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
-    auto line_sum = sino_buffer[idx];
-    project_closest_surface(
-        device_lines[idx], v,
-        [&line_sum, &image_buffer_surface, &idx](int i, int j) {
-            T old = 0;
-            surf2Dread(&old, image_buffer_surface, sizeof(T) * i, j);
-            surf2Dwrite(old + line_sum, image_buffer_surface, sizeof(T) * i, j);
-        });
+    T line_sum = sino_buffer[idx];
+    project_closest(device_lines[idx], v,
+                    [&line_sum, &image_second_buffer](int i) {
+                        atomicAdd(&image_second_buffer[i], line_sum);
+                    });
 }
 
 template <typename T>
 __global__ void sirt_scale(cudaSurfaceObject_t image_surface,
-                           cudaTextureObject_t image_buffer_texture,
-                           const T* col_sum, device::volume v) {
+                           const T* image_buffer, const T* col_sum,
+                           device::volume v) {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
     int j = blockDim.y * blockIdx.y + threadIdx.y;
-    T c = col_sum[i + j * v.x];
-    surf2Dwrite(c * tex2D<T>(image_buffer_texture, i, j), image_surface,
+    int k = i + j * v.x;
+
+    T old = 0;
+    surf2Dread(&old, image_surface, sizeof(T) * i, j);
+    surf2Dwrite(old + col_sum[k] * image_buffer[k], image_surface,
                 sizeof(T) * i, j);
 }
 
 template <typename T>
-__global__ void sirt_clear(cudaSurfaceObject_t surface) {
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
-    int j = blockDim.y * blockIdx.y + threadIdx.y;
-
-    surf2Dwrite((T)0, surface, sizeof(T) * i, j);
-}
-
-template <typename T>
 void run_sirt(cudaTextureObject_t image_texture,
-              cudaSurfaceObject_t image_surface,
-              cudaTextureObject_t image_buffer_texture,
-              cudaSurfaceObject_t image_buffer_surface, device::volume v,
+              cudaSurfaceObject_t image_surface, device::volume v,
               device::line<T>* device_lines, int lines, T* device_sino,
               int group_count, T beta = 0.5, int iterations = 10) {
     int cells = v.x * v.y;
@@ -99,6 +98,8 @@ void run_sirt(cudaTextureObject_t image_texture,
     thrust::device_vector<T> row_sums(lines);
     thrust::device_vector<T> relaxed_col_sums(cells);
 
+    thrust::device_vector<T> image_second_buffer(cells);
+
     compute_sums<<<lines / threads, threads>>>(
         device_lines, v, row_sums.data().get(), relaxed_col_sums.data().get());
 
@@ -108,7 +109,7 @@ void run_sirt(cudaTextureObject_t image_texture,
     thrust::device_vector<T> sino_buffer(lines);
     for (int i = 0; i < iterations; ++i) {
         // forward project
-        sirt_fp<<<lines / threads, threads>>>(
+        sirt_forward_project<<<lines / threads, threads>>>(
             device_lines,             // device geometry
             sino_buffer.data().get(), // a buffer for the fp operation
             device_sino,              // the actual projection data
@@ -116,29 +117,26 @@ void run_sirt(cudaTextureObject_t image_texture,
             row_sums.data().get(),    // the row sums
             image_texture);
 
-        sirt_clear<T><<<dim3(v.x / threads_x, v.y / threads_y, 1),
-                        dim3(threads_x, threads_y, 1)>>>(image_buffer_surface);
+        thrust::fill(image_second_buffer.begin(), image_second_buffer.end(), 0);
 
         // back project
-        sirt_bp<<<lines / threads, threads>>>(
-            image_buffer_surface,     // device memory for holding the image
+        sirt_back_project<<<lines / threads, threads>>>(
             device_lines,             // device geometry
-            sino_buffer.data().get(), // a buffer for the fp operation
-            v                         // volume information
-            );
+            sino_buffer.data().get(), // data for the bp operation
+            v,                        // volume info
+            image_second_buffer.data().get());
 
         // scale, now with 2d blocks
         sirt_scale<<<dim3(v.x / threads_x, v.y / threads_y, 1),
                      dim3(threads_x, threads_y, 1)>>>(
-            image_surface,                 // the partial image
-            image_buffer_texture,          // the buffer
-            relaxed_col_sums.data().get(), // the row sums
+            image_surface,                    // the partial image
+            image_second_buffer.data().get(), // the buffer
+            relaxed_col_sums.data().get(),    // the row sums
             v);
     }
 }
 
-template void run_sirt(cudaTextureObject_t, cudaSurfaceObject_t,
-                       cudaTextureObject_t, cudaSurfaceObject_t, device::volume,
+template void run_sirt(cudaTextureObject_t, cudaSurfaceObject_t, device::volume,
                        device::line<float>*, int, float* device_sino, int,
                        float, int);
 
