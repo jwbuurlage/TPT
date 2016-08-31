@@ -113,3 +113,5 @@ if(MPI_CXX_FOUND)
 else(MPI_CXX_FOUND)
     message("No MPI installation found.")
 endif(MPI_CXX_FOUND)
+
+add_subdirectory(../test/build ../test/build)

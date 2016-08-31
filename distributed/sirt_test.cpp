@@ -21,41 +21,6 @@ struct options {
     float beta = 0.0f;
 };
 
-auto random_list_geometry(tomo::volume<2_D> v, int k) {
-    // initialize random set of lines, this implies \phi for now
-    std::vector<tomo::line<2_D, T>> line_list;
-
-    // Seed with a real random value, if available
-    std::random_device r;
-
-    // Choose a random mean between 1 and 6
-    std::default_random_engine e(r());
-    int precision = 123456;
-    std::uniform_int_distribution<int> rand(0, precision);
-
-    for (int i = 0; i < k; ++i) {
-        if (rand(e) % 2 == 0) {
-            // place left
-            double offset = v.y() * ((double)rand(e) / precision);
-            double angle = M_PI * ((double)rand(e) / precision) - M_PI / 2;
-            line_list.push_back(
-                {{0, offset},
-                 {tomo::math::cos(angle), tomo::math::sin(angle)}});
-        } else {
-            // place bottom
-            double offset = v.x() * ((double)rand(e) / precision);
-            double angle = M_PI * ((double)rand(e) / precision);
-            line_list.push_back(
-                {{offset, 0},
-                 {tomo::math::cos(angle), tomo::math::sin(angle)}});
-        }
-    }
-
-    auto g = tomo::list_geometry<2_D>(std::move(line_list));
-    g.set_dimensions({k, 1});
-    return g;
-}
-
 int main(int argc, char* argv[]) {
     // Set up the program
     options opt;
@@ -92,7 +57,7 @@ int main(int argc, char* argv[]) {
         auto proj = tomo::closest_projector<T>(v);
         auto image = tomo::image<2_D, T>(v);
 
-        auto g = random_list_geometry(v, opt.k);
+        auto g = tomo::random_list_geometry<2_D, T>(v, opt.k);
         auto measurements = tomo::forward_projection(phantom, g, proj);
 
         int max_local_voxel_count = (v.x() * v.y() + p - 1) / p;
@@ -141,7 +106,7 @@ int main(int argc, char* argv[]) {
         // communicate bc elements in halo
         auto c_queue = bulk::create_queue<int, T>(world);
         for (auto entry : halo) {
-            c_queue(entry.owner).push(entry.index, cs[entry.index]);
+            c_queue(entry.owner).send(entry.index, cs[entry.index]);
         }
         world.sync();
 
@@ -157,7 +122,7 @@ int main(int argc, char* argv[]) {
 
         auto register_queue = bulk::create_queue<int, int>(world);
         for (auto entry : halo) {
-            register_queue(entry.owner).push(s, entry.index);
+            register_queue(entry.owner).send(s, entry.index);
         }
 
         world.sync();
@@ -182,7 +147,7 @@ int main(int argc, char* argv[]) {
             // request halo of image from remote
             for (auto request : requests) {
                 exchange_queue(request.owner)
-                    .push(request.index, image[request.index]);
+                    .send(request.index, image[request.index]);
             }
 
             world.sync();
@@ -230,7 +195,7 @@ int main(int argc, char* argv[]) {
 
         // image receive queue for processor 1 to show the entire image:
         for (int j = min_local_index; j < max_local_index; ++j) {
-            image_queue(0).push(j, image[j]);
+            image_queue(0).send(j, image[j]);
         }
 
         world.sync();
