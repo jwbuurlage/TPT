@@ -9,23 +9,44 @@
 
 namespace tomo {
 
+template <typename T>
+T detector_location(int detector, int detector_count, T detector_step,
+                    const volume<2_D>&) {
+    return (detector - (detector_count - 1) * 0.5) * detector_step;
+}
+
+template <typename T>
+typename math::vec<2_D, T>::type
+detector_location(int detector, int detector_count, T detector_step,
+                  const volume<3_D>&) {
+    auto detector_x = detector % detector_count;
+    auto detector_y = detector / detector_count;
+
+    return {(detector_x - (detector_count - 1) * 0.5) * detector_step,
+            (detector_y - (detector_count - 1) * 0.5) * detector_step};
+}
+
 template <dimension D, typename T>
 class parallel_geometry : public geometry<D, T, parallel_geometry<D, T>> {
   public:
+    using position = typename math::vec<D - 1, T>::type;
+
     parallel_geometry(int angle_count, int detector_count,
                       const volume<D>& volume)
-        : geometry<D, T, parallel_geometry<D, T>>(angle_count * detector_count),
+        : geometry<D, T, parallel_geometry<D, T>>(angle_count *
+                                                  math::pow(detector_count, D - 1)),
           volume_(volume) {
         auto angle_step = math::pi / angle_count;
         for (T angle = 0.0; angle < math::pi; angle += angle_step) {
             angles_.push_back(angle);
         }
 
-        // FIXME this is only for 2D
-        auto detector_step = (T)volume.y() / detector_count;
-        for (int detector = 0; detector < detector_count; detector++) {
-            detectors_.push_back((detector - (detector_count - 1) * 0.5) *
-                                 detector_step);
+        int total_detector_count = math::pow(detector_count, D - 1);
+        // FIXME this is only for equilateral volume
+        auto detector_step = volume_.y() / (T)detector_count;
+        for (int detector = 0; detector < total_detector_count; detector++) {
+            detectors_.push_back(detector_location<T>(detector, detector_count,
+                                                      detector_step, volume_));
         }
 
         this->dimensions_ = {detector_count, angle_count};
@@ -35,7 +56,7 @@ class parallel_geometry : public geometry<D, T, parallel_geometry<D, T>> {
     size_t angle_count() const { return angles_.size(); }
 
     const std::vector<T>& angles() const { return angles_; }
-    const std::vector<T>& detectors() const { return detectors_; }
+    const std::vector<position>& detectors() const { return detectors_; }
 
     const volume<D>& get_volume() const { return volume_; }
 
@@ -46,7 +67,7 @@ class parallel_geometry : public geometry<D, T, parallel_geometry<D, T>> {
 
   private:
     std::vector<T> angles_;
-    std::vector<T> detectors_;
+    std::vector<position> detectors_;
     volume<D> volume_;
 };
 
@@ -116,6 +137,22 @@ inline line<2_D, T> compute_line(T current_detector, T current_angle,
     }
 
     return {best_point, delta};
+}
+
+template <typename T>
+inline line<3_D, T> compute_line(math::vec2<T> current_detector,
+                                 T current_angle, const volume<3_D>& vol) {
+    // strategy: only consider current detector x, and ignore y, only add it at
+    // the end
+    auto volume_slice = volume<2_D>(vol.x(), vol.y());
+    auto line_2d =
+        compute_line(current_detector.x, current_angle, volume_slice);
+
+    auto origin =
+        math::vec3<T>(line_2d.origin.x, line_2d.origin.y, current_detector.y + 0.5 * vol.z());
+    auto delta = math::vec3<T>(line_2d.delta.x, line_2d.delta.y, 0.0);
+
+    return {origin, delta};
 }
 
 } // namespace tomo

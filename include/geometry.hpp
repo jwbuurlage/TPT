@@ -12,6 +12,8 @@ template <dimension D, typename T = default_scalar_type>
 struct line {
     using vecD = typename math::vec<D, T>::type;
 
+    line() = default;
+
     line(vecD origin_in, vecD delta_in) : origin(origin_in), delta(delta_in) {}
 
     line(std::initializer_list<vecD> vectors)

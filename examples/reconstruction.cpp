@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
     // simulate the experiment
     // auto proj = tomo::linear_projector<2_D, T>(v);
     // auto proj = tomo::joseph_projector<T>(v);
-    auto proj = tomo::closest_projector<T>(v);
+    auto proj = tomo::closest_projector<2_D, T>(v);
     auto sino = tomo::forward_projection<2_D, T>(f, g, proj);
 
     // run an algorithm to reconstruct the image

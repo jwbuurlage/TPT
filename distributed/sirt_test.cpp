@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
         // to resolve.
         auto v = tomo::volume<2_D>(opt.size, opt.size);
         auto phantom = tomo::modified_shepp_logan_phantom<T>(v);
-        auto proj = tomo::closest_projector<T>(v);
+        auto proj = tomo::closest_projector<2_D, T>(v);
         auto image = tomo::image<2_D, T>(v);
 
         auto g = tomo::random_list_geometry<2_D, T>(v, opt.k);
@@ -198,8 +198,7 @@ int main(int argc, char* argv[]) {
             image_queue(0).send(j, image[j]);
         }
 
-        world.sync();
-
+        world.sync(); 
         if (s == 0) {
             for (auto msg : image_queue) {
                 image[msg.tag] = msg.content;

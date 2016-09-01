@@ -23,13 +23,23 @@ TEST_CASE("We can initialize geometry", "[core]") {
         auto v = tomo::volume<2_D>(k, k);
         auto g = tomo::parallel_geometry<2_D, T>(180, 250, v);
         CHECK(g.lines() == 180 * 250);
+
+        int i = 0;
+        for (auto line : g)
+            ++i;
+        CHECK(i == g.lines());
     }
 
     SECTION("3D") {
         int k = 16;
         auto v = tomo::volume<3_D>(k, k, k);
         auto g = tomo::parallel_geometry<3_D, T>(180, 250, v);
-        //CHECK(g.lines() == 250);
+        CHECK(g.lines() == 180 * 250 * 250);
+
+        int i = 0;
+        for (auto line : g)
+            ++i;
+        CHECK(i == g.lines());
     }
 }
 

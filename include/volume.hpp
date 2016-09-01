@@ -1,7 +1,7 @@
 #pragma once
 
-#include <numeric>
 #include <array>
+#include <numeric>
 
 #include "common.hpp"
 
@@ -10,13 +10,18 @@ namespace tomo {
 /**
  * An object that describes geometry of the volume that is being imaged
  */
-template <dimension Dimension>
+template <dimension D>
 class volume {
   public:
-    volume(std::array<int, Dimension> dimensions) : dimensions_(dimensions) {}
+    volume(int k) {
+        for (int i = 0; i < D; ++i)
+            dimensions_[i] = k;
+    }
+
+    volume(std::array<int, D> dimensions) : dimensions_(dimensions) {}
 
     template <typename... Ts>
-    volume(Ts... dims) : dimensions_(std::array<int, Dimension>{dims...}) {}
+    volume(Ts... dims) : dimensions_(std::array<int, D>{dims...}) {}
 
     /**
      * Obtain the size of the first dimension
@@ -27,22 +32,20 @@ class volume {
     /**
      * Obtain the size of the second dimension
      * @return number of voxels in second dimension
-     * @note only valid if Dimension > 1
+     * @note only valid if D > 1
      */
     int y() const {
-        static_assert(Dimension > 1,
-                      "requesting 'y' in volume of dimension < 2");
+        static_assert(D > 1, "requesting 'y' in volume of dimension < 2");
         return dimensions_[1];
     }
 
     /**
      * Obtain the size of the third dimension
      * @return number of voxels in the third dimension
-     * @note only valid if Dimension > 2
+     * @note only valid if D > 2
      */
     int z() const {
-        static_assert(Dimension > 2,
-                      "requesting 'z' in volume of dimension < 3");
+        static_assert(D > 2, "requesting 'z' in volume of dimension < 3");
         return dimensions_[2];
     }
 
@@ -53,25 +56,22 @@ class volume {
      */
     int operator[](size_t i) const { return dimensions_[i]; }
 
-    int index(std::array<int, Dimension> xs) const {
+    int index(std::array<int, D> xs) const {
         int result = xs[0];
         int offset = dimensions_[0];
-        for (int i = 1; i < Dimension; ++i) {
+        for (int i = 1; i < D; ++i) {
             result += offset * xs[i];
             offset *= dimensions_[i];
         }
         return result;
-
-        //    size_t index(std::array<int, 2> xs) const {
-        //        return xs[0] + xs[1] * this->v_[0];
-        //    }
-        //    size_t index(std::array<int, 3> xs) const {
-        //        return xs[0] + xs[1] * this->v_[0] + xs[2] * this->v_[0] *
-        //        this->v_[1];
-        //    }
     }
 
-    std::array<int, Dimension> dimensions() const { return dimensions_; }
+    template <typename... Ts>
+    int index(Ts... xs) const {
+        return index_(0, 1, xs...);
+    }
+
+    std::array<int, D> dimensions() const { return dimensions_; }
 
     int cells() const {
         return std::accumulate(dimensions_.begin(), dimensions_.end(), 1,
@@ -79,7 +79,16 @@ class volume {
     }
 
   private:
-    std::array<int, Dimension> dimensions_;
+    template <typename T, typename... Ts>
+    int index_(int current, int offset, T x, Ts... xs) const {
+        offset *= dimensions_[D - sizeof...(xs)];
+        current += offset * x;
+        return index_(current, offset, xs...);
+    }
+
+    int index_(int current, int offset) const { return current; }
+
+    std::array<int, D> dimensions_;
 };
 
 } // namespace tomo

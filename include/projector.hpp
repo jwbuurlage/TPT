@@ -12,7 +12,7 @@ namespace tomo {
 template <dimension D, typename T, typename Iterator>
 class projector {
   public:
-    projector(volume<D> vol) : volume_(vol), line_({{0, 0}, {0, 0}}) {}
+    projector(volume<D> vol) : volume_(vol) {}
 
     virtual Iterator begin() = 0;
     virtual Iterator end() = 0;

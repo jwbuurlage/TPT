@@ -34,6 +34,11 @@ template <dimension D, typename T>
 struct vec {};
 
 template <typename T>
+struct vec<1_D, T> {
+    using type = T;
+};
+
+template <typename T>
 struct vec<2_D, T> {
     using type = glm::tvec2<T>;
 };
@@ -108,6 +113,16 @@ vec3<T> cross(vec3<T> a, vec3<T> b) {
 template <typename T>
 T cross(typename vec<2_D, T>::type a, typename vec<2_D, T>::type b) {
     return a.x * b.y - a.y * b.x;
+}
+
+template <typename T>
+T pow(T a, int n) {
+    int result = a;
+    // FIXME use exponential powering
+    for (int i = 1; i < n; ++i) {
+        result *= a;
+    }
+    return result;
 }
 
 /* compute the intersection of the line p --> p2, with the line q --> q2, or
