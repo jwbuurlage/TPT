@@ -8,9 +8,9 @@
 
 namespace tomo {
 
-template <dimension Dimension, typename T = default_scalar_type>
+template <dimension D, typename T = default_scalar_type>
 struct line {
-    using vecD = typename math::vec<Dimension, T>::type;
+    using vecD = typename math::vec<D, T>::type;
 
     line(vecD origin_in, vecD delta_in) : origin(origin_in), delta(delta_in) {}
 
@@ -31,18 +31,55 @@ struct line {
 // Possible A: we still generate the begin/end points of the line on the
 // CPU,
 // but the 'kernel iterators' are implemented on the accelerator
-template <dimension Dimension, typename T = default_scalar_type,
-          class Iterator = void>
+template <dimension D, typename T, typename Derived>
 class geometry {
   public:
     // IDEA: use a generic iterator here, that calls upon a 'queue' of the
-    // geometry object, that has a certain maximum size, no iterator template required
-    class iterator {};
+    // geometry object, that has a certain maximum size, no iterator template
+    // required
+    class geometry_iterator
+        : public std::iterator<std::forward_iterator_tag, line<D, T>> {
+      public:
+        geometry_iterator(int i, const Derived& geometry)
+            : i_(i), geometry_(geometry) {}
+
+        geometry_iterator(const geometry_iterator& other)
+            : i_(other.i_), geometry_(other.geometry_) {}
+
+        geometry_iterator& operator++(int) {
+            auto current = *this;
+            ++(*this);
+            return current;
+        }
+
+        bool operator==(const geometry_iterator& other) const {
+            return i_ == other.i_;
+        }
+
+        bool operator!=(const geometry_iterator& other) const {
+            return !(*this == other);
+        }
+
+        line<D, T> operator*() const { return geometry_.get_line(i_); }
+
+        geometry_iterator& operator++() {
+            i_++;
+            return *this;
+        }
+
+      private:
+        int i_;
+        const Derived& geometry_;
+    };
 
     geometry(int line_count) : line_count_(line_count) {}
 
-    virtual Iterator begin() const = 0;
-    virtual Iterator end() const = 0;
+    geometry_iterator begin() const {
+        return geometry_iterator(0, *((Derived*)this));
+    }
+    geometry_iterator end() const {
+        return geometry_iterator(line_count_, *((Derived*)this));
+    }
 
     int lines() const { return line_count_; }
 
