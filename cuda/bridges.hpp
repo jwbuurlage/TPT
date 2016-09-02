@@ -21,7 +21,7 @@ class geometry_bridge {
             lines[k].delta.x = line.delta.x;
             lines[k].delta.y = line.delta.y;
 
-            auto far_away = line.origin + (T)math::sqrt2 * v.x() * line.delta;
+            auto far_away = line.origin + (T)math::sqrt2<T> * v.x() * line.delta;
 
             // compute number of steps
             auto end_point =

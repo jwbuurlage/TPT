@@ -14,7 +14,7 @@ class dlinear_projector : public projector<D, T, Iterator> {
     dlinear_projector(volume<D> vol) : projector<D, T, Iterator>(vol) {
         auto dims = this->volume_.dimensions();
         auto max_width = *std::max_element(dims.begin(), dims.end());
-        queue_.reserve((int)(math::sqrt2 * 4 * max_width));
+        queue_.reserve((int)(math::sqrt2<T> * 4 * max_width));
     }
 
     void reset(line<D, T> line) override {

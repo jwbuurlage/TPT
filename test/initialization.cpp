@@ -44,4 +44,6 @@ TEST_CASE("We can initialize geometry", "[core]") {
 }
 
 TEST_CASE("We can use projectors", "[core]") {
+    // FIXME add test case where we check that for each line in any geometry,
+    // the origin lies inside the imaging volume
 }

@@ -18,9 +18,14 @@
 namespace tomo {
 namespace math {
 
-constexpr double epsilon = 1e-8;
-constexpr auto pi = glm::pi<double>();
-constexpr double sqrt2 = 1.41421356237;
+template <typename T>
+constexpr T epsilon = (T)1e-8;
+
+template <typename T>
+constexpr auto pi = glm::pi<T>();
+
+template <typename T>
+constexpr T sqrt2 = (T)1.41421356237;
 
 // matrices are given by line distributions
 template <typename T = default_scalar_type>
@@ -135,7 +140,7 @@ vec2<T> intersection(vec2<T> p, vec2<T> p2, vec2<T> q, vec2<T> q2) {
 
     auto r_cross_s = cross<T>(r, s);
 
-    if (r_cross_s > epsilon) {
+    if (r_cross_s > epsilon<T>) {
         auto t = cross<T>(q - p, s) / r_cross_s;
         auto u = cross<T>(q - p, r) / r_cross_s;
         if (0.0 <= t && t <= 1.0 && 0.0 <= u && u <= 1.0) {
@@ -178,10 +183,11 @@ vec2<T> box_intersection(typename vec2<T>::type p, typename vec2<T>::type p2,
     return best_point;
 }
 
+/* Check whether a vector `a` lies in the *open* box defined by `vol`. */
 template <dimension D, typename T>
 bool inside(typename vec<D, T>::type a, volume<D> vol) {
     for (int dim = 0; dim < D; ++dim) {
-        if (a[dim] + epsilon < 0 || a[dim] - epsilon > vol[dim])
+        if (a[dim] <= (T)0 || a[dim] >= (T)vol[dim])
             return false;
     }
     return true;
@@ -210,7 +216,7 @@ void interpolate(typename vec<D, T>::type a, volume<D> vol,
             int index = vol.index({cell[0], cell[1]});
             auto value =
                 1.0 -
-                ((distance(a, vec2<T>(cell[0] + 0.5, cell[1] + 0.5))) / sqrt2);
+                ((distance(a, vec2<T>(cell[0] + 0.5, cell[1] + 0.5))) / sqrt2<T>);
             queue.push_back({index, value});
         }
     }

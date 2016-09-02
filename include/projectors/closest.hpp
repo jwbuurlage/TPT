@@ -22,7 +22,6 @@ class closest_projector : public projector<D, T, closest_iterator<T>> {
         queue_.clear();
 
         auto current_point = line.origin;
-
         while (math::inside<D, T>(current_point, this->volume_)) {
 			std::array<int, D> xs;
 			for (int i = 0; i < D; ++i) {

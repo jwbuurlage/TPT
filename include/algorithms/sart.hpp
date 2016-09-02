@@ -46,7 +46,7 @@ image<D, T> sart(const volume<D>& v, const Geometry& g,
                 s = 0;
             }
 
-            if (w_norms[row] > math::epsilon) {
+            if (w_norms[row] > math::epsilon<T>) {
                 T alpha = 0.0;
                 for (auto elem : proj) {
                     alpha += f[elem.index] * elem.value;

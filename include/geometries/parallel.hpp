@@ -33,11 +33,11 @@ class parallel_geometry : public geometry<D, T, parallel_geometry<D, T>> {
 
     parallel_geometry(int angle_count, int detector_count,
                       const volume<D>& volume)
-        : geometry<D, T, parallel_geometry<D, T>>(angle_count *
-                                                  math::pow(detector_count, D - 1)),
+        : geometry<D, T, parallel_geometry<D, T>>(
+              angle_count * math::pow(detector_count, D - 1)),
           volume_(volume) {
-        auto angle_step = math::pi / angle_count;
-        for (T angle = 0.0; angle < math::pi; angle += angle_step) {
+        auto angle_step = math::pi<T> / angle_count;
+        for (T angle = 0.0; angle < math::pi<T>; angle += angle_step) {
             angles_.push_back(angle);
         }
 
@@ -136,7 +136,7 @@ inline line<2_D, T> compute_line(T current_detector, T current_angle,
         }
     }
 
-    return {best_point, delta};
+    return {best_point + (T)0.5 * delta, delta};
 }
 
 template <typename T>
@@ -148,8 +148,8 @@ inline line<3_D, T> compute_line(math::vec2<T> current_detector,
     auto line_2d =
         compute_line(current_detector.x, current_angle, volume_slice);
 
-    auto origin =
-        math::vec3<T>(line_2d.origin.x, line_2d.origin.y, current_detector.y + 0.5 * vol.z());
+    auto origin = math::vec3<T>(line_2d.origin.x, line_2d.origin.y,
+                                current_detector.y + 0.5 * vol.z());
     auto delta = math::vec3<T>(line_2d.delta.x, line_2d.delta.y, 0.0);
 
     return {origin, delta};

@@ -17,6 +17,7 @@ set(
     TEST_SOURCES
     "../test.cpp"
     "../initialization.cpp"
+    "../math.cpp"
 )
 
 set(

@@ -22,7 +22,7 @@ class joseph_projector : public projector<2_D, T, joseph_iterator<T>> {
             math::vec2<int> closest_cell;
             closest_cell[1 - dimension] = math::floor(position[1 - dimension]);
             closest_cell[dimension] =
-                math::floor(position[dimension] + 0.5 - math::epsilon);
+                math::floor(position[dimension] + 0.5 - math::epsilon<T>);
 
             math::vec2<int> cells[2] = {closest_cell, closest_cell};
             cells[1][dimension] += 1;
@@ -31,7 +31,7 @@ class joseph_projector : public projector<2_D, T, joseph_iterator<T>> {
                 auto distance = (T)1.0 - math::distance(cell[dimension] + (T)0.5,
                                                      position[dimension]);
                 if (cell[dimension] < this->volume_[dimension] &&
-                    distance > math::epsilon) {
+                    distance > math::epsilon<T>) {
                     this->queue_.push_back(
                         {this->volume_.index({cell[0], cell[1]}), distance});
                 }
