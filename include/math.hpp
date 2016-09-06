@@ -7,6 +7,7 @@
 #pragma once
 
 #include <algorithm>
+#include <iostream>
 #include <vector>
 
 #include <glm/glm.hpp>
@@ -34,40 +35,50 @@ struct matrix_element {
     T value;
 };
 
-// vector types
+// Definitions for our own vector types
 template <dimension D, typename T>
-struct vec {};
+struct vec_type {
+    // FIXME: for higher dimensional support, add own vector class for non-glm
+    // sized vectors
+    /* using type = my_own_vector_class<D, T>; */
+};
 
 template <typename T>
-struct vec<1_D, T> {
+struct vec_type<1_D, T> {
     using type = T;
 };
 
 template <typename T>
-struct vec<2_D, T> {
+struct vec_type<2_D, T> {
     using type = glm::tvec2<T>;
 };
 
 template <typename T>
-struct vec<3_D, T> {
+struct vec_type<3_D, T> {
     using type = glm::tvec3<T>;
 };
 
 template <typename T>
-struct vec<4_D, T> {
+struct vec_type<4_D, T> {
     using type = glm::tvec4<T>;
 };
 
+/* Generic vector type for any dimension */
+template <dimension D, typename T>
+using vec = typename vec_type<D, T>::type;
+
+/* Some shorthands for specific dimension, not that usage of this may indicate
+ * non-generic code(!), so use sparingly */
 template <typename T>
-using vec2 = typename vec<2_D, T>::type;
+using vec2 = vec<2_D, T>;
 
 template <typename T>
-using vec3 = typename vec<3_D, T>::type;
+using vec3 = vec<3_D, T>;
 
 template <typename T>
-using vec4 = typename vec<4_D, T>::type;
+using vec4 = vec<4_D, T>;
 
-// operations
+/* Common math operations */
 template <typename T>
 auto cos(T obj) {
     return glm::cos(obj);
@@ -89,8 +100,13 @@ auto abs(T obj) {
 }
 
 template <typename T>
-auto sqrt(T obj) {
+constexpr auto sqrt(T obj) {
     return glm::sqrt(obj);
+}
+
+template <typename T>
+auto normalize(T obj) {
+    return glm::normalize(obj);
 }
 
 // vector properties
@@ -121,7 +137,7 @@ T cross(typename vec<2_D, T>::type a, typename vec<2_D, T>::type b) {
 }
 
 template <typename T>
-T pow(T a, int n) {
+constexpr T pow(T a, int n) {
     int result = a;
     // FIXME use exponential powering
     for (int i = 1; i < n; ++i) {
@@ -185,7 +201,7 @@ vec2<T> box_intersection(typename vec2<T>::type p, typename vec2<T>::type p2,
 
 /* Check whether a vector `a` lies in the *open* box defined by `vol`. */
 template <dimension D, typename T>
-bool inside(typename vec<D, T>::type a, volume<D> vol) {
+bool inside(vec<D, T> a, volume<D> vol) {
     for (int dim = 0; dim < D; ++dim) {
         if (a[dim] <= (T)0 || a[dim] >= (T)vol[dim])
             return false;
@@ -194,29 +210,37 @@ bool inside(typename vec<D, T>::type a, volume<D> vol) {
 }
 
 template <dimension D, typename T>
-void interpolate(typename vec<D, T>::type a, volume<D> vol,
+void interpolate(vec<D, T> a, volume<D> vol,
                  std::vector<math::matrix_element<T>>& queue) {
-    static_assert(D == 2, "only bilinear interpolation is supported");
+    // First we see what cell corner we are closest to
+    vec<D, int> b = floor(a + vec<D, T>(0.5));
 
-    // find neighbouring cells
-    // we are looking for the cells with closest centers to our point
-    int x = floor(a[0] + 0.5);
-    int y = floor(a[1] + 0.5);
+    // the corresponding indices for each dimension
+    std::array<std::array<int, 2>, D> cells_indices;
+    for (int i = 0; i < D; ++i) {
+        cells_indices[i] = {b[i] - 1, b[i]};
+    }
 
-    // x-1, y    |   x,y
-    //           |
-    // ------- (x,y)--------
-    //           |
-    // x-1, y-1  |   x,y-1
+    /* This cartesian product uses bit shifts to compute it efficiently, we can
+     * do this because each set only has two elements. Note: requires D < 32,
+     * which we should never exceed, ever. */
+    auto cartesian_product = [](std::array<std::array<int, 2>, D> indices) {
+        std::array<vec<D, int>, pow(2, D)> result;
+        for (int k = 0; k < (1 << D); ++k) {
+            for (int i = 0; i < D; ++i) {
+                result[k][i] = indices[i][(k & (1 << i)) != 0];
+            }
+        }
+        return result;
+    };
+    auto cells = cartesian_product(cells_indices);
 
-    using cell_type = vec2<int>;
-    cell_type cells[] = {{x - 1, y - 1}, {x, y - 1}, {x - 1, y}, {x, y}};
+    // Next we do a general interpolation
     for (auto cell : cells) {
-        if (inside<D, T>(vec2<T>(cell) + vec2<T>(0.5), vol)) {
-            int index = vol.index({cell[0], cell[1]});
-            auto value =
-                1.0 -
-                ((distance(a, vec2<T>(cell[0] + 0.5, cell[1] + 0.5))) / sqrt2<T>);
+        vec<D, T> cell_center = vec<D, T>(cell) + vec<D, T>((T)0.5);
+        if (inside<D, T>(cell_center, vol)) {
+            int index = vol.index_by_vector(cell);
+            T value = (T)1.0 - ((distance(a, cell_center)) / sqrt<T>(D));
             queue.push_back({index, value});
         }
     }

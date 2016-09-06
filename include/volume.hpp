@@ -56,14 +56,13 @@ class volume {
      */
     int operator[](size_t i) const { return dimensions_[i]; }
 
+    template <typename Vector>
+    int index_by_vector(Vector xs) const {
+        return index_by_vector_(xs);
+    }
+
     int index(std::array<int, D> xs) const {
-        int result = xs[0];
-        int offset = dimensions_[0];
-        for (int i = 1; i < D; ++i) {
-            result += offset * xs[i];
-            offset *= dimensions_[i];
-        }
-        return result;
+        return index_by_vector_(xs);
     }
 
     template <typename... Ts>
@@ -84,6 +83,17 @@ class volume {
         offset *= dimensions_[D - sizeof...(xs)];
         current += offset * x;
         return index_(current, offset, xs...);
+    }
+
+    template <typename Vector>
+    inline int index_by_vector_(Vector xs) const {
+        int result = xs[0];
+        int offset = dimensions_[0];
+        for (int i = 1; i < D; ++i) {
+            result += offset * xs[i];
+            offset *= dimensions_[i];
+        }
+        return result;
     }
 
     int index_(int current, int offset) const { return current; }

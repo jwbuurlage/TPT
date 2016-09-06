@@ -79,40 +79,75 @@ void ascii_plot_output(const ImageLike& image, math::vec2<int> dimensions) {
     }
 }
 
+// this assumes a hyper-cubic volume
 template <dimension D, typename T>
-auto random_list_geometry(tomo::volume<D> v, int k) {
-    static_assert(D == 2_D, "only the generation of 2D lines is supported");
-
-    // initialize random set of lines, this implies \phi for now
-    std::vector<tomo::line<D, T>> line_list;
-
+auto random_list_geometry(int k, tomo::volume<D> v) {
     // Seed with a real random value, if available
     std::random_device r;
-
-    // Choose a random mean between 1 and 6
     std::default_random_engine e(r());
-    int precision = 123456;
-    std::uniform_int_distribution<int> rand(0, precision);
+    T precision = (T)100.0;
 
-    for (int i = 0; i < k; ++i) {
-        if (rand(e) % 2 == 0) {
-            // place left
-            double offset = v.y() * ((double)rand(e) / precision);
-            double angle = M_PI * ((double)rand(e) / precision) - M_PI / 2;
-            line_list.push_back(
-                {{0, offset},
-                 {tomo::math::cos(angle), tomo::math::sin(angle)}});
-        } else {
-            // place bottom
-            double offset = v.x() * ((double)rand(e) / precision);
-            double angle = M_PI * ((double)rand(e) / precision);
-            line_list.push_back(
-                {{offset, 0},
-                 {tomo::math::cos(angle), tomo::math::sin(angle)}});
+    std::uniform_int_distribution<int> rand_int(0, 1234567);
+    std::normal_distribution<T> gaussian(0, precision);
+    std::uniform_real_distribution<T> rand_pos(0.5, v[0] - 0.5);
+
+    std::vector<tomo::math::vec<D, T>> random_origin(k);
+    std::vector<int> chosen_ds;
+    std::vector<int> chosen_planes;
+    for (auto& origin : random_origin) {
+        // The origin should be on the boundary of the volume
+        // Note that a D-dimensional volume has 2 * D (hyper)sides. We choose
+        // such a side
+        // for our origin to lie on.
+
+        // First we draw a random dimension
+        int chosen_d = rand_int(e) % D;
+        chosen_ds.push_back(chosen_d);
+
+        // Next we choose one of the two planes
+        int plane = rand_int(e) % 2;
+        chosen_planes.push_back(plane);
+
+        // Now we generate a random origin, here we make sure it is not 'too
+        // much' to the sides
+        for (int d = 0; d < D; ++d) {
+            if (d == chosen_d) {
+                origin[d] = (plane == 0) ? (T)0.0 : (T)v[0];
+            } else {
+                origin[d] = rand_pos(e);
+            }
         }
     }
 
-    auto g = tomo::list_geometry<D>(std::move(line_list));
+    // Next we generate random directions
+    // Here we use that the Guassian distribution is spherically symmetric, so
+    // that we can generate a point on the sphere using D random gaussian
+    // variables.
+    std::vector<tomo::math::vec<D, T>> random_direction(k);
+    int j = 0;
+    for (auto& direction : random_direction) {
+        do {
+            for (int i = 0; i < D; ++i) {
+                direction[i] = gaussian(e);
+            }
+        } while (direction == math::vec<D, T>((T)0.0));
+        direction = math::normalize(direction);
+        // now we fix the direction such that it always points inward
+        if ((chosen_planes[j] == 0 && (direction[chosen_ds[j]] < 0)) ||
+            (chosen_planes[j] == 1 && (direction[chosen_ds[j]] > 0))) {
+            direction[chosen_ds[j]] = -direction[chosen_ds[j]];
+        }
+        ++j;
+    }
+
+    // initialize random set of lines, this implies \phi for now
+    std::vector<tomo::line<D, T>> line_list(k);
+    for (int i = 0; i < k; ++i) {
+        line_list[i].origin = random_origin[i] + (T)0.5 * random_direction[i];
+        line_list[i].delta = random_direction[i];
+    }
+
+    auto g = tomo::list_geometry<D, T>(std::move(line_list));
     g.set_dimensions({k, 1});
     return g;
 }

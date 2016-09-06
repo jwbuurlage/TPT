@@ -29,7 +29,7 @@ detector_location(int detector, int detector_count, T detector_step,
 template <dimension D, typename T>
 class parallel_geometry : public geometry<D, T, parallel_geometry<D, T>> {
   public:
-    using position = typename math::vec<D - 1, T>::type;
+    using position = math::vec<D - 1, T>;
 
     parallel_geometry(int angle_count, int detector_count,
                       const volume<D>& volume)

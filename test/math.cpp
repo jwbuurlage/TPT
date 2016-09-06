@@ -15,10 +15,17 @@ TEST_CASE("Intersection and box checking", "[math]") {
         std::vector<bool> is_inside = {false, false, true, true,
                                     false, false, true};
         assert(is_inside.size() == xs.size());
+
+        bool can_compute_inside_correctly = true;
         for (std::size_t i = 0; i < is_inside.size(); ++i) {
             bool inside = tomo::math::inside<2_D, T>(xs[i], v);
-            CHECK(inside == is_inside[i]);
+            if(inside != is_inside[i]) {
+                can_compute_inside_correctly = false;
+                break;
+            }
         }
+
+        CHECK(can_compute_inside_correctly);
     }
 
     SECTION("3D") {
@@ -30,15 +37,39 @@ TEST_CASE("Intersection and box checking", "[math]") {
         std::vector<bool> is_inside = {false, false, true, true,
                                     false, false, true};
         assert(is_inside.size() == xs.size());
+
+        bool can_compute_inside_correctly = true;
         for (std::size_t i = 0; i < is_inside.size(); ++i) {
             bool inside = tomo::math::inside<3_D, T>(xs[i], v);
-            CHECK(inside == is_inside[i]);
+            if(inside != is_inside[i]) {
+                can_compute_inside_correctly = false;
+                break;
+            }
         }
+
+        CHECK(can_compute_inside_correctly);
     }
 }
 
 TEST_CASE("Interpolation", "[math]") {
-    SECTION("2D") {}
+    SECTION("2D") {
+        std::vector<tomo::math::matrix_element<T>> q;
 
-    SECTION("3D") {}
+        tomo::volume<2_D> v(8);
+        tomo::math::vec<2_D, float> a(2.3);
+        tomo::math::interpolate(a, v, q);
+
+        CHECK(q.size() == 4);
+    }
+
+    SECTION("3D") {
+        std::vector<tomo::math::matrix_element<T>> q;
+
+        tomo::volume<3_D> v(8);
+        tomo::math::vec<3_D, float> a(2.3);
+        tomo::math::interpolate(a, v, q);
+
+        CHECK(q.size() == 8);
+        CHECK(q[0].index == 73);
+    }
 }
