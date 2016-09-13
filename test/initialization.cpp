@@ -25,8 +25,10 @@ TEST_CASE("We can initialize geometry", "[core]") {
         CHECK(g.lines() == 180 * 250);
 
         int i = 0;
-        for (auto line : g)
+        for (auto line : g) {
+            (void)line; // suppress unused warning
             ++i;
+        }
         CHECK(i == g.lines());
     }
 
@@ -37,8 +39,11 @@ TEST_CASE("We can initialize geometry", "[core]") {
         CHECK(g.lines() == 180 * 250 * 250);
 
         int i = 0;
-        for (auto line : g)
+        for (auto line : g) {
+            (void)line; // suppress unused warning
             ++i;
+        }
+
         CHECK(i == g.lines());
     }
 }
@@ -54,6 +59,7 @@ TEST_CASE("Geometry lines are not empty") {
         for (auto line : g) {
             int i = 0;
             for (auto elem : proj(line)) {
+                (void)elem; // suppress unused warning
                 ++i;
             }
             if (i == 0) {
@@ -75,6 +81,7 @@ TEST_CASE("Geometry lines are not empty") {
         for (auto line : g) {
             int i = 0;
             for (auto elem : proj(line)) {
+                (void)elem; // suppress unused warning
                 ++i;
             }
             if (i == 0) {

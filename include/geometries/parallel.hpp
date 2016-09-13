@@ -127,10 +127,10 @@ inline line<2_D, T> compute_line(T current_detector, T current_angle,
     for (auto& line_segment : lines) {
         auto intersection_point = math::intersection<T>(
             origin, end, line_segment[0], line_segment[1]);
-        if (intersection_point != math::vec2<T>(0, 0)) {
-            auto dist = math::distance<2_D, T>(origin, intersection_point);
+        if (intersection_point) {
+            auto dist = math::distance<2_D, T>(origin, intersection_point.value());
             if (dist < min_distance) {
-                best_point = intersection_point;
+                best_point = intersection_point.value();
                 min_distance = dist;
             }
         }

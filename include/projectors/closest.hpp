@@ -18,15 +18,16 @@ class closest_projector : public projector<D, T, closest_iterator<T>> {
         queue_.reserve((int)(math::sqrt(D) * max_width));
     }
 
-    void reset(line<D, T> line) override {
+  private:
+    void reset_(line<D, T> line) override {
         queue_.clear();
 
         auto current_point = line.origin;
         while (math::inside<D, T>(current_point, this->volume_)) {
-			std::array<int, D> xs;
-			for (int i = 0; i < D; ++i) {
-				xs[i] = (int)current_point[i];
-			}
+            std::array<int, D> xs;
+            for (int i = 0; i < D; ++i) {
+                xs[i] = (int)current_point[i];
+            }
             auto index = this->volume_.index(xs);
             if (index >= 0 && index <= this->volume_.cells())
                 queue_.push_back({index, (T)1.0});
@@ -36,10 +37,9 @@ class closest_projector : public projector<D, T, closest_iterator<T>> {
         this->line_ = line;
     }
 
-    closest_iterator<T> begin() override { return queue_.begin(); }
-    closest_iterator<T> end() override { return queue_.end(); }
+    closest_iterator<T> begin_() override { return queue_.begin(); }
+    closest_iterator<T> end_() override { return queue_.end(); }
 
-  private:
     std::vector<math::matrix_element<T>> queue_;
 };
 

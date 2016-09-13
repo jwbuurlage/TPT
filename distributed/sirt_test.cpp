@@ -94,13 +94,13 @@ int main(int argc, char* argv[]) {
         std::vector<T> rs(g.lines());
         std::vector<T> cs(v.cells());
 
-        int line = 0;
+        int row = 0;
         for (auto l : g) {
             for (auto touch : proj(l)) {
-                rs[line] += touch.value;
+                rs[row] += touch.value;
                 cs[touch.index] += touch.value;
             }
-            line++;
+            row++;
         }
 
         // communicate bc elements in halo
@@ -193,7 +193,7 @@ int main(int argc, char* argv[]) {
         // add communication queue for image exchanges
         auto image_queue = bulk::create_queue<int, T>(world);
 
-        // image receive queue for processor 1 to show the entire image:
+        // image receive queue for processor 0 to show the entire image:
         for (int j = min_local_index; j < max_local_index; ++j) {
             image_queue(0).send(j, image[j]);
         }

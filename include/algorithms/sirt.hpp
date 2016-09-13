@@ -14,15 +14,15 @@ image<D, T> sirt(const volume<D>& v, const Geometry& g,
     // first we compute R and C
     std::vector<T> R(g.lines());
     std::vector<T> bC(v.cells());
-    int line_number = 0;
 
+    int line_idx = 0;
     for (auto line : g) {
         proj.reset(line);
         for (auto elem : proj) {
-            R[line_number] += elem.value;
+            R[line_idx] += elem.value;
             bC[elem.index] += elem.value;
         }
-        ++line_number;
+        ++line_idx;
     }
 
     for (auto& r : R)

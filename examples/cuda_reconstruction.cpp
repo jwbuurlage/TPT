@@ -54,7 +54,6 @@ int main(int argc, char* argv[]) {
     fmt::print("CUDA SIRT:\n");
     tomo::ascii_plot(x);
 
-
     fmt::print("Parameters: size = {}x{}, iterations = {}, beta = {}\n", k, k,
                iterations, beta);
 

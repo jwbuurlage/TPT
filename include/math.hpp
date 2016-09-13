@@ -10,6 +10,11 @@
 #include <iostream>
 #include <vector>
 
+#include <experimental/optional>
+
+template <typename T>
+using optional = std::experimental::optional<T>;
+
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 
@@ -78,6 +83,7 @@ using vec3 = vec<3_D, T>;
 template <typename T>
 using vec4 = vec<4_D, T>;
 
+
 /* Common math operations */
 template <typename T>
 auto cos(T obj) {
@@ -107,6 +113,19 @@ constexpr auto sqrt(T obj) {
 template <typename T>
 auto normalize(T obj) {
     return glm::normalize(obj);
+}
+
+// these two functions are modelled after identical functions in the D lang
+// stdlib
+template <typename T, typename V>
+bool approx_equal(T lhs, T rhs, V max_rel_diff, V max_abs_diff) {
+    return abs((lhs - rhs) / rhs) <= max_rel_diff ||
+           (max_abs_diff != 0 && abs(lhs - rhs) <= max_abs_diff);
+}
+
+template <typename T>
+bool approx_equal(T lhs, T rhs) {
+    return approx_equal(lhs, rhs, 1e-2, 1e-5);
 }
 
 // vector properties
@@ -147,10 +166,9 @@ constexpr T pow(T a, int n) {
 }
 
 /* compute the intersection of the line p --> p2, with the line q --> q2, or
- * returning origin if there is no such point
- * TODO: return pair of boolean here better than origin as error */
+ * returning an optional without value if there is no such point */
 template <typename T>
-vec2<T> intersection(vec2<T> p, vec2<T> p2, vec2<T> q, vec2<T> q2) {
+optional<vec2<T>> intersection(vec2<T> p, vec2<T> p2, vec2<T> q, vec2<T> q2) {
     auto r = p2 - p;
     auto s = q2 - q;
 
@@ -164,14 +182,14 @@ vec2<T> intersection(vec2<T> p, vec2<T> p2, vec2<T> q, vec2<T> q2) {
         }
     }
 
-    return vec2<T>(0, 0);
+    return optional<vec2<T>>();
 }
 
 /* FIXME: we assume a more or less square box */
+// FIXME return optional here too?
 template <typename T>
-vec2<T> box_intersection(typename vec2<T>::type p, typename vec2<T>::type p2,
-                         typename vec2<T>::type box) {
-    static const std::array<std::array<math::vec2<T>, 2>, 4> lines = {
+vec2<T> box_intersection(vec2<T> p, vec2<T> p2, vec2<T> box) {
+    const std::array<std::array<math::vec2<T>, 2>, 4> lines = {
         std::array<math::vec2<T>, 2>{math::vec2<T>(0, 0),
                                      math::vec2<T>(0, box.y)},
         std::array<math::vec2<T>, 2>{math::vec2<T>(0, box.y),
@@ -187,10 +205,14 @@ vec2<T> box_intersection(typename vec2<T>::type p, typename vec2<T>::type p2,
     for (auto& line_segment : lines) {
         auto intersection_point =
             math::intersection<T>(p, p2, line_segment[0], line_segment[1]);
-        if (intersection_point != math::vec2<T>(0, 0)) {
-            auto dist = math::distance<2_D, T>(p, intersection_point);
+
+        if (!intersection_point)
+            continue;
+
+        if (intersection_point.value() != math::vec2<T>(0, 0)) {
+            auto dist = math::distance<2_D, T>(p, intersection_point.value());
             if (dist < min_distance) {
-                best_point = intersection_point;
+                best_point = intersection_point.value();
                 min_distance = dist;
             }
         }

@@ -17,7 +17,8 @@ class dlinear_projector : public projector<D, T, Iterator> {
         queue_.reserve((int)(math::sqrt2<T> * 4 * max_width));
     }
 
-    void reset(line<D, T> line) override {
+  private:
+    void reset_(line<D, T> line) override {
         queue_.clear();
         auto current_point = line.origin;
 
@@ -29,10 +30,9 @@ class dlinear_projector : public projector<D, T, Iterator> {
         this->line_ = line;
     }
 
-    Iterator begin() override { return queue_.begin(); }
-    Iterator end() override { return queue_.end(); }
+    Iterator begin_() override { return queue_.begin(); }
+    Iterator end_() override { return queue_.end(); }
 
-  private:
     std::vector<math::matrix_element<T>> queue_;
 };
 

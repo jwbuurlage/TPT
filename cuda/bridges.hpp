@@ -16,12 +16,12 @@ class geometry_bridge {
         std::vector<device::line<T>> lines(g.lines());
         int k = 0;
         for (auto line : g) {
-            lines[k].origin.x = line.origin.x + line.delta.x;
-            lines[k].origin.y = line.origin.y + line.delta.y;
+            lines[k].origin.x = line.origin.x;
+            lines[k].origin.y = line.origin.y;
             lines[k].delta.x = line.delta.x;
             lines[k].delta.y = line.delta.y;
 
-            auto far_away = line.origin + (T)math::sqrt2<T> * v.x() * line.delta;
+            auto far_away = line.origin + math::sqrt2<T> * v.x() * line.delta;
 
             // compute number of steps
             auto end_point =
