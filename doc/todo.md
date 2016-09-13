@@ -1,13 +1,17 @@
 # TODAY'S GOAL
-* [ ] Learn MPI, write Bulk backend
 
 # CONTINUE:
 * [ ] A 'CUDA stream' can have associated buffers (geometry, image, sino bridges), which stay alive while the stream stays alive.
-* [ ] Set up unit tests, set up documentation
-* [ ] Optimize CPU algorithms (cache-use, limit recomputations, data-oriented, ...)
-* [ ] CUDA and Distributed is next
-* [ ] 3D / cone / slices
+* [ ] instead of e.g. `tomo::parallel_geometry` do we want `tomo::geometry::parallel`?
+* [x] Set up unit tests
+* [ ] Optimize CPU algorithms (cache-use, limit recomputations, data-oriented, SIMD, ...)
+* [ ] Other geometries
+    - [ ] 3D
+    - [ ] fan
+    - [x] slices (for parallel)
+* [x] CUDA and Distributed is next
 * [x] Need *good* abstractions for GPU / Distributed objects (geometry, projectors, ...)
+* [x] Learn MPI, write Bulk backend
 
 # List of ideas
 * We want the objects to be able to 'morph' into matrices and vectors for algorithm operations
@@ -16,12 +20,17 @@
 * Vectors and intersection algorithms, kernels. Which file and what do we implement ourselves?
 * Templated accelerator functions (or component like objects)
 * Accelerator/platform agnostic
-* Write also a separate 2D/3D visualizer (tomovis), agnostic renderer and can be off-site, see TomViz by cornell. Parallel marching cube.
+* We need also a separate 2D/3D visualizer (I once started working on tomovis), agnostic renderer and can be off-site, see TomViz by cornell. Parallel marching cube. This could be part of the 'tomo pipeline' idea.
 * In order to accelerate efficiently, we need to layout object data efficiently (*data oriented development*) to prevent inefficient copying
 * Simulate noise?
 
-# Preparation and utilities
-* [ ] Run unit tests in C++, interact through python front-end
+# Documentation
+* For each entity (class, function, ...):
+  - Brief description
+  - (optional) detailed description, here high-level overview can be given (or intent).
+  - (if relevant) Description of template parameters.
+  - (if relevant) Description of parameters.
+  - (if relevant) Description of return value.
 
 # Known bugs:
 - SART fails (diverges) when using linear projector on over-determined system.

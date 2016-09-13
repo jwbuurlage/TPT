@@ -10,48 +10,74 @@
 
 namespace tomo {
 
-template <dimension Dimension, typename Type = double>
+/**
+ * A discrete representation of the (reconstructed) object.
+ *
+ * An image object holds the values for the individual voxels within a volume.
+ *
+ * \tparam D the dimension of the volume (and thus the reconstruction problem).
+ * \tparam T the scalar type to use
+ */
+template <dimension D, typename T = default_scalar_type>
 class image {
   public:
-    image(volume<Dimension> v) : v_(v) {
+    /** Construct a default-initialized image for a given volume. */
+    image(volume<D> v) : v_(v) {
         int cells = 1;
-        for (int i = 0; i < Dimension; ++i)
+        for (int i = 0; i < D; ++i)
             cells *= v[i];
         data_.resize(cells);
     }
 
-    size_t index(std::array<int, Dimension> xs) const {
-       return v_.index(xs);
-    }
+    /** Obtain the index of an image voxel within the volume. */
+    size_t index(std::array<int, D> xs) const { return v_.index(xs); }
 
-    Type& operator[](size_t index) { return data_[index]; }
-    const Type& operator[](size_t index) const { return data_[index]; }
+    /**
+     * Obtain the value for the an image voxel.
+     *
+     * \param index the global index of the voxel
+     */
+    T& operator[](size_t index) { return data_[index]; }
+    const T& operator[](size_t index) const { return data_[index]; }
 
-    Type& operator()(std::array<int, Dimension> xs) {
+    /**
+     * Obtain the value for the an image voxel.
+     *
+     * \param xs an array containing the indices of the voxel in each dimension.
+     */
+    T& operator()(std::array<int, D> xs) { return (*this)[index(xs)]; }
+    const T& operator()(std::array<int, D> xs) const {
         return (*this)[index(xs)];
     }
 
-    const Type& operator()(std::array<int, Dimension> xs) const {
-        return (*this)[index(xs)];
-    }
-
+    /**
+     * Obtain the size of the image for a given dimension
+     * \param i the dimension to query
+     */
     int size(int i) const { return v_[i]; }
 
-    std::vector<Type>& mutable_data() { return data_; };
-    const std::vector<Type>& data() const { return data_; };
+    /** Obtain an array with the dimensions of the image. */
+    std::array<int, D> dimensions() const { return v_.dimensions(); }
 
-    volume<Dimension> get_volume() const { return v_; }
+    /** Obtain a reference to the underlying image data. */
+    std::vector<T>& mutable_data() { return data_; }
+    const std::vector<T>& data() const { return data_; }
 
-    std::array<int, Dimension> dimensions() const { return v_.dimensions(); }
+    /** Obtain a reference to the volume. */
+    volume<D> get_volume() const { return v_; }
 
+    /** Clear the image. Fills each voxel with zero. */
     void clear() { std::fill(data_.begin(), data_.end(), 0); }
 
+    /** Obtain an iterator to the first voxel of the image. */
     auto begin() { return data_.begin(); }
+
+    /** Obtain an iterator that points beyond the last first voxel. */
     auto end() { return data_.end(); }
 
   private:
-    volume<Dimension> v_;
-    std::vector<Type> data_;
+    volume<D> v_;
+    std::vector<T> data_;
 };
 
 } // namespace tomo

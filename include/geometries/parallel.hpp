@@ -9,6 +9,20 @@
 
 namespace tomo {
 
+/**
+ * Obtain the location of a detector depending on the dimension of the volume.
+ *
+ * \tparam T the scalar type to use
+ *
+ * \param detector the index of the detector
+ * \param detector_count the total number of detectors
+ * \param detector_step the distance between adjacent detectors
+ *
+ * \note the final parameter for the volume is used to choose the function for
+ * the right dimension.
+ *
+ * @{
+ */
 template <typename T>
 T detector_location(int detector, int detector_count, T detector_step,
                     const volume<2_D>&) {
@@ -24,12 +38,27 @@ math::vec2<T> detector_location(int detector, int detector_count,
     return {(detector_x - (detector_count - 1) * 0.5) * detector_step,
             (detector_y - (detector_count - 1) * 0.5) * detector_step};
 }
+/** @} */
 
+/**
+ * Geometry defined by parallel lines with a number of views.
+ *
+ * \tparam D the dimension of the volume.
+ * \tparam T the scalar type to use
+ */
 template <dimension D, typename T>
 class parallel_geometry : public geometry<D, T, parallel_geometry<D, T>> {
   public:
     using position = math::vec<D - 1, T>;
 
+    /**
+     * Construct the parallel geometry for a given number of angles and
+     * detectors.
+     *
+     * \param angle_count the number of angles
+     * \param detector_count the number of detectors
+     * \param volume the volume being scanned
+     */
     parallel_geometry(int angle_count, int detector_count,
                       const volume<D>& volume)
         : geometry<D, T, parallel_geometry<D, T>>(
@@ -51,15 +80,23 @@ class parallel_geometry : public geometry<D, T, parallel_geometry<D, T>> {
         this->dimensions_ = {detector_count, angle_count};
     }
 
+    /** Obtain the number of detectors. */
     size_t detector_count() const { return detectors_.size(); }
+
+    /** Obtain the number of angles. */
     size_t angle_count() const { return angles_.size(); }
 
+    /** Obtain a vector containing each angle. */
     const std::vector<T>& angles() const { return angles_; }
+
+    /** Obtain a vector containing the position of each detector. */
     const std::vector<position>& detectors() const { return detectors_; }
 
+    /** Obtain a reference to the scanned volume. */
     const volume<D>& get_volume() const { return volume_; }
 
-    line<D, T> get_line(int i) const {
+    /** Obtain the i-th line of the geometry. */
+    inline line<D, T> get_line(int i) const {
         return compute_line(detectors_[i % detector_count()],
                             angles_[i / detector_count()], volume_);
     }
@@ -70,12 +107,17 @@ class parallel_geometry : public geometry<D, T, parallel_geometry<D, T>> {
     volume<D> volume_;
 };
 
-// template <dimension D, typename T>
-// inline line<D, T> compute_line(T, T, const volume<D>&) {
-//    static_assert(false,
-//                  "computing lines for `D /= 2` dimensions not supported");
-//}
-
+/**
+ * Obtain the line corresponding to a given location of a detector and a given angle.
+ *
+ * \tparam T the scalar type to use
+ *
+ * \param current_detector the position of the detector
+ * \param current_angle the angle of the view
+ * \param vol the volume being scanned
+ *
+ * @{
+ */
 template <typename T>
 inline line<2_D, T> compute_line(T current_detector, T current_angle,
                                  const volume<2_D>& vol) {
@@ -154,5 +196,6 @@ inline line<3_D, T> compute_line(math::vec2<T> current_detector,
 
     return {origin, delta};
 }
+/** @} */
 
 } // namespace tomo

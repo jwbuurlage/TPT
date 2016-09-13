@@ -5,17 +5,31 @@
 
 namespace tomo {
 
+/**
+ * Geometry defined by a list of lines.
+ *
+ * \tparam D the dimension of the volume.
+ * \tparam T the scalar type to use
+ */
 template <dimension D, typename T = default_scalar_type>
 class list_geometry : public geometry<D, T, list_geometry<D, T>> {
   public:
-    list_geometry(std::vector<line<D, T>>& lines)
+    /** Construct a list geometry by copying a vector of lines. */
+    list_geometry(const std::vector<line<D, T>>& lines)
         : geometry<D, T, list_geometry<D, T>>(lines.size()), lines_(lines) {}
 
+    /** Construct a list geometry by moving a vector of lines. */
     list_geometry(std::vector<line<D, T>>&& lines)
         : geometry<D, T, list_geometry<D, T>>(lines.size()), lines_(lines) {}
 
+    /** Obtain the i-th line of the geometry. */
     inline line<D, T> get_line(int i) const { return lines_[i]; }
 
+    /**
+     * Set the dimensions of the list geometry.
+     * \see `tomo::geometry::groups()`
+     */
+    // FIXME this should possibly be renamed to `set_groups`.
     void set_dimensions(math::vec2<T> dimensions) {
         this->dimensions_ = dimensions;
     }

@@ -11,6 +11,7 @@
 
 namespace tomo {
 
+/** Perform a forward-projection of a given image. */
 template <dimension D, typename T, class Geometry,
           class Projector = linear_projector<D, T>>
 sinogram<D, T, Geometry, Projector>
@@ -29,6 +30,7 @@ forward_projection(const image<D, T>& f, const Geometry& g, Projector& proj) {
     return sino;
 }
 
+/** Perform a back-projection of a given sinogram. */
 template <dimension D, typename T, typename Geometry, class Projector>
 image<D, T> backward_projection(const sinogram<D, T, Geometry, Projector>& p,
                                 const Geometry& g);

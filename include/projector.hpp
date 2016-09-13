@@ -9,20 +9,30 @@
 
 namespace tomo {
 
+/** An integration scheme for the ray inside a volume. */
 template <dimension D, typename T, typename Iterator>
 class projector {
   public:
+    /** Construct a projector for a scanning volume. */
     projector(volume<D> vol) : volume_(vol) {}
 
+    /** Obtain an iterator to the first voxel that is 'touched'. */
     Iterator begin() { return begin_(); }
+
+    /** Obtain an iterator beyond the final voxel that is 'touched'. */
     Iterator end() { return end_(); }
 
-    /** This allows for code like:
-      * for (auto l : g)
-      *      for (auto touch : proj(l)) {
-      *        // do something with touch things
-      *      }
-      */
+    /**
+     * A container that wraps the `begin` and `end` functions of a projector.
+     *
+     * This allows for code such as:
+     * ```{.cpp}
+     * for (auto l : g)
+     *      for (auto touch : proj(l)) {
+     *        // do something with the touch
+     *      }
+     * ```
+     */
     class touch_container {
       public:
         touch_container(projector& p) : p_(p) {}
@@ -33,14 +43,19 @@ class projector {
         projector& p_;
     };
 
+    /** Returns an iterable container for line `line` with this projector. */
     touch_container operator()(line<D, T> line) {
         this->reset(line);
         return touch_container(*this);
     }
 
+    /** Reset the projector to a given line. */
     void reset(line<D, T> line) { reset_(line); }
 
+    /** Obtain the current line of the projector. */
     line<D, T> get_line() const { return line_; }
+
+    /** Obtain a reference to the scanned volume. */
     volume<D> get_volume() const { return volume_; }
 
   protected:

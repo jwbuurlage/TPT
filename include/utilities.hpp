@@ -15,9 +15,7 @@
 
 namespace tomo {
 
-template <dimension D, typename T>
-void plot(const image<D, T>& f, std::string filename);
-
+/** A helper function that downscales the image for plotting in the terminal. */
 template <typename T>
 image<2_D, T> downscale_(const image<2_D, T>& f, volume<2_D> new_volume) {
     assert(f.size(0) == f.size(1));
@@ -38,6 +36,7 @@ image<2_D, T> downscale_(const image<2_D, T>& f, volume<2_D> new_volume) {
     return g;
 }
 
+/** Print the image as ascii art to stdout. */
 template <typename T>
 void ascii_plot(const image<2_D, T>& f) {
     int limit = 40;
@@ -49,11 +48,13 @@ void ascii_plot(const image<2_D, T>& f) {
     }
 }
 
+/** Print the sinogram as ascii art to stdout. */
 template <dimension D, typename T, class G, class P>
 void ascii_plot(const sinogram<D, T, G, P>& sino) {
     ascii_plot_output(sino, sino.geometry().groups());
 }
 
+/** Output an image-like object to the standard output. */
 template <class ImageLike>
 void ascii_plot_output(const ImageLike& image, math::vec2<int> dimensions) {
     using namespace std::string_literals;
@@ -79,7 +80,15 @@ void ascii_plot_output(const ImageLike& image, math::vec2<int> dimensions) {
     }
 }
 
-// this assumes a hyper-cubic volume
+/**
+ * Create a random list geometry in D dimensions.
+ *
+ * \tparam D the dimension of the scanning volume
+ * \tparam T the scalar type to use
+ *
+ * \param k the number of lines to generate
+ * \param v the volume to be scanned
+ */
 template <dimension D, typename T>
 auto random_list_geometry(int k, tomo::volume<D> v) {
     // Seed with a real random value, if available
