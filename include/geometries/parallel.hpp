@@ -16,9 +16,8 @@ T detector_location(int detector, int detector_count, T detector_step,
 }
 
 template <typename T>
-typename math::vec<2_D, T>::type
-detector_location(int detector, int detector_count, T detector_step,
-                  const volume<3_D>&) {
+math::vec2<T> detector_location(int detector, int detector_count,
+                                T detector_step, const volume<3_D>&) {
     auto detector_x = detector % detector_count;
     auto detector_y = detector / detector_count;
 
@@ -128,7 +127,8 @@ inline line<2_D, T> compute_line(T current_detector, T current_angle,
         auto intersection_point = math::intersection<T>(
             origin, end, line_segment[0], line_segment[1]);
         if (intersection_point) {
-            auto dist = math::distance<2_D, T>(origin, intersection_point.value());
+            auto dist =
+                math::distance<2_D, T>(origin, intersection_point.value());
             if (dist < min_distance) {
                 best_point = intersection_point.value();
                 min_distance = dist;

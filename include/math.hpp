@@ -83,7 +83,6 @@ using vec3 = vec<3_D, T>;
 template <typename T>
 using vec4 = vec<4_D, T>;
 
-
 /* Common math operations */
 template <typename T>
 auto cos(T obj) {

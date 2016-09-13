@@ -10,7 +10,7 @@ namespace po = boost::program_options;
 #include "../cuda/tomo_cuda.hpp"
 
 int main(int argc, char* argv[]) {
-	using T = float;
+    using T = float;
 
     int k = 0;
     int iterations = 0;
@@ -46,7 +46,6 @@ int main(int argc, char* argv[]) {
 
     // simulate the experiment
     auto sino = tomo::cuda::forward_projection<2_D, T>(f, g);
-    // tomo::ascii_plot(sino);
 
     // run an algorithm to reconstruct the image
     auto x = tomo::cuda::sirt(v, g, sino, beta, iterations);

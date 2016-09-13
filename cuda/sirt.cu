@@ -28,6 +28,15 @@ template <typename T>
 __global__ void invert_sums(T* row, T* col, T beta) {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
 
+    // FIXME this should not be necessary if the lines are well-formed
+    // look into this problem (it is in the geometry somewhere)
+    if (col[i] < 1e-6) {
+        col[i] = (T)1.0;
+    }
+    else if (row[i] < 1e-6) {
+        row[i] = (T)1.0;
+    }
+
     col[i] = beta / col[i];
     row[i] = (T)1.0 / row[i];
 }
