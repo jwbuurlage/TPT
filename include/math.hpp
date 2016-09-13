@@ -1,8 +1,9 @@
-// We hide our math (vectors, intersections, ...) in this file.
-// currently the intention is to forward as much as possible to glm, but maybe
-// modify the syntax for our use cases
-//
-// FIXME: this is becoming a mess with glm types and our own
+/**
+ * \file We hide our math (vectors, intersections, ...) in this file.
+ * currently the intention is to forward as much as possible to glm, but maybe
+ * modify the syntax for our use cases, and to remain flexible w.r.t.
+ * alternative vector libraries.
+ */
 
 #pragma once
 
@@ -22,25 +23,40 @@ using optional = std::experimental::optional<T>;
 #include "volume.hpp"
 
 namespace tomo {
+
+/**
+ * This namespace contains all the mathematical operations used by Galactica.
+ */
 namespace math {
 
+/** A constant representing a small value of type T. */
 template <typename T>
-constexpr T epsilon = (T)1e-8;
+constexpr T epsilon = (T)1e-5;
 
+/** A constant representing pi with the precision of type T. */
 template <typename T>
 constexpr auto pi = glm::pi<T>();
 
+/** A constant representing sqrt(2) with the precision of type T. */
 template <typename T>
 constexpr T sqrt2 = (T)1.41421356237;
 
-// matrices are given by line distributions
+/**
+ * An element of the (implicit) precision matrix, given by an column index and
+ * a value. The row is known externally.
+ *
+ * \tparam T the scalar type to use
+ */
 template <typename T = default_scalar_type>
 struct matrix_element {
+    /// The column index.
     int index;
+
+    /// The value of the matrix element.
     T value;
 };
 
-// Definitions for our own vector types
+/** The type to use for D-dimensional vectors. */
 template <dimension D, typename T>
 struct vec_type {
     // FIXME: for higher dimensional support, add own vector class for non-glm
@@ -48,112 +64,130 @@ struct vec_type {
     /* using type = my_own_vector_class<D, T>; */
 };
 
+/** The type to use for 1-dimensional vectors. */
 template <typename T>
 struct vec_type<1_D, T> {
     using type = T;
 };
 
+/** The type to use for 2-dimensional vectors. */
 template <typename T>
 struct vec_type<2_D, T> {
     using type = glm::tvec2<T>;
 };
 
+/** The type to use for 3-dimensional vectors. */
 template <typename T>
 struct vec_type<3_D, T> {
     using type = glm::tvec3<T>;
 };
 
+/** The type to use for 4-dimensional vectors. */
 template <typename T>
 struct vec_type<4_D, T> {
     using type = glm::tvec4<T>;
 };
 
-/* Generic vector type for any dimension */
+/**
+ * Generic vector type for any dimension, specializing where necessary.
+ * \tparam D the dimension of the vector
+ * \tparam T the scalar type to use
+ */
 template <dimension D, typename T>
 using vec = typename vec_type<D, T>::type;
 
-/* Some shorthands for specific dimension, not that usage of this may indicate
- * non-generic code(!), so use sparingly */
+/** Short-hand for 2-dimensional vectors. */
 template <typename T>
 using vec2 = vec<2_D, T>;
 
+/** Short-hand for 3-dimensional vectors. */
 template <typename T>
 using vec3 = vec<3_D, T>;
 
+/** Short-hand for 4-dimensional vectors. */
 template <typename T>
 using vec4 = vec<4_D, T>;
 
-/* Common math operations */
+/** Compute the cosine for an object of type T. */
 template <typename T>
 auto cos(T obj) {
     return glm::cos(obj);
 }
 
+/** Compute the sine for an object of type T. */
 template <typename T>
 auto sin(T obj) {
     return glm::sin(obj);
 }
 
+/** Floor an object of type T. */
 template <typename T>
 auto floor(T obj) {
     return glm::floor(obj);
 }
 
+/** Compute the absolute value of an object of type T. */
 template <typename T>
 auto abs(T obj) {
     return glm::abs(obj);
 }
 
+/** Compute the square root of an object of type T. */
 template <typename T>
 constexpr auto sqrt(T obj) {
     return glm::sqrt(obj);
 }
 
+/** Normalize an object of type T. */
 template <typename T>
 auto normalize(T obj) {
     return glm::normalize(obj);
 }
 
-// these two functions are modelled after identical functions in the D lang
-// stdlib
+/** Check if two real-valued numbers are approximately equal. */
 template <typename T, typename V>
 bool approx_equal(T lhs, T rhs, V max_rel_diff, V max_abs_diff) {
     return abs((lhs - rhs) / rhs) <= max_rel_diff ||
            (max_abs_diff != 0 && abs(lhs - rhs) <= max_abs_diff);
 }
 
+/** Check if two real-valued numbers are approximately equal. */
 template <typename T>
 bool approx_equal(T lhs, T rhs) {
-    return approx_equal(lhs, rhs, 1e-2, 1e-5);
+    return approx_equal(lhs, rhs, (T)1e-2, epsilon<T>);
 }
 
-// vector properties
+/** Compute the distance between two vectors. */
 template <dimension D, typename T>
-T distance(typename vec<D, T>::type a, typename vec<D, T>::type b) {
+T distance(vec<D, T> a, vec<D, T> b) {
     return glm::distance(a, b);
 }
 
-// vector properties
+/** Compute the distance between two generic objects. */
 template <typename T>
 T distance(T a, T b) {
-    return math::abs(a - b);
+    return abs(a - b);
 }
 
+/** Compute the inner-product of two vectors. */
 template <dimension D, typename T>
-T dot(typename vec<D, T>::type a, typename vec<D, T>::type b) {
+T dot(vec<D, T> a, vec<D, T> b) {
     return glm::dot(a, b);
 }
 
+/** Compute the cross-product of two vectors. */
 template <typename T>
 vec3<T> cross(vec3<T> a, vec3<T> b) {
     return glm::cross(a, b);
 }
 
+/** Compute the 'cross-product' of two 2-dimensional vectors. */
 template <typename T>
 T cross(typename vec<2_D, T>::type a, typename vec<2_D, T>::type b) {
     return a.x * b.y - a.y * b.x;
 }
 
+/** Compute \f$a^n\f$. */
 template <typename T>
 constexpr T pow(T a, int n) {
     int result = a;
@@ -164,8 +198,13 @@ constexpr T pow(T a, int n) {
     return result;
 }
 
-/* compute the intersection of the line p --> p2, with the line q --> q2, or
- * returning an optional without value if there is no such point */
+/**
+ * Compute the intersection of the line \f$p \rightarrow p2\f$, with the line
+ * \f$q \rightarrow q2\f$.
+ *
+ * \returns an optional containing a 2-dimensional vector if there is an
+ * intersection, and no value otherwise.
+ */
 template <typename T>
 optional<vec2<T>> intersection(vec2<T> p, vec2<T> p2, vec2<T> q, vec2<T> q2) {
     auto r = p2 - p;
@@ -188,28 +227,24 @@ optional<vec2<T>> intersection(vec2<T> p, vec2<T> p2, vec2<T> q, vec2<T> q2) {
 // FIXME return optional here too?
 template <typename T>
 vec2<T> box_intersection(vec2<T> p, vec2<T> p2, vec2<T> box) {
-    const std::array<std::array<math::vec2<T>, 2>, 4> lines = {
-        std::array<math::vec2<T>, 2>{math::vec2<T>(0, 0),
-                                     math::vec2<T>(0, box.y)},
-        std::array<math::vec2<T>, 2>{math::vec2<T>(0, box.y),
-                                     math::vec2<T>(box.x, box.y)},
-        std::array<math::vec2<T>, 2>{math::vec2<T>(box.x, 0),
-                                     math::vec2<T>(box.x, box.y)},
-        std::array<math::vec2<T>, 2>{math::vec2<T>(0, 0),
-                                     math::vec2<T>(box.x, 0)}};
+    const std::array<std::array<vec2<T>, 2>, 4> lines = {
+        std::array<vec2<T>, 2>{vec2<T>(0, 0), vec2<T>(0, box.y)},
+        std::array<vec2<T>, 2>{vec2<T>(0, box.y), vec2<T>(box.x, box.y)},
+        std::array<vec2<T>, 2>{vec2<T>(box.x, 0), vec2<T>(box.x, box.y)},
+        std::array<vec2<T>, 2>{vec2<T>(0, 0), vec2<T>(box.x, 0)}};
 
     T min_distance = std::numeric_limits<T>::max();
-    math::vec2<T> best_point;
+    vec2<T> best_point;
     best_point.x = -1;
     for (auto& line_segment : lines) {
         auto intersection_point =
-            math::intersection<T>(p, p2, line_segment[0], line_segment[1]);
+            intersection<T>(p, p2, line_segment[0], line_segment[1]);
 
         if (!intersection_point)
             continue;
 
-        if (intersection_point.value() != math::vec2<T>(0, 0)) {
-            auto dist = math::distance<2_D, T>(p, intersection_point.value());
+        if (intersection_point.value() != vec2<T>(0, 0)) {
+            auto dist = distance<2_D, T>(p, intersection_point.value());
             if (dist < min_distance) {
                 best_point = intersection_point.value();
                 min_distance = dist;
@@ -220,7 +255,7 @@ vec2<T> box_intersection(vec2<T> p, vec2<T> p2, vec2<T> box) {
     return best_point;
 }
 
-/* Check whether a vector `a` lies in the *open* box defined by `vol`. */
+/** Checks whether a vector lies in the *open* box defined by a volume. */
 template <dimension D, typename T>
 bool inside(vec<D, T> a, volume<D> vol) {
     for (int dim = 0; dim < D; ++dim) {
@@ -230,9 +265,10 @@ bool inside(vec<D, T> a, volume<D> vol) {
     return true;
 }
 
+/** Reverse-interpolate a vector to the surrounding voxels. */
 template <dimension D, typename T>
 void interpolate(vec<D, T> a, volume<D> vol,
-                 std::vector<math::matrix_element<T>>& queue) {
+                 std::vector<matrix_element<T>>& queue) {
     // First we see what cell corner we are closest to
     vec<D, int> b = floor(a + vec<D, T>(0.5));
 
