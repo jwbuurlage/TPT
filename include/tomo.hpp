@@ -23,8 +23,6 @@
  * SOFTWARE.
  */
 
-/** The overarching namespace for the galactica library. */
-namespace tomo {}
 
 #include "common.hpp"
 #include "geometry.hpp"
@@ -51,5 +49,22 @@ namespace tomo {}
 #include "projectors/joseph.hpp"
 #include "projectors/linear.hpp"
 
-// This exposes user-defined literals, do we want to do this by default?
+/** The overarching namespace for the galactica library. */
+namespace tomo {
+
+/** Reconstruction algorithms and methods. */
+namespace reconstruction {}
+
+/** Definition of common geometries used in experimental tomography. */
+namespace geometry {}
+
+/** Implementation of different discrete integration methods (DIM). */
+namespace dim {}
+
+} // namespace tomo
+
+#ifndef TOMO_NO_LITERALS
+// This exposes user-defined literals,
+// TODO do we want to allow this by default?
 using namespace tomo::literals;
+#endif

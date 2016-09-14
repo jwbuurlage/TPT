@@ -8,6 +8,7 @@
 #include "../volume.hpp"
 
 namespace tomo {
+namespace reconstruction {
 
 /**
  * The Algebraic Reconstruction Technique (ART), is a tomographic reconstruction
@@ -63,4 +64,5 @@ image<D, T> art(const volume<D>& v, const Geometry& g,
     return f;
 }
 
+} // namespace reconstruction
 } // namespace tomo

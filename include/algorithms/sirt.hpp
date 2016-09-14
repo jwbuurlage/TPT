@@ -3,6 +3,7 @@
 #include <vector>
 
 namespace tomo {
+namespace reconstruction {
 
 /**
  * The Simultaneous Iterative Reconstruction Technique (SIRT), is a tomographic
@@ -97,4 +98,5 @@ image<D, T> sirt(const volume<D>& v, const Geometry& g,
     return f;
 }
 
+} // namespace reconstruction
 } // namespace tomo

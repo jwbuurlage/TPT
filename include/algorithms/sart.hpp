@@ -6,6 +6,7 @@
 #include "../logging.hpp"
 
 namespace tomo {
+namespace reconstruction {
 
 /**
  * The Simultaneous Algebraic Reconstruction Technique (SART), is a tomographic
@@ -83,4 +84,5 @@ image<D, T> sart(const volume<D>& v, const Geometry& g,
     return f;
 }
 
+} // namespace reconstruction
 } // namespace tomo

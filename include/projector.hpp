@@ -8,13 +8,17 @@
 #include "math.hpp"
 
 namespace tomo {
+namespace dim {
 
-/** A discrete integration method (DIM) for the ray inside a volume. */
+/**
+ * A discrete integration method (DIM) for the ray inside a volume. Also called
+ * a 'projector'
+ */
 template <dimension D, typename T, typename Iterator>
-class projector {
+class base {
   public:
     /** Construct a projector for a scanning volume. */
-    projector(volume<D> vol) : volume_(vol) {}
+    base(volume<D> vol) : volume_(vol) {}
 
     /** Obtain an iterator to the first voxel that is 'touched'. */
     Iterator begin() { return begin_(); }
@@ -35,31 +39,31 @@ class projector {
      */
     class touch_container {
       public:
-        touch_container(projector& p) : p_(p) {}
+        touch_container(base& p) : p_(p) {}
         inline Iterator begin() { return p_.begin(); }
         inline Iterator end() { return p_.end(); }
 
       private:
-        projector& p_;
+        base& p_;
     };
 
-    /** Returns an iterable container for line `line` with this projector. */
+    /** Returns an iterable container for line `line` with this DIM. */
     touch_container operator()(line<D, T> line) {
         this->reset(line);
         return touch_container(*this);
     }
 
-    /** Reset the projector to a given line. */
+    /** Reset the DIM to a given line. */
     void reset(line<D, T> line) { reset_(line); }
 
-    /** Obtain the current line of the projector. */
+    /** Obtain the current line of the DIM. */
     line<D, T> get_line() const { return line_; }
 
     /** Obtain a reference to the scanned volume. */
     volume<D> get_volume() const { return volume_; }
 
   protected:
-    virtual ~projector() = default;
+    virtual ~base() = default;
 
     volume<D> volume_;
     line<D, T> line_;
@@ -71,4 +75,5 @@ class projector {
     virtual void reset_(line<D, T> line) = 0;
 };
 
+} // namespace dim
 } // namespace tomo

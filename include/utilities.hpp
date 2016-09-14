@@ -90,7 +90,7 @@ void ascii_plot_output(const ImageLike& image, math::vec2<int> dimensions) {
  * \param v the volume to be scanned
  */
 template <dimension D, typename T>
-auto random_list_geometry(int k, tomo::volume<D> v) {
+auto random_list_geometry(int k, volume<D> v) {
     // Seed with a real random value, if available
     std::random_device r;
     std::default_random_engine e(r());
@@ -100,7 +100,7 @@ auto random_list_geometry(int k, tomo::volume<D> v) {
     std::normal_distribution<T> gaussian(0, precision);
     std::uniform_real_distribution<T> rand_pos(0.5, v[0] - 0.5);
 
-    std::vector<tomo::math::vec<D, T>> random_origin(k);
+    std::vector<math::vec<D, T>> random_origin(k);
     std::vector<int> chosen_ds;
     std::vector<int> chosen_planes;
     for (auto& origin : random_origin) {
@@ -132,7 +132,7 @@ auto random_list_geometry(int k, tomo::volume<D> v) {
     // Here we use that the Guassian distribution is spherically symmetric, so
     // that we can generate a point on the sphere using D random gaussian
     // variables.
-    std::vector<tomo::math::vec<D, T>> random_direction(k);
+    std::vector<math::vec<D, T>> random_direction(k);
     int j = 0;
     for (auto& direction : random_direction) {
         do {
@@ -150,13 +150,13 @@ auto random_list_geometry(int k, tomo::volume<D> v) {
     }
 
     // initialize random set of lines, this implies \phi for now
-    std::vector<tomo::line<D, T>> line_list(k);
+    std::vector<line<D, T>> line_list(k);
     for (int i = 0; i < k; ++i) {
         line_list[i].origin = random_origin[i] + (T)0.5 * random_direction[i];
         line_list[i].delta = random_direction[i];
     }
 
-    auto g = tomo::list_geometry<D, T>(std::move(line_list));
+    auto g = geometry::list<D, T>(std::move(line_list));
     g.set_dimensions({k, 1});
     return g;
 }

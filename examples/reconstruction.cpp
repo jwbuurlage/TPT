@@ -47,31 +47,31 @@ int main(int argc, char* argv[]) {
 
     // create a parallel geometry for the volume with 250 detectors and
     // 180 angles, for two dimensions
-    auto g = tomo::parallel_geometry<2_D, T>(180, 250, v);
+    auto g = tomo::geometry::parallel<2_D, T>(180, 250, v);
 
     // simulate the experiment
-    // auto proj = tomo::linear_projector<2_D, T>(v);
-    // auto proj = tomo::joseph_projector<T>(v);
-    auto proj = tomo::closest_projector<2_D, T>(v);
+    // auto proj = tomo::dim::linear<2_D, T>(v);
+    // auto proj = tomo::dim::joseph<T>(v);
+    auto proj = tomo::dim::closest<2_D, T>(v);
     auto sino = tomo::forward_projection<2_D, T>(f, g, proj);
 
     // run an algorithm to reconstruct the image
     if (vm.count("art")) {
-        auto x = tomo::art(v, g, sino, beta, iterations);
+        auto x = tomo::reconstruction::art(v, g, sino, beta, iterations);
         fmt::print("ART: \n");
         tomo::ascii_plot(x);
     }
 
     // run an algorithm to reconstruct the image
     if (vm.count("sart")) {
-        auto y = tomo::sart(v, g, sino, beta, iterations);
+        auto y = tomo::reconstruction::sart(v, g, sino, beta, iterations);
         fmt::print("SART: \n");
         tomo::ascii_plot(y);
     }
 
     if (vm.count("sirt")) {
         // run an algorithm to reconstruct the image
-        auto z = tomo::sirt(v, g, sino, beta, iterations);
+        auto z = tomo::reconstruction::sirt(v, g, sino, beta, iterations);
         fmt::print("SIRT: \n");
         tomo::ascii_plot(z);
     }

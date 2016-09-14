@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
 
     // create a parallel geometry for the volume with 250 detectors and
     // 180 angles, for two dimensions
-    auto g = tomo::parallel_geometry<2_D, T>(k, k, v);
+    auto g = tomo::geometry::parallel<2_D, T>(k, k, v);
 
     // simulate the experiment
     auto sino = tomo::cuda::forward_projection<2_D, T>(f, g);

@@ -1,6 +1,7 @@
 #pragma once
 
 namespace tomo {
+namespace dim {
 
 /** The iterator used for the Joseph DIM. */
 template <typename T>
@@ -12,11 +13,11 @@ using joseph_iterator = typename std::vector<math::matrix_element<T>>::iterator;
  * 'shadowing non-zeros', i.e. non-zeros with the same indices.
  */
 template <typename T>
-class joseph_projector : public projector<2_D, T, joseph_iterator<T>> {
+class joseph: public base<2_D, T, joseph_iterator<T>> {
   public:
     /** Construct the DIM for a given volume. */
-    joseph_projector(volume<2_D> vol)
-        : projector<2_D, T, joseph_iterator<T>>(vol) {
+    joseph(volume<2_D> vol)
+        : base<2_D, T, joseph_iterator<T>>(vol) {
         auto dims = this->volume_.dimensions();
         auto max_width = *std::max_element(dims.begin(), dims.end());
         queue_.reserve((int)(2 * max_width));
@@ -66,4 +67,5 @@ class joseph_projector : public projector<2_D, T, joseph_iterator<T>> {
     std::vector<math::matrix_element<T>> queue_;
 };
 
+} // namespace dim
 } // namespace tomo

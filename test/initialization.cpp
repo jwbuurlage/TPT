@@ -21,7 +21,7 @@ TEST_CASE("We can initialize geometry", "[core]") {
     SECTION("2D") {
         int k = 16;
         auto v = tomo::volume<2_D>(k, k);
-        auto g = tomo::parallel_geometry<2_D, T>(180, 250, v);
+        auto g = tomo::geometry::parallel<2_D, T>(180, 250, v);
         CHECK(g.lines() == 180 * 250);
 
         int i = 0;
@@ -35,7 +35,7 @@ TEST_CASE("We can initialize geometry", "[core]") {
     SECTION("3D") {
         int k = 16;
         auto v = tomo::volume<3_D>(k, k, k);
-        auto g = tomo::parallel_geometry<3_D, T>(180, 250, v);
+        auto g = tomo::geometry::parallel<3_D, T>(180, 250, v);
         CHECK(g.lines() == 180 * 250 * 250);
 
         int i = 0;
@@ -52,8 +52,8 @@ TEST_CASE("Geometry lines are not empty") {
     SECTION("3D") {
         int k = 16;
         auto v = tomo::volume<3_D>(k, k, k);
-        auto g = tomo::parallel_geometry<3_D, T>(k, k, v);
-        auto proj = tomo::closest_projector<3_D, T>(v);
+        auto g = tomo::geometry::parallel<3_D, T>(k, k, v);
+        auto proj = tomo::dim::closest<3_D, T>(v);
 
         bool a_line_is_empty = false;
         for (auto line : g) {
@@ -75,7 +75,7 @@ TEST_CASE("Geometry lines are not empty") {
         int k = 16;
         auto v = tomo::volume<3_D>(k);
         auto g = tomo::random_list_geometry<3_D, T>(1000, v);
-        auto proj = tomo::linear_projector<3_D, T>(v);
+        auto proj = tomo::dim::linear<3_D, T>(v);
 
         bool a_line_is_empty = false;
         for (auto line : g) {

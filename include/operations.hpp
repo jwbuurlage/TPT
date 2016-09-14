@@ -13,7 +13,7 @@ namespace tomo {
 
 /** Perform a forward-projection of a given image. */
 template <dimension D, typename T, class Geometry,
-          class Projector = linear_projector<D, T>>
+          class Projector = dim::linear<D, T>>
 sinogram<D, T, Geometry, Projector>
 forward_projection(const image<D, T>& f, const Geometry& g, Projector& proj) {
     auto sino = sinogram<D, T, Geometry, Projector>(g);

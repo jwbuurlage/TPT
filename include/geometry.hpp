@@ -34,6 +34,8 @@ struct line {
     math::vec<D, T> delta;  //> the direction vector
 };
 
+namespace geometry {
+
 /**
  * A description of the experimental setup.
  *
@@ -46,7 +48,7 @@ struct line {
  * `geomety_iterator`.
  */
 template <dimension D, typename T, typename Derived>
-class geometry {
+class base {
   public:
     /** An iterator to a line of the geometry. */
     class geometry_iterator
@@ -92,7 +94,7 @@ class geometry {
     };
 
     /** Construct the geometry with a given number of lines. */
-    geometry(int line_count) : line_count_(line_count) {}
+    base(int line_count) : line_count_(line_count) {}
 
     /** Obtain an iterator to the first element of the geometry. */
     geometry_iterator begin() const {
@@ -121,4 +123,5 @@ class geometry {
     math::vec2<int> dimensions_;
 };
 
+} // namespace geometry
 } // namespace tomo

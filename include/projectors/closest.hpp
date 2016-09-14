@@ -3,6 +3,7 @@
 #include "tomo.hpp"
 
 namespace tomo {
+namespace dim {
 
 template <typename T>
 using closest_iterator =
@@ -13,11 +14,11 @@ using closest_iterator =
  * closest voxel.
  */
 template <dimension D, typename T>
-class closest_projector : public projector<D, T, closest_iterator<T>> {
+class closest: public base<D, T, closest_iterator<T>> {
   public:
     /** Construct the DIM for a given volume. */
-    closest_projector(volume<D> vol)
-        : projector<D, T, closest_iterator<T>>(vol) {
+    closest(volume<D> vol)
+        : base<D, T, closest_iterator<T>>(vol) {
         auto dims = vol.dimensions();
         auto max_width = *std::max_element(dims.begin(), dims.end());
         queue_.reserve((int)(math::sqrt(D) * max_width));
@@ -48,4 +49,5 @@ class closest_projector : public projector<D, T, closest_iterator<T>> {
     std::vector<math::matrix_element<T>> queue_;
 };
 
+} // namespace dim
 } // namespace tomo

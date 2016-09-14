@@ -8,6 +8,7 @@
 #include "../volume.hpp"
 
 namespace tomo {
+namespace geometry {
 
 /**
  * Obtain the location of a detector depending on the dimension of the volume.
@@ -20,8 +21,6 @@ namespace tomo {
  *
  * \note the final parameter for the volume is used to choose the function for
  * the right dimension.
- *
- * @{
  */
 template <typename T>
 T detector_location(int detector, int detector_count, T detector_step,
@@ -29,6 +28,7 @@ T detector_location(int detector, int detector_count, T detector_step,
     return (detector - (detector_count - 1) * 0.5) * detector_step;
 }
 
+/** ditto */
 template <typename T>
 math::vec2<T> detector_location(int detector, int detector_count,
                                 T detector_step, const volume<3_D>&) {
@@ -38,74 +38,6 @@ math::vec2<T> detector_location(int detector, int detector_count,
     return {(detector_x - (detector_count - 1) * 0.5) * detector_step,
             (detector_y - (detector_count - 1) * 0.5) * detector_step};
 }
-/** @} */
-
-/**
- * Geometry defined by parallel lines with a number of views.
- *
- * \tparam D the dimension of the volume.
- * \tparam T the scalar type to use
- */
-template <dimension D, typename T>
-class parallel_geometry : public geometry<D, T, parallel_geometry<D, T>> {
-  public:
-    using position = math::vec<D - 1, T>;
-
-    /**
-     * Construct the parallel geometry for a given number of angles and
-     * detectors.
-     *
-     * \param angle_count the number of angles
-     * \param detector_count the number of detectors
-     * \param volume the volume being scanned
-     */
-    parallel_geometry(int angle_count, int detector_count,
-                      const volume<D>& volume)
-        : geometry<D, T, parallel_geometry<D, T>>(
-              angle_count * math::pow(detector_count, D - 1)),
-          volume_(volume) {
-        auto angle_step = math::pi<T> / angle_count;
-        for (T angle = 0.0; angle < math::pi<T>; angle += angle_step) {
-            angles_.push_back(angle);
-        }
-
-        int total_detector_count = math::pow(detector_count, D - 1);
-        // FIXME this is only for equilateral volume
-        auto detector_step = volume_.y() / (T)detector_count;
-        for (int detector = 0; detector < total_detector_count; detector++) {
-            detectors_.push_back(detector_location<T>(detector, detector_count,
-                                                      detector_step, volume_));
-        }
-
-        this->dimensions_ = {detector_count, angle_count};
-    }
-
-    /** Obtain the number of detectors. */
-    size_t detector_count() const { return detectors_.size(); }
-
-    /** Obtain the number of angles. */
-    size_t angle_count() const { return angles_.size(); }
-
-    /** Obtain a vector containing each angle. */
-    const std::vector<T>& angles() const { return angles_; }
-
-    /** Obtain a vector containing the position of each detector. */
-    const std::vector<position>& detectors() const { return detectors_; }
-
-    /** Obtain a reference to the scanned volume. */
-    const volume<D>& get_volume() const { return volume_; }
-
-    /** Obtain the i-th line of the geometry. */
-    inline line<D, T> get_line(int i) const {
-        return compute_line(detectors_[i % detector_count()],
-                            angles_[i / detector_count()], volume_);
-    }
-
-  private:
-    std::vector<T> angles_;
-    std::vector<position> detectors_;
-    volume<D> volume_;
-};
 
 /**
  * Obtain the line corresponding to a given location of a detector and a given angle.
@@ -196,4 +128,72 @@ inline line<3_D, T> compute_line(math::vec2<T> current_detector,
     return {origin, delta};
 }
 
+/**
+ * Geometry defined by parallel lines with a number of views.
+ *
+ * \tparam D the dimension of the volume.
+ * \tparam T the scalar type to use
+ */
+template <dimension D, typename T>
+class parallel : public base<D, T, parallel<D, T>> {
+  public:
+    using position = math::vec<D - 1, T>;
+
+    /**
+     * Construct the parallel geometry for a given number of angles and
+     * detectors.
+     *
+     * \param angle_count the number of angles
+     * \param detector_count the number of detectors
+     * \param volume the volume being scanned
+     */
+    parallel(int angle_count, int detector_count,
+                      const volume<D>& volume)
+        : base<D, T, parallel<D, T>>(
+              angle_count * math::pow(detector_count, D - 1)),
+          volume_(volume) {
+        auto angle_step = math::pi<T> / angle_count;
+        for (T angle = 0.0; angle < math::pi<T>; angle += angle_step) {
+            angles_.push_back(angle);
+        }
+
+        int total_detector_count = math::pow(detector_count, D - 1);
+        // FIXME this is only for equilateral volume
+        auto detector_step = volume_.y() / (T)detector_count;
+        for (int detector = 0; detector < total_detector_count; detector++) {
+            detectors_.push_back(detector_location<T>(detector, detector_count,
+                                                      detector_step, volume_));
+        }
+
+        this->dimensions_ = {detector_count, angle_count};
+    }
+
+    /** Obtain the number of detectors. */
+    size_t detector_count() const { return detectors_.size(); }
+
+    /** Obtain the number of angles. */
+    size_t angle_count() const { return angles_.size(); }
+
+    /** Obtain a vector containing each angle. */
+    const std::vector<T>& angles() const { return angles_; }
+
+    /** Obtain a vector containing the position of each detector. */
+    const std::vector<position>& detectors() const { return detectors_; }
+
+    /** Obtain a reference to the scanned volume. */
+    const volume<D>& get_volume() const { return volume_; }
+
+    /** Obtain the i-th line of the geometry. */
+    inline line<D, T> get_line(int i) const {
+        return compute_line(detectors_[i % detector_count()],
+                            angles_[i / detector_count()], volume_);
+    }
+
+  private:
+    std::vector<T> angles_;
+    std::vector<position> detectors_;
+    volume<D> volume_;
+};
+
+} // namespace geometry
 } // namespace tomo
