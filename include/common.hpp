@@ -8,8 +8,11 @@ using dimension = int;
 /** The default scalar type to use. */
 using default_scalar_type = double;
 
+/** User defined literals for the library. */
+namespace literals {
+    /** A user defined literal for dimensions. */
+    constexpr tomo::dimension operator"" _D(unsigned long long d) { return d; }
+}
+
 } // namespace tomo
 
-// FIXME: maybe only expose this in namespace, i.e. when using namespace tomo
-/** A user defined literal for dimensions. */
-constexpr tomo::dimension operator"" _D(unsigned long long d) { return d; }

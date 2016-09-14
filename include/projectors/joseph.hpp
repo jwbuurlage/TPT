@@ -2,12 +2,19 @@
 
 namespace tomo {
 
+/** The iterator used for the Joseph DIM. */
 template <typename T>
 using joseph_iterator = typename std::vector<math::matrix_element<T>>::iterator;
 
+/**
+ * The Joseph DIM performs a single step along an axis, and the interpolates
+ * between the other axes. A benefit of this technique is that there are no
+ * 'shadowing non-zeros', i.e. non-zeros with the same indices.
+ */
 template <typename T>
 class joseph_projector : public projector<2_D, T, joseph_iterator<T>> {
   public:
+    /** Construct the DIM for a given volume. */
     joseph_projector(volume<2_D> vol)
         : projector<2_D, T, joseph_iterator<T>>(vol) {
         auto dims = this->volume_.dimensions();

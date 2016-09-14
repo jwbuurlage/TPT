@@ -9,7 +9,7 @@
 
 namespace tomo {
 
-/** An integration scheme for the ray inside a volume. */
+/** A discrete integration method (DIM) for the ray inside a volume. */
 template <dimension D, typename T, typename Iterator>
 class projector {
   public:

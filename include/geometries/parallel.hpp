@@ -115,8 +115,6 @@ class parallel_geometry : public geometry<D, T, parallel_geometry<D, T>> {
  * \param current_detector the position of the detector
  * \param current_angle the angle of the view
  * \param vol the volume being scanned
- *
- * @{
  */
 template <typename T>
 inline line<2_D, T> compute_line(T current_detector, T current_angle,
@@ -181,6 +179,7 @@ inline line<2_D, T> compute_line(T current_detector, T current_angle,
     return {best_point + (T)0.5 * delta, delta};
 }
 
+/** ditto */
 template <typename T>
 inline line<3_D, T> compute_line(math::vec2<T> current_detector,
                                  T current_angle, const volume<3_D>& vol) {
@@ -196,6 +195,5 @@ inline line<3_D, T> compute_line(math::vec2<T> current_detector,
 
     return {origin, delta};
 }
-/** @} */
 
 } // namespace tomo

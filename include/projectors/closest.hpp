@@ -8,9 +8,14 @@ template <typename T>
 using closest_iterator =
     typename std::vector<math::matrix_element<T>>::iterator;
 
+/**
+ * This discrete integration method attributes the sample point entirely to the
+ * closest voxel.
+ */
 template <dimension D, typename T>
 class closest_projector : public projector<D, T, closest_iterator<T>> {
   public:
+    /** Construct the DIM for a given volume. */
     closest_projector(volume<D> vol)
         : projector<D, T, closest_iterator<T>>(vol) {
         auto dims = vol.dimensions();

@@ -24,6 +24,8 @@ using optional = std::experimental::optional<T>;
 
 namespace tomo {
 
+using namespace tomo::literals;
+
 /**
  * This namespace contains all the mathematical operations used by Galactica.
  */

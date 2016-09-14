@@ -7,14 +7,22 @@
 
 namespace tomo {
 
-// bi- or trilinear projector
-template <dimension D, typename T, typename Iterator>
-class dlinear_projector : public projector<D, T, Iterator> {
+/**
+ * This discrete integration method does an interpolation between all the
+ * neighbouring voxels of a sample point.
+ */
+template <dimension D, typename T>
+class linear_projector
+    : public projector<
+          D, T, typename std::vector<math::matrix_element<T>>::iterator> {
   public:
-    dlinear_projector(volume<D> vol) : projector<D, T, Iterator>(vol) {
+    using iterator = typename std::vector<math::matrix_element<T>>::iterator;
+
+    /** Construct the DIM for a given volume. */
+    linear_projector(volume<D> vol) : projector<D, T, iterator>(vol) {
         auto dims = this->volume_.dimensions();
         auto max_width = *std::max_element(dims.begin(), dims.end());
-        queue_.reserve((int)(math::sqrt2<T> * 4 * max_width));
+        queue_.reserve((int)(math::sqrt<T>(D) * math::pow(D, 2) * max_width));
     }
 
   private:
@@ -30,15 +38,10 @@ class dlinear_projector : public projector<D, T, Iterator> {
         this->line_ = line;
     }
 
-    Iterator begin_() override { return queue_.begin(); }
-    Iterator end_() override { return queue_.end(); }
+    iterator begin_() override { return queue_.begin(); }
+    iterator end_() override { return queue_.end(); }
 
     std::vector<math::matrix_element<T>> queue_;
 };
-
-template <dimension D, typename T = default_scalar_type>
-using linear_projector =
-    dlinear_projector<D, T,
-                      typename std::vector<math::matrix_element<T>>::iterator>;
 
 } // namespace tomo

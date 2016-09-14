@@ -4,6 +4,31 @@
 
 namespace tomo {
 
+/**
+ * The Simultaneous Iterative Reconstruction Technique (SIRT), is a tomographic
+ * reconstruction method based on the iterative scheme:
+ *
+ * \f[ \vec{x}_{i + 1} = \vec{x}_i + C W^T R(\vec{p} - W \vec{x}_i). \f]
+ *
+ * Here:
+ * - \f$\vec{x}_i\f$ represents the reconstructed image in the i-th iteration.
+ * - \f$W\f$ is the projection matrix defined by the geometry.
+ * - \f$C, R\f$ are the inverse column and row sums respectively.
+ * - \f$\vec{p}\f$ is the sinogram.
+ *
+ * \tparam D the dimension of the problem
+ * \tparam T the scalar type in use
+ * \tparam Geometry the type of geometry of the problem
+ * \tparam Projector the discrete integration method to use
+ *
+ * \param v the volume of the imaged object
+ * \param g the geometry of the problem
+ * \param p the measurements (sinogram)
+ * \param beta (optional) a relaxation parameter
+ * \param iterations (optional) the number of iterations to perform
+ *
+ * \returns An image object representing the reconstructed object.
+ */
 template <dimension D, typename T, class Geometry, class Projector>
 image<D, T> sirt(const volume<D>& v, const Geometry& g,
                  const sinogram<D, T, Geometry, Projector>& p,

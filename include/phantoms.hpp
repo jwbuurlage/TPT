@@ -11,14 +11,20 @@
 
 namespace tomo {
 
+using namespace tomo::literals;
+
+/**
+ * An ellipse is defined completely by 6 reals, these are:
+ * [I, a, b, x0, y0, phi].
+ */
 template <typename T>
 using ellipse = std::array<T, 6>;
 
+/** Load a phantom from file. */
 template <dimension D, typename T>
 image<D, T> phantom(std::string filename) {}
 
-// Construct an images from ellipses of the form:
-//  {{I, a, b, x0, y0, phi}, {I, a, b, x0, y0, phi}, ...}
+/** A helper function that creates an image from a collection of ellipses. */
 template <typename T>
 image<2_D, T>
 construct_phantom_from_ellipses_(const std::vector<ellipse<T>>& ellipses,
@@ -53,6 +59,7 @@ construct_phantom_from_ellipses_(const std::vector<ellipse<T>>& ellipses,
     return f;
 }
 
+/** Obtain the Shepp-Logan phantom. */
 // shepp logan phantoms taken from:
 // https://github.com/ismrmrd/ismrmrd-python-tools/blob/master/
 // > smrmrdtools/simulation.py
@@ -72,6 +79,7 @@ image<2_D, T> shepp_logan_phantom(const volume<2_D>& v) {
     return construct_phantom_from_ellipses_<T>(ellipses, v);
 }
 
+/** Obtain a modified Shepp-Logan phantom with higher contrast. */
 template <typename T>
 image<2_D, T> modified_shepp_logan_phantom(const volume<2_D>& v) {
     std::vector<ellipse<T>> ellipses = {{1, .69, .92, 0, 0, 0},
