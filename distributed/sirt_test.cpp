@@ -188,6 +188,18 @@ int main(int argc, char* argv[]) {
             for (int j = min_local_index; j < max_local_index; ++j) {
                 image[j] += cs[j] * image_buffer[j];
             }
+
+            // exchange and sum image here
+            for (auto entry : halo) {
+                c_queue(entry.owner)
+                    .send(entry.index,
+                          cs[entry.index] * image_buffer[entry.index]);
+            }
+            world.sync();
+
+            for (auto msg : c_queue) {
+                image[msg.tag] += msg.content;
+            }
         }
 
         // add communication queue for image exchanges
