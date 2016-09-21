@@ -18,6 +18,8 @@ set(
     "../test.cpp"
     "../initialization.cpp"
     "../math.cpp"
+    "../geometry.cpp"
+    "../../ext/fmt/fmt/format.cc"
 )
 
 set(

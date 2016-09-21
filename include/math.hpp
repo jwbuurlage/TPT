@@ -18,6 +18,7 @@ using optional = std::experimental::optional<T>;
 
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
+#include <glm/gtx/rotate_vector.hpp>
 
 #include "common.hpp"
 #include "volume.hpp"
@@ -69,7 +70,7 @@ struct vec_type {
 /** The type to use for 1-dimensional vectors. */
 template <typename T>
 struct vec_type<1_D, T> {
-    using type = T;
+    using type = std::array<T, 1>;
 };
 
 /** The type to use for 2-dimensional vectors. */
@@ -110,6 +111,14 @@ using vec3 = vec<3_D, T>;
 template <typename T>
 using vec4 = vec<4_D, T>;
 
+/** Return the `axis`-th vector of the standard basis */
+template <dimension D, typename T>
+auto standard_basis(int axis) {
+    auto result = vec<D, T>{};
+    result[axis] = (T)1;
+    return result;
+}
+
 /** Compute the cosine for an object of type T. */
 template <typename T>
 auto cos(T obj) {
@@ -132,6 +141,22 @@ auto floor(T obj) {
 template <typename T>
 auto abs(T obj) {
     return glm::abs(obj);
+}
+
+/** Rotate a 3D vector */
+template <typename T>
+auto rotate(vec<3_D, T> v, vec<3_D, T> normal, T angle) {
+    return glm::rotate(v, angle, normal);
+}
+
+/** Compute the norm of a vector of type T. */
+template <dimension D, typename T>
+T norm(vec<D, T> vec) {
+    T squared_sum = 0;
+    for (int d = 0; d < D; ++d) {
+        squared_sum += vec[d] * vec[d];
+    }
+    return sqrt(squared_sum);
 }
 
 /** Compute the square root of an object of type T. */

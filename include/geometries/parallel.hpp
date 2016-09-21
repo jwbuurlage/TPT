@@ -23,9 +23,9 @@ namespace geometry {
  * the right dimension.
  */
 template <typename T>
-T detector_location(int detector, int detector_count, T detector_step,
-                    const volume<2_D>&) {
-    return (detector - (detector_count - 1) * 0.5) * detector_step;
+math::vec<1_D, T> detector_location(int detector, int detector_count,
+                                    T detector_step, const volume<2_D>&) {
+    return {(detector - (detector_count - 1) * (T)0.5) * detector_step};
 }
 
 /** ditto */
@@ -40,7 +40,8 @@ math::vec2<T> detector_location(int detector, int detector_count,
 }
 
 /**
- * Obtain the line corresponding to a given location of a detector and a given angle.
+ * Obtain the line corresponding to a given location of a detector and a given
+ * angle.
  *
  * \tparam T the scalar type to use
  *
@@ -49,11 +50,11 @@ math::vec2<T> detector_location(int detector, int detector_count,
  * \param vol the volume being scanned
  */
 template <typename T>
-inline line<2_D, T> compute_line(T current_detector, T current_angle,
-                                 const volume<2_D>& vol) {
+inline line<2_D, T> compute_line(math::vec<1_D, T> current_detector,
+                                 T current_angle, const volume<2_D>& vol) {
     // some performance can be gained here by *not* shifting with image
     // center, and maybe we even want to cache these results somehow
-    auto origin = math::vec2<T>(-vol.x(), current_detector);
+    auto origin = math::vec2<T>(-vol.x(), current_detector[0]);
 
     auto c = math::cos(-current_angle);
     auto s = math::sin(-current_angle);
@@ -119,7 +120,7 @@ inline line<3_D, T> compute_line(math::vec2<T> current_detector,
     // the end
     auto volume_slice = volume<2_D>(vol.x(), vol.y());
     auto line_2d =
-        compute_line(current_detector.x, current_angle, volume_slice);
+        compute_line({current_detector.x}, current_angle, volume_slice);
 
     auto origin = math::vec3<T>(line_2d.origin.x, line_2d.origin.y,
                                 current_detector.y + 0.5 * vol.z());
@@ -147,10 +148,9 @@ class parallel : public base<D, T, parallel<D, T>> {
      * \param detector_count the number of detectors
      * \param volume the volume being scanned
      */
-    parallel(int angle_count, int detector_count,
-                      const volume<D>& volume)
-        : base<D, T, parallel<D, T>>(
-              angle_count * math::pow(detector_count, D - 1)),
+    parallel(int angle_count, int detector_count, const volume<D>& volume)
+        : base<D, T, parallel<D, T>>(angle_count *
+                                     math::pow(detector_count, D - 1)),
           volume_(volume) {
         auto angle_step = math::pi<T> / angle_count;
         for (T angle = 0.0; angle < math::pi<T>; angle += angle_step) {

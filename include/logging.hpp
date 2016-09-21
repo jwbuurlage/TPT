@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "fmt/format.h"
+#include "fmt/ostream.h"
 
 #include "geometry.hpp"
 #include "math.hpp"
@@ -24,8 +25,8 @@ std::ostream& operator<<(std::ostream& os,
     return os;
 }
 
-template <typename T>
-std::ostream& operator<<(std::ostream& os, typename glm::tvec2<T> vec) {
+template <dimension D, typename T>
+std::ostream& operator<<(std::ostream& os, const math::vec<D, T>& vec) {
     os << "{" << vec[0] << ", " << vec[1] << "}";
     return os;
 }

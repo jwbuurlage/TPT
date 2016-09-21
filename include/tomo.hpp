@@ -23,7 +23,6 @@
  * SOFTWARE.
  */
 
-
 #include "common.hpp"
 #include "geometry.hpp"
 #include "image.hpp"
@@ -41,9 +40,11 @@
 #include "algorithms/sirt.hpp"
 
 #include "geometries/cone.hpp"
+#include "geometries/dual_axis_parallel.hpp"
 #include "geometries/fan.hpp"
 #include "geometries/list.hpp"
 #include "geometries/parallel.hpp"
+#include "geometries/trajectory.hpp"
 
 #include "projectors/closest.hpp"
 #include "projectors/joseph.hpp"

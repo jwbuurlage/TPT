@@ -33,6 +33,7 @@ void init_image(py::module& m) {
 
 template <typename Ps, typename Gs>
 void init_geometry(py::module& m, Ps ps, Gs gs) {
+    // TODO: add 'get_line' or some iterable adapter function
     hana::for_each(gs, [&](auto x) {
         using G = typename decltype(+x[1_c])::type;
         auto name = x[0_c] + "_geometry"s;
