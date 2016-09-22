@@ -194,7 +194,11 @@ PYBIND11_PLUGIN(py_galactica) {
         hana::make_tuple("helical_cone_beam"s,
                          hana::type_c<tomo::geometry::helical_cone_beam<T>>,
                          hana::tuple_t<tomo::volume<3_D>, int, T,
-                                       tomo::math::vec<2_D, int>, T, T>));
+                                       tomo::math::vec<2_D, int>, T, T>),
+        hana::make_tuple("dynamic_cone_beam"s,
+                         hana::type_c<tomo::geometry::dynamic_cone_beam<T>>,
+                         hana::tuple_t<tomo::volume<3_D>, int, T,
+                                       tomo::math::vec<2_D, int>>));
 
     init_image(m);
     init_geometry(m, ps, gs);
