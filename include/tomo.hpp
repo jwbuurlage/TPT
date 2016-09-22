@@ -42,6 +42,7 @@
 #include "geometries/cone.hpp"
 #include "geometries/dual_axis_parallel.hpp"
 #include "geometries/fan.hpp"
+#include "geometries/helical_cone_beam.hpp"
 #include "geometries/list.hpp"
 #include "geometries/parallel.hpp"
 #include "geometries/trajectory.hpp"
