@@ -137,9 +137,19 @@ TEST_CASE("Trajectory based geometry", "[geometry]") {
 
     SECTION("Dual-axis PB") {
         int k = 10;
+        int steps_per_axis = 10;
+        int detector_width = 2;
         auto v = tomo::volume<3_D>(k);
-        auto g = geometry::dual_axis_parallel<T>(v, 20, (T)1,
-                                                 math::vec<2_D, int>{2});
-        CHECK(g.lines() == 80);
+        auto g = geometry::dual_axis_parallel<T>(
+            v, steps_per_axis, (T)1, math::vec<2_D, int>{detector_width});
+        CHECK(g.lines() ==
+              2 * steps_per_axis * detector_width * detector_width);
+
+        bool lines_make_sense = true;
+        for (auto line : g) {
+            (void)line;
+        }
+        CHECK(lines_make_sense);
+
     }
 }

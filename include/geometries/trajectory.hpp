@@ -37,20 +37,10 @@ class trajectory : public base<D, T, trajectory<D, T>> {
         int step = i / detector_count_;
         int detector = i % detector_count_;
 
-        auto axes = detector_tilt(step);
-
-        // compute detector location in space
-        math::vec<D, T> offset = detector_location(step);
-        auto size_had = 1;
-        for (int d = 0; d < D - 1; ++d) {
-            auto detector_d = (detector / size_had) % detector_size_[d];
-            offset += (detector_d - (detector_size_[d] - 1) * (T)0.5) *
-                      detector_spacing_ * axes[d];
-            size_had *= detector_size_[d];
-        }
-
         auto source = source_location(step);
-        auto delta = math::normalize(offset - source);
+        auto delta = math::normalize(
+            detector_location(step) +
+            detector_offset_(step, detector, detector_size_) - source);
 
         return {source, delta};
     }
@@ -78,6 +68,23 @@ class trajectory : public base<D, T, trajectory<D, T>> {
     math::vec<D - 1, int> detector_size_;
     T detector_spacing_;
     int detector_count_;
+
+    // compute detector location in space
+    inline math::vec<D, T>
+    detector_offset_(int step, int detector,
+                     math::vec<D - 1, int> detector_size) const {
+        math::vec<D, T> offset;
+
+        auto axes = detector_tilt(step);
+        auto size_had = 1;
+        for (int d = 0; d < D - 1; ++d) {
+            auto detector_d = (detector / size_had) % detector_size[d];
+            offset += (detector_d - (detector_size[d] - 1) * (T)0.5) *
+                      detector_spacing_ * axes[d];
+            size_had *= detector_size[d];
+        }
+        return offset;
+    }
 };
 
 } // namespace geometry

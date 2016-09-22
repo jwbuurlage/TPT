@@ -19,27 +19,44 @@ namespace geometry {
 template <typename T>
 class dual_axis_parallel : public trajectory<3_D, T> {
   public:
-    using super = geometry::trajectory<3_D, T>;
-    using super::super;
+    dual_axis_parallel(
+        volume<3_D> volume, int steps, T detector_spacing = (T)1,
+        math::vec<2_D, int> detector_size = math::vec<2_D, int>{1})
+        : trajectory<3_D, T>(volume,
+                             2 * steps * math::reduce<2_D>(detector_size),
+                             detector_spacing, math::vec<2_D, int>{1}),
+          actual_detector_size_(detector_size) {
+        detector_count_copy_ = math::reduce<2_D>(detector_size);
+        actual_steps_ = steps;
+
+        assert(detector_count_copy_ > 0);
+        assert(actual_steps_ > 0);
+    }
 
     math::vec<3_D, T> source_location(int step) const override final {
         return transform_location_(
-            image_center_() -
-                ((T) this->volume_[0] * math::standard_basis<3_D, T>(0)),
-            step);
+                   image_center_() -
+                       ((T) this->volume_[0] * math::standard_basis<3_D, T>(0)),
+                   step_actual_(step)) +
+               this->detector_offset_(step, step % detector_count_copy_,
+                                      actual_detector_size_);
     }
 
     math::vec<3_D, T> detector_location(int step) const override final {
         return transform_location_(
-            image_center_() +
-                ((T) this->volume_[0] * math::standard_basis<3_D, T>(0)),
-            step);
+                   image_center_() +
+                       ((T) this->volume_[0] * math::standard_basis<3_D, T>(0)),
+                   step_actual_(step)) +
+               this->detector_offset_(step, step % detector_count_copy_,
+                                      actual_detector_size_);
     }
 
     std::array<math::vec<3_D, T>, 2>
     detector_tilt(int step) const override final {
-        return {apply_rotation_(math::standard_basis<3_D, T>(1), step),
-                apply_rotation_(math::standard_basis<3_D, T>(2), step)};
+        return {apply_rotation_(math::standard_basis<3_D, T>(1),
+                                step_actual_(step)),
+                apply_rotation_(math::standard_basis<3_D, T>(2),
+                                step_actual_(step))};
     }
 
   private:
@@ -50,15 +67,14 @@ class dual_axis_parallel : public trajectory<3_D, T> {
     }
 
     inline math::vec<3_D, T> apply_rotation_(math::vec<3_D, T> location,
-                                              int step) const {
-        static std::array<math::vec<3_D, T>, 2> axes_ = {
+                                             int step) const {
+        static auto axes = std::array<math::vec<3_D, T>, 2>{
             math::standard_basis<3_D, T>(1), math::standard_basis<3_D, T>(2)};
+        auto axis = axes[step / actual_steps_];
 
-        auto current_axis = axes_[step / (this->steps_ / 2)];
-        auto current_step = step % (this->steps_ / 2);
-        T angle_step = (T)2.0 * math::pi<T> / (this->steps_ / 2);
+        T angle_step = math::pi<T> / actual_steps_;
 
-        return math::rotate(location, current_axis, angle_step * current_step);
+        return math::rotate(location, axis, angle_step * (step % actual_steps_));
     }
 
     inline math::vec<3_D, T> image_center_() const {
@@ -68,6 +84,12 @@ class dual_axis_parallel : public trajectory<3_D, T> {
 
         return image_center;
     }
+
+    int step_actual_(int step) const { return step / detector_count_copy_; }
+
+    int detector_count_copy_;
+    int actual_steps_;
+    math::vec<2_D, int> actual_detector_size_;
 };
 
 } // namespace geometry
