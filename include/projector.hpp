@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <type_traits>
 
 #include "common.hpp"
 #include "geometry.hpp"
@@ -17,6 +18,8 @@ namespace dim {
 template <dimension D, typename T, typename Iterator>
 class base {
   public:
+    using problem_dimension = std::integral_constant<dimension, D>;
+
     /** Construct a projector for a scanning volume. */
     base(volume<D> vol) : volume_(vol) {}
 

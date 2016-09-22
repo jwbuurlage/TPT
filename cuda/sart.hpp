@@ -29,7 +29,7 @@ image<D, T> sart(const volume<D>& v, const Geometry& g,
     image<D, T> f(v);
 
     // 1. copy data
-    device::geometry_bridge<T, decltype(g)> device_geometry(g);
+    device::geometry_bridge<T, decltype(g)> device_geometry(g, v);
     device::volume_bridge device_volume(v);
     device::sinogram_bridge<T, decltype(p)> device_sino(p);
 

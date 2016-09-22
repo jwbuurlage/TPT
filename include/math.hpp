@@ -149,6 +149,16 @@ auto rotate(vec<3_D, T> v, vec<3_D, T> normal, T angle) {
     return glm::rotate(v, angle, normal);
 }
 
+/** Multiply the elements of a vector together */
+template <dimension D>
+int reduce(vec<D, int> vec) {
+    int product = 1;
+    for (int d = 0; d < D; ++d) {
+        product *= vec[d];
+    }
+    return product;
+}
+
 /** Compute the norm of a vector of type T. */
 template <dimension D, typename T>
 T norm(vec<D, T> vec) {

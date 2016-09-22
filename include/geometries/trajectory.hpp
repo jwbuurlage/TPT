@@ -23,12 +23,12 @@ class trajectory : public base<D, T, trajectory<D, T>> {
   public:
     /** Construct the geometry with a given number of lines. */
     trajectory(volume<D> volume, int steps, T detector_spacing = (T)1,
-               math::vec<D - 1, int> detector_size = math::vec<D - 1, int>{1},
-               int detector_count = 1)
-        : base<D, T, trajectory<D, T>>(steps * detector_count), volume_(volume),
-          steps_(steps), detector_size_(detector_size),
-          detector_spacing_(detector_spacing), detector_count_(detector_count) {
-    }
+               math::vec<D - 1, int> detector_size = math::vec<D - 1, int>{1})
+        : base<D, T, trajectory<D, T>>(steps *
+                                       math::reduce<D - 1>(detector_size)),
+          volume_(volume), steps_(steps), detector_size_(detector_size),
+          detector_spacing_(detector_spacing),
+          detector_count_(math::reduce<D - 1>(detector_size)) {}
 
     /**
      * Return the i-th line of this geometry.
@@ -76,7 +76,7 @@ class trajectory : public base<D, T, trajectory<D, T>> {
     int steps_;
 
     math::vec<D - 1, int> detector_size_;
-    T detector_spacing_ = (T)1;
+    T detector_spacing_;
     int detector_count_;
 };
 

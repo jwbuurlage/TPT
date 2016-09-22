@@ -3,6 +3,7 @@
 #include <array>
 #include <cassert>
 #include <vector>
+#include <type_traits>
 
 #include "math.hpp"
 
@@ -50,10 +51,13 @@ namespace geometry {
 template <dimension D, typename T, typename Derived>
 class base {
   public:
+    using problem_dimension = std::integral_constant<dimension, D>;
+
     /** An iterator to a line of the geometry. */
     class geometry_iterator
         : public std::iterator<std::forward_iterator_tag, line<D, T>> {
       public:
+
         /** Construct the iterator with a line index and a geometry. */
         geometry_iterator(int i, const Derived& geometry)
             : i_(i), geometry_(geometry) {}

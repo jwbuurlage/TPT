@@ -46,7 +46,7 @@ TEST_CASE("Trajectory based geometry", "[geometry]") {
     SECTION("Detector arrays computed correctly") {
         int k = 10;
         auto v = tomo::volume<2_D>(k);
-        auto g = static_trajectory_test(v, 1, (T)1, math::vec<1_D, int>{2}, 2);
+        auto g = static_trajectory_test(v, 1, (T)1, math::vec<1_D, int>{2});
         CHECK(g.lines() == 2);
 
         CHECK(g.get_line(0).origin == g.get_line(1).origin);
@@ -102,8 +102,7 @@ TEST_CASE("Trajectory based geometry", "[geometry]") {
     SECTION("Detector arrays computed correctly (3D)") {
         int k = 10;
         auto v = tomo::volume<3_D>(k);
-        auto g =
-            static_trajectory_test_3d(v, 1, (T)1, math::vec<2_D, int>{2}, 4);
+        auto g = static_trajectory_test_3d(v, 1, (T)1, math::vec<2_D, int>{2});
         CHECK(g.lines() == 4);
 
         CHECK(g.get_line(0).origin == g.get_line(1).origin);
@@ -123,14 +122,24 @@ TEST_CASE("Trajectory based geometry", "[geometry]") {
     }
 
     SECTION("Detector tilts computed correctly (3D)") {
-        // ... TODO
+        int k = 10;
+        auto v = tomo::volume<3_D>(k);
+        auto g = geometry::cone_beam<T>(v, 20);
+
+        auto axes = g.detector_tilt(0);
+        CHECK(math::approx_equal(math::norm<3_D, T>(axes[0]), 1.0f));
+        CHECK(math::approx_equal(math::norm<3_D, T>(axes[1]), 1.0f));
+
+        auto rotated_axes = g.detector_tilt(1);
+        CHECK(math::approx_equal(math::norm<3_D, T>(rotated_axes[0]), 1.0f));
+        CHECK(math::approx_equal(math::norm<3_D, T>(rotated_axes[1]), 1.0f));
     }
 
     SECTION("Dual-axis PB") {
         int k = 10;
         auto v = tomo::volume<3_D>(k);
         auto g = geometry::dual_axis_parallel<T>(v, 20, (T)1,
-                                                 math::vec<2_D, int>{2}, 4);
+                                                 math::vec<2_D, int>{2});
         CHECK(g.lines() == 80);
     }
 }

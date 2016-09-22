@@ -19,14 +19,16 @@ set(
     "galactica"
 )
 
+if(TRY_CUDA)
 if(CUDA_FOUND)
     # if we found cuda, define -DUSE_CUDA and additionally link with
     # galactica-cuda
-    set(LIB_NAMES ${LIB_NAMES} "galactica_cuda" "cudart")
     add_definitions(-DUSE_CUDA)
+    set(LIB_NAMES ${LIB_NAMES} "galactica_cuda" "cudart")
     include_directories("../../cuda/" "${CUDA_TOOLKIT_ROOT_DIR}/include")
     link_directories("${CUDA_TOOLKIT_ROOT_DIR}/lib64")
 endif(CUDA_FOUND)
+endif(TRY_CUDA)
 
 set(BINDING_NAME "py_galactica")
 set(CMAKE_CXX_COMPILER "clang++")
