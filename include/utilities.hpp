@@ -150,7 +150,7 @@ auto random_list_geometry(int k, volume<D> v) {
     }
 
     // initialize random set of lines, this implies \phi for now
-    std::vector<line<D, T>> line_list(k);
+    std::vector<math::line<D, T>> line_list(k);
     for (int i = 0; i < k; ++i) {
         line_list[i].origin = random_origin[i] + (T)0.5 * random_direction[i];
         line_list[i].delta = random_direction[i];

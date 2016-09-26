@@ -8,34 +8,6 @@
 #include "math.hpp"
 
 namespace tomo {
-
-/**
- * A line inside a volume.
- *
- * \tparam D the dimension of the volume.
- * \tparam T the scalar type to use
- */
-template <dimension D, typename T = default_scalar_type>
-struct line {
-    /** Construct a line using defaults. */
-    line() = default;
-
-    /** Construct a line from two vectors. */
-    line(math::vec<D, T> origin_in, math::vec<D, T> delta_in, T length_in = 0)
-        : origin(origin_in), delta(delta_in), length(length_in) {}
-
-//    /** Construct a line from an initializer list. */
-//    line(std::initializer_list<math::vec<D, T>> vectors)
-//        : line(*vectors.begin(), *(vectors.begin() + 1)) {
-//        // "trying to construct line with wrong number of vectors"
-//        assert(vectors.size() == 2);
-//    }
-
-    math::vec<D, T> origin; //> first intersection of line with a volume
-    math::vec<D, T> delta;  //> the direction vector
-    T length = 0;
-};
-
 namespace geometry {
 
 /**
@@ -56,7 +28,7 @@ class base {
 
     /** An iterator to a line of the geometry. */
     class geometry_iterator
-        : public std::iterator<std::forward_iterator_tag, line<D, T>> {
+        : public std::iterator<std::forward_iterator_tag, math::line<D, T>> {
       public:
 
         /** Construct the iterator with a line index and a geometry. */
@@ -85,7 +57,7 @@ class base {
         }
 
         /** Dereference the iterator to obtain the represented line. */
-        line<D, T> operator*() const { return geometry_.get_line(i_); }
+        math::line<D, T> operator*() const { return geometry_.get_line(i_); }
 
         /** Increase the iterator. */
         geometry_iterator& operator++() {

@@ -25,7 +25,7 @@ class closest: public base<D, T, closest_iterator<T>> {
     }
 
   private:
-    void reset_(line<D, T> line) override {
+    void reset_(math::line<D, T> line) override {
         queue_.clear();
 
         auto current_point = line.origin;

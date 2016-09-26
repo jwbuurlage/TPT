@@ -24,7 +24,7 @@ class joseph: public base<2_D, T, joseph_iterator<T>> {
     }
 
   private:
-    void reset_(line<2_D, T> line) override {
+    void reset_(math::line<2_D, T> line) override {
         queue_.clear();
 
         auto interpolate = [&](math::vec2<T> position, int axis) {

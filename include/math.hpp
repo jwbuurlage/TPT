@@ -111,6 +111,26 @@ using vec3 = vec<3_D, T>;
 template <typename T>
 using vec4 = vec<4_D, T>;
 
+/**
+ * A line inside a volume.
+ *
+ * \tparam D the dimension of the volume.
+ * \tparam T the scalar type to use
+ */
+template <dimension D, typename T = default_scalar_type>
+struct line {
+    /** Construct a line using defaults. */
+    line() = default;
+
+    /** Construct a line from two vectors. */
+    line(vec<D, T> origin_in, vec<D, T> delta_in, T length_in = 0)
+        : origin(origin_in), delta(delta_in), length(length_in) {}
+
+    vec<D, T> origin; //> first intersection of line with a volume
+    vec<D, T> delta;  //> the direction vector
+    T length = 0;
+};
+
 /** Return the `axis`-th vector of the standard basis */
 template <dimension D, typename T>
 auto standard_basis(int axis) {
@@ -296,6 +316,14 @@ vec2<T> box_intersection(vec2<T> p, vec2<T> p2, vec2<T> box) {
     }
 
     return best_point;
+}
+
+template <dimension D, typename T>
+line<D, T> truncate_to_volume(vec<D, T> source, vec<D, T> detector, volume<D> v) {
+    // need line plane intersection
+    // FIXME implement
+    (void)v;
+    return {source, normalize(detector - source)};
 }
 
 /** Checks whether a vector lies in the *open* box defined by a volume. */

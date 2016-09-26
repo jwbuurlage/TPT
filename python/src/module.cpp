@@ -43,7 +43,7 @@ void init_image(py::module& m) {
 
 template <typename Ps, typename Gs>
 void init_geometry(py::module& m, Ps ps, Gs gs) {
-    py::class_<tomo::line<2_D, T>>(m, "line_2d");
+    py::class_<tomo::math::line<2_D, T>>(m, "line_2d");
     // TODO: add 'get_line' or some iterable adapter function
     hana::for_each(gs, [&](auto x) {
         using G = typename decltype(+x[1_c])::type;
@@ -71,10 +71,10 @@ void init_geometry(py::module& m, Ps ps, Gs gs) {
 
 template <typename Gs>
 void init_geometry_3d(py::module& m, Gs gs) {
-    py::class_<tomo::line<3_D, T>>(m, "line_3d")
-        .def_readwrite("origin", &tomo::line<3_D, T>::origin)
-        .def_readwrite("delta", &tomo::line<3_D, T>::delta)
-        .def_readwrite("length", &tomo::line<3_D, T>::length);
+    py::class_<tomo::math::line<3_D, T>>(m, "line_3d")
+        .def_readwrite("origin", &tomo::math::line<3_D, T>::origin)
+        .def_readwrite("delta", &tomo::math::line<3_D, T>::delta)
+        .def_readwrite("length", &tomo::math::line<3_D, T>::length);
 
     py::class_<tomo::math::vec<2_D, int>>(m, "vec2i").def(py::init<int, int>());
     py::class_<tomo::math::vec<3_D, T>>(m, "vec3f")
@@ -181,7 +181,7 @@ PYBIND11_PLUGIN(py_galactica) {
                          hana::type_c<tomo::geometry::parallel<2_D, T>>,
                          hana::tuple_t<int, int, tomo::volume<2_D>>),
         hana::make_tuple("list"s, hana::type_c<tomo::geometry::list<2_D, T>>,
-                         hana::tuple_t<std::vector<tomo::line<2_D, T>>>));
+                         hana::tuple_t<std::vector<tomo::math::line<2_D, T>>>));
 
     auto gs3 = hana::make_tuple(
         hana::make_tuple("dual_axis_parallel"s,

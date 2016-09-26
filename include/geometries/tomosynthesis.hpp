@@ -24,11 +24,11 @@ class tomosynthesis : public trajectory<3_D, T> {
                   math::vec<2_D, int> detector_size = math::vec<2_D, int>{1},
                   T relative_source_distance = (T)1.0,
                   T relative_detector_distance = (T)1.0,
-                  T source_radius = (T)1.0, T source_arc = (T)0.5 * math::pi<T>)
+                  T source_arc = (T)0.5 * math::pi<T>)
         : trajectory<3_D, T>(volume, steps, detector_spacing, detector_size),
           relative_source_distance_(relative_source_distance),
           relative_detector_distance_(relative_detector_distance),
-          source_radius_(source_radius), source_arc_(source_arc) {}
+          source_arc_(source_arc) {}
 
     math::vec<3_D, T> source_location(int step) const override final {
         auto pivot = image_center_() +
@@ -55,7 +55,6 @@ class tomosynthesis : public trajectory<3_D, T> {
   private:
     T relative_source_distance_;
     T relative_detector_distance_;
-    T source_radius_;
     T source_arc_;
 
     inline math::vec<3_D, T> apply_rotation_(math::vec<3_D, T> location,

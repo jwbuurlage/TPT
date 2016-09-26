@@ -51,16 +51,16 @@ class base {
     };
 
     /** Returns an iterable container for line `line` with this DIM. */
-    touch_container operator()(line<D, T> line) {
+    touch_container operator()(math::line<D, T> line) {
         this->reset(line);
         return touch_container(*this);
     }
 
     /** Reset the DIM to a given line. */
-    void reset(line<D, T> line) { reset_(line); }
+    void reset(math::line<D, T> line) { reset_(line); }
 
     /** Obtain the current line of the DIM. */
-    line<D, T> get_line() const { return line_; }
+    math::line<D, T> get_line() const { return line_; }
 
     /** Obtain a reference to the scanned volume. */
     volume<D> get_volume() const { return volume_; }
@@ -69,13 +69,13 @@ class base {
     virtual ~base() = default;
 
     volume<D> volume_;
-    line<D, T> line_;
+    math::line<D, T> line_;
 
   private:
     /* This idiom (keeping virtual functions private) is called NVI */
     virtual Iterator begin_() = 0;
     virtual Iterator end_() = 0;
-    virtual void reset_(line<D, T> line) = 0;
+    virtual void reset_(math::line<D, T> line) = 0;
 };
 
 } // namespace dim

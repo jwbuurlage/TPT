@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "../geometry.hpp"
+#include "../math.hpp"
 
 namespace tomo {
 namespace geometry {
@@ -33,16 +34,15 @@ class trajectory : public base<D, T, trajectory<D, T>> {
     /**
      * Return the i-th line of this geometry.
      */
-    inline line<D, T> get_line(int i) const {
+    inline math::line<D, T> get_line(int i) const {
         int step = i / detector_count_;
         int detector = i % detector_count_;
 
         auto source = source_location(step);
         auto target = detector_location(step) +
                       detector_offset_(step, detector, detector_size_);
-        auto delta = math::normalize(target - source);
 
-        return line<D, T>{source, delta, math::distance<D, T>(target, source)};
+        return math::truncate_to_volume<D, T>(source, target, this->volume_);
     }
 
     /** The location of the source in step `step`. */

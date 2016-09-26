@@ -50,7 +50,7 @@ math::vec2<T> detector_location(int detector, int detector_count,
  * \param vol the volume being scanned
  */
 template <typename T>
-inline line<2_D, T> compute_line(math::vec<1_D, T> current_detector,
+inline math::line<2_D, T> compute_line(math::vec<1_D, T> current_detector,
                                  T current_angle, const volume<2_D>& vol) {
     // some performance can be gained here by *not* shifting with image
     // center, and maybe we even want to cache these results somehow
@@ -114,7 +114,7 @@ inline line<2_D, T> compute_line(math::vec<1_D, T> current_detector,
 
 /** ditto */
 template <typename T>
-inline line<3_D, T> compute_line(math::vec2<T> current_detector,
+inline math::line<3_D, T> compute_line(math::vec2<T> current_detector,
                                  T current_angle, const volume<3_D>& vol) {
     // strategy: only consider current detector x, and ignore y, only add it at
     // the end
@@ -184,7 +184,7 @@ class parallel : public base<D, T, parallel<D, T>> {
     const volume<D>& get_volume() const { return volume_; }
 
     /** Obtain the i-th line of the geometry. */
-    inline line<D, T> get_line(int i) const {
+    inline math::line<D, T> get_line(int i) const {
         return compute_line(detectors_[i % detector_count()],
                             angles_[i / detector_count()], volume_);
     }

@@ -12,7 +12,8 @@
 namespace tomo {
 
 template <dimension Dimension, typename Type>
-std::ostream& operator<<(std::ostream& os, const line<Dimension, Type>& line) {
+std::ostream& operator<<(std::ostream& os,
+                         const math::line<Dimension, Type>& line) {
     os << "{{" << line.origin[0] << ',' << line.origin[1] << "}, {"
        << line.delta[0] << ',' << line.delta[1] << "}}";
     return os;
