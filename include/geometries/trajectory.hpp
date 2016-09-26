@@ -38,11 +38,11 @@ class trajectory : public base<D, T, trajectory<D, T>> {
         int detector = i % detector_count_;
 
         auto source = source_location(step);
-        auto delta = math::normalize(
-            detector_location(step) +
-            detector_offset_(step, detector, detector_size_) - source);
+        auto target = detector_location(step) +
+                      detector_offset_(step, detector, detector_size_);
+        auto delta = math::normalize(target - source);
 
-        return {source, delta};
+        return line<D, T>{source, delta, math::distance<D, T>(target, source)};
     }
 
     /** The location of the source in step `step`. */

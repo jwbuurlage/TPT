@@ -131,6 +131,12 @@ auto sin(T obj) {
     return glm::sin(obj);
 }
 
+/** Compute the arcsine for an object of type T. */
+template <typename T>
+auto asin(T obj) {
+    return glm::asin(obj);
+}
+
 /** Floor an object of type T. */
 template <typename T>
 auto floor(T obj) {

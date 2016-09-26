@@ -73,7 +73,8 @@ template <typename Gs>
 void init_geometry_3d(py::module& m, Gs gs) {
     py::class_<tomo::line<3_D, T>>(m, "line_3d")
         .def_readwrite("origin", &tomo::line<3_D, T>::origin)
-        .def_readwrite("delta", &tomo::line<3_D, T>::delta);
+        .def_readwrite("delta", &tomo::line<3_D, T>::delta)
+        .def_readwrite("length", &tomo::line<3_D, T>::length);
 
     py::class_<tomo::math::vec<2_D, int>>(m, "vec2i").def(py::init<int, int>());
     py::class_<tomo::math::vec<3_D, T>>(m, "vec3f")
@@ -198,7 +199,16 @@ PYBIND11_PLUGIN(py_galactica) {
         hana::make_tuple("dynamic_cone_beam"s,
                          hana::type_c<tomo::geometry::dynamic_cone_beam<T>>,
                          hana::tuple_t<tomo::volume<3_D>, int, T,
-                                       tomo::math::vec<2_D, int>>));
+                                       tomo::math::vec<2_D, int>>),
+        hana::make_tuple("laminography"s,
+                         hana::type_c<tomo::geometry::laminography<T>>,
+                         hana::tuple_t<tomo::volume<3_D>, int, T,
+                                       tomo::math::vec<2_D, int>, T, T, T, T>),
+        hana::make_tuple("tomosynthesis"s,
+                         hana::type_c<tomo::geometry::tomosynthesis<T>>,
+                         hana::tuple_t<tomo::volume<3_D>, int, T,
+                                       tomo::math::vec<2_D, int>, T, T, T>)
+        );
 
     init_image(m);
     init_geometry(m, ps, gs);

@@ -47,6 +47,8 @@
 #include "geometries/list.hpp"
 #include "geometries/parallel.hpp"
 #include "geometries/trajectory.hpp"
+#include "geometries/tomosynthesis.hpp"
+#include "geometries/laminography.hpp"
 
 #include "projectors/closest.hpp"
 #include "projectors/joseph.hpp"

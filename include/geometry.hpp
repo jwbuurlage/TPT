@@ -21,18 +21,19 @@ struct line {
     line() = default;
 
     /** Construct a line from two vectors. */
-    line(math::vec<D, T> origin_in, math::vec<D, T> delta_in)
-        : origin(origin_in), delta(delta_in) {}
+    line(math::vec<D, T> origin_in, math::vec<D, T> delta_in, T length_in = 0)
+        : origin(origin_in), delta(delta_in), length(length_in) {}
 
-    /** Construct a line from an initializer list. */
-    line(std::initializer_list<math::vec<D, T>> vectors)
-        : line(*vectors.begin(), *(vectors.begin() + 1)) {
-        // "trying to construct line with wrong number of vectors"
-        assert(vectors.size() == 2);
-    }
+//    /** Construct a line from an initializer list. */
+//    line(std::initializer_list<math::vec<D, T>> vectors)
+//        : line(*vectors.begin(), *(vectors.begin() + 1)) {
+//        // "trying to construct line with wrong number of vectors"
+//        assert(vectors.size() == 2);
+//    }
 
     math::vec<D, T> origin; //> first intersection of line with a volume
     math::vec<D, T> delta;  //> the direction vector
+    T length = 0;
 };
 
 namespace geometry {
