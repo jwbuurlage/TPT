@@ -4,6 +4,7 @@
 #include <numeric>
 
 #include "common.hpp"
+#include "math/vector.hpp"
 
 namespace tomo {
 
@@ -118,6 +119,20 @@ class volume {
      * of the volume in the i-th axis.
      */
     std::array<int, D> dimensions() const { return dimensions_; }
+
+    /**
+     * Obtain the lengths of the sides of the volume.
+     *
+     * \returns a vector whose i-th element corresponds to the spanning width
+     * of the volume in the i-th axis.
+     */
+    math::vec<D, int> lengths() const {
+        math::vec<D, int> result;
+        for (int i = 0; i < D; ++i) {
+            result[i] = dimensions_[i];
+        }
+        return result;
+    }
 
     /**
      * Obtain the total number of cells (voxels) in the volume.

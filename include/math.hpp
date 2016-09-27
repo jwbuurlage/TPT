@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <limits>
 #include <vector>
 
 #include <experimental/optional>
@@ -21,6 +22,7 @@ using optional = std::experimental::optional<T>;
 #include <glm/gtx/rotate_vector.hpp>
 
 #include "common.hpp"
+#include "math/vector.hpp"
 #include "volume.hpp"
 
 namespace tomo {
@@ -58,58 +60,6 @@ struct matrix_element {
     /// The value of the matrix element.
     T value;
 };
-
-/** The type to use for D-dimensional vectors. */
-template <dimension D, typename T>
-struct vec_type {
-    // FIXME: for higher dimensional support, add own vector class for non-glm
-    // sized vectors
-    /* using type = my_own_vector_class<D, T>; */
-};
-
-/** The type to use for 1-dimensional vectors. */
-template <typename T>
-struct vec_type<1_D, T> {
-    using type = std::array<T, 1>;
-};
-
-/** The type to use for 2-dimensional vectors. */
-template <typename T>
-struct vec_type<2_D, T> {
-    using type = glm::tvec2<T>;
-};
-
-/** The type to use for 3-dimensional vectors. */
-template <typename T>
-struct vec_type<3_D, T> {
-    using type = glm::tvec3<T>;
-};
-
-/** The type to use for 4-dimensional vectors. */
-template <typename T>
-struct vec_type<4_D, T> {
-    using type = glm::tvec4<T>;
-};
-
-/**
- * Generic vector type for any dimension, specializing where necessary.
- * \tparam D the dimension of the vector
- * \tparam T the scalar type to use
- */
-template <dimension D, typename T>
-using vec = typename vec_type<D, T>::type;
-
-/** Short-hand for 2-dimensional vectors. */
-template <typename T>
-using vec2 = vec<2_D, T>;
-
-/** Short-hand for 3-dimensional vectors. */
-template <typename T>
-using vec3 = vec<3_D, T>;
-
-/** Short-hand for 4-dimensional vectors. */
-template <typename T>
-using vec4 = vec<4_D, T>;
 
 /**
  * A line inside a volume.
@@ -319,11 +269,44 @@ vec2<T> box_intersection(vec2<T> p, vec2<T> p2, vec2<T> box) {
 }
 
 template <dimension D, typename T>
-line<D, T> truncate_to_volume(vec<D, T> source, vec<D, T> detector, volume<D> v) {
-    // need line plane intersection
-    // FIXME implement
-    (void)v;
-    return {source, normalize(detector - source)};
+optional<vec<D, T>> aabb_intersection(vec<D, T> a, vec<D, T> b,
+                                      vec<D, T> sides) {
+    T t_min = std::numeric_limits<T>::min();
+    T t_max = std::numeric_limits<T>::max();
+    for (int d = 0; d < D; ++d) {
+        if (!approx_equal(a[d], b[d])) {
+            auto delta = b[d] - a[d];
+            auto t1 = -a[d] / delta;
+            auto t2 = (sides[d] - a[d]) / delta;
+            t_min = std::max(t_min, (t1 < t2) ? t1 : t2);
+            t_max = std::min(t_max, (t1 > t2) ? t1 : t2);
+        } else {
+            if (a[d] < 0 || a[d] >= sides[d]) {
+                return optional<vec<D, T>>();
+            }
+        }
+    }
+
+    if (t_max <= t_min) {
+        // no intersection
+        optional<vec<D, T>>();
+    }
+
+    return optional<vec<D, T>>{a + (b - a) * t_min};
+}
+
+template <dimension D, typename T>
+optional<line<D, T>> truncate_to_volume(vec<D, T> source, vec<D, T> detector,
+                                        volume<D> v) {
+    // need line plane intersection, because the box is axis aligned (AABB) we
+    // need to do a ray/AABB intersection.
+    auto origin = aabb_intersection<D, T>(source, detector, v.lengths());
+    if (!origin) {
+        return optional<line<D, T>>();
+    }
+    return optional<line<D, T>>{
+        line<D, T>{origin.value(), normalize(detector - source),
+                   distance<D, T>(detector, origin.value())}};
 }
 
 /** Checks whether a vector lies in the *open* box defined by a volume. */

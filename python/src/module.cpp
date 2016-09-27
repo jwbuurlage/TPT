@@ -23,6 +23,11 @@ auto get_line(G& g, int i) {
 }
 
 template <typename G>
+auto source_location(G& g, int i) {
+    return g.source_location(i);
+}
+
+template <typename G>
 auto lines(G& g) {
     return g.lines();
 }
@@ -97,6 +102,7 @@ void init_geometry_3d(py::module& m, Gs gs) {
         py::class_<G>(m, name.c_str())
             .def(Init())
             .def("get_line", &get_line<G>, "obtain the i-th line")
+            .def("source_location", &source_location<G>, "obtain the i-th line")
             .def("lines", &lines<G>, "obtain the number of lines");
     });
 }
@@ -207,8 +213,7 @@ PYBIND11_PLUGIN(py_galactica) {
         hana::make_tuple("tomosynthesis"s,
                          hana::type_c<tomo::geometry::tomosynthesis<T>>,
                          hana::tuple_t<tomo::volume<3_D>, int, T,
-                                       tomo::math::vec<2_D, int>, T, T, T>)
-        );
+                                       tomo::math::vec<2_D, int>, T, T, T>));
 
     init_image(m);
     init_geometry(m, ps, gs);

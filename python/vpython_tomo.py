@@ -26,6 +26,7 @@ def show_geometry(geom, volume, steps, detector_count):
                     ar.visible = False
                     del ar
             ls.clear()
+            o = geom.source_location(j);
             for i in range(detector_count * j, detector_count * (j + 1)):
                 l = geom.get_line(i)
 
@@ -37,11 +38,10 @@ def show_geometry(geom, volume, steps, detector_count):
 
                 ls.append(arrow(pos = origin, axis = delta, shaftwidth=0.1, color = color.yellow))
 
-                ball.pos = origin
-                trail.append(origin, retain=(steps // 2))
+            ball.pos = vector(o.x, o.y, o.z);
+            trail.append(ball.pos, retain=(steps // 2))
         trail.visible = False
         del trail
-
 
     clear()
     stop = False

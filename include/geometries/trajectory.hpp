@@ -42,7 +42,8 @@ class trajectory : public base<D, T, trajectory<D, T>> {
         auto target = detector_location(step) +
                       detector_offset_(step, detector, detector_size_);
 
-        return math::truncate_to_volume<D, T>(source, target, this->volume_);
+        return math::truncate_to_volume<D, T>(source, target, this->volume_)
+            .value_or(math::line<D, T>());
     }
 
     /** The location of the source in step `step`. */
