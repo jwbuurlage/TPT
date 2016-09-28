@@ -20,8 +20,7 @@ forward_projection(const image<D, T>& f, const Geometry& g, Projector& proj) {
 
     int line_number = 0;
     for (auto line : g) {
-        proj.reset(line);
-        for (auto elem : proj) {
+        for (auto elem : proj(line)) {
             sino[line_number] += f[elem.index] * elem.value;
         }
         ++line_number;

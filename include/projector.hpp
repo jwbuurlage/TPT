@@ -52,12 +52,11 @@ class base {
 
     /** Returns an iterable container for line `line` with this DIM. */
     touch_container operator()(math::line<D, T> line) {
-        this->reset(line);
+        // TODO: only reset if line is not current
+        this->reset_(line);
         return touch_container(*this);
     }
 
-    /** Reset the DIM to a given line. */
-    void reset(math::line<D, T> line) { reset_(line); }
 
     /** Obtain the current line of the DIM. */
     math::line<D, T> get_line() const { return line_; }

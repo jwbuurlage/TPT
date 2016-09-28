@@ -25,6 +25,7 @@ template <dimension D, typename T, typename Derived>
 class base {
   public:
     using problem_dimension = std::integral_constant<dimension, D>;
+    using value_type = T;
 
     /** An iterator to a line of the geometry. */
     class geometry_iterator

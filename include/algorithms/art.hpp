@@ -38,8 +38,7 @@ image<D, T> art(const volume<D>& v, const Geometry& g,
     std::vector<T> w_norms(g.lines());
     int line_number = 0;
     for (auto line : g) {
-        proj.reset(line);
-        for (auto elem : proj) {
+        for (auto elem : proj(line)) {
             w_norms[line_number] += elem.value * elem.value;
         }
         ++line_number;
@@ -48,9 +47,8 @@ image<D, T> art(const volume<D>& v, const Geometry& g,
     for (int k = 0; k < iterations; ++k) {
         int row = 0;
         for (auto line : g) {
-            proj.reset(line);
             T alpha = 0.0;
-            for (auto elem : proj)
+            for (auto elem : proj(line))
                 alpha += f[elem.index] * elem.value;
 
             auto factor = beta * ((p[row] - alpha) / w_norms[row]);

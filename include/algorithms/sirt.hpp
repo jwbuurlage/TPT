@@ -43,8 +43,7 @@ image<D, T> sirt(const volume<D>& v, const Geometry& g,
 
     int line_idx = 0;
     for (auto line : g) {
-        proj.reset(line);
-        for (auto elem : proj) {
+        for (auto elem : proj(line)) {
             R[line_idx] += elem.value;
             bC[elem.index] += elem.value;
         }
@@ -64,8 +63,7 @@ image<D, T> sirt(const volume<D>& v, const Geometry& g,
         // compute Wx
         int line_number = 0;
         for (auto line : g) {
-            proj.reset(line);
-            for (auto elem : proj) {
+            for (auto elem : proj(line)) {
                 s1[line_number] += f[elem.index] * elem.value;
             }
             ++line_number;
@@ -82,8 +80,7 @@ image<D, T> sirt(const volume<D>& v, const Geometry& g,
         // multiply with W^T
         int row = 0;
         for (auto line : g) {
-            proj.reset(line);
-            for (auto elem : proj) {
+            for (auto elem : proj(line)) {
                 s2[elem.index] += elem.value * s1[row];
             }
             ++row;

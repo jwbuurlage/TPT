@@ -40,8 +40,7 @@ image<D, T> sart(const volume<D>& v, const Geometry& g,
     std::vector<T> w_norms(g.lines());
     int line_number = 0;
     for (auto line : g) {
-        proj.reset(line);
-        for (auto elem : proj) {
+        for (auto elem : proj(line)) {
             w_norms[line_number] += elem.value * elem.value;
         }
         ++line_number;
@@ -55,7 +54,6 @@ image<D, T> sart(const volume<D>& v, const Geometry& g,
 
         int row = 0;
         for (auto line : g) {
-            proj.reset(line);
             if (s == k) {
                 // we now update the image
                 if (t > 0) {
@@ -67,12 +65,12 @@ image<D, T> sart(const volume<D>& v, const Geometry& g,
 
             if (w_norms[row] > math::epsilon<T>) {
                 T alpha = 0.0;
-                for (auto elem : proj) {
+                for (auto elem : proj(line)) {
                     alpha += f[elem.index] * elem.value;
                 }
 
                 auto factor = beta * ((p[row] - alpha) / w_norms[row]);
-                for (auto elem : proj)
+                for (auto elem : proj(line))
                     f_next[elem.index] += factor * elem.value;
             }
 
