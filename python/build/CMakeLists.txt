@@ -37,5 +37,4 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/..)
 
 pybind11_add_module(${BINDING_NAME} ${BINDING_SOURCES})
 
-
 target_link_libraries(${BINDING_NAME} ${LIB_NAMES})

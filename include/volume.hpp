@@ -41,7 +41,7 @@ class volume {
      * the i-th axis.
      */
     template <typename... Ts>
-    volume(Ts... dims) : dimensions_(std::array<int, D>{dims...}) {}
+    volume(Ts... dims) : dimensions_{dims...} {}
 
     /**
      * Obtain the size of the first dimension.
@@ -144,11 +144,20 @@ class volume {
                                std::multiplies<int>());
     }
 
+    math::vec<D, int> unroll(int index) {
+        math::vec<D, int> cell;
+        for (int d = 0; d < D; ++d) {
+            cell[d] = index % dimensions_[d];
+            index /= dimensions_[d];
+        }
+        return cell;
+    }
+
   private:
     template <typename T, typename... Ts>
     int index_(int current, int offset, T x, Ts... xs) const {
-        offset *= dimensions_[D - sizeof...(xs)];
         current += offset * x;
+        offset *= dimensions_[D - sizeof...(xs)];
         return index_(current, offset, xs...);
     }
 
@@ -163,7 +172,7 @@ class volume {
         return result;
     }
 
-    int index_(int current, int offset) const { return current; }
+    int index_(int current, int /* offset */) const { return current; }
 
     std::array<int, D> dimensions_;
 };

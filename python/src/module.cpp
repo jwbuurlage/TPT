@@ -76,17 +76,19 @@ void init_geometry(py::module& m, Ps ps, Gs gs) {
 
 template <typename Gs>
 void init_geometry_3d(py::module& m, Gs gs) {
-    py::class_<tomo::math::line<3_D, T>>(m, "line_3d")
-        .def_readwrite("origin", &tomo::math::line<3_D, T>::origin)
-        .def_readwrite("delta", &tomo::math::line<3_D, T>::delta)
-        .def_readwrite("length", &tomo::math::line<3_D, T>::length);
+    namespace tm = tomo::math;
 
-    py::class_<tomo::math::vec<2_D, int>>(m, "vec2i").def(py::init<int, int>());
-    py::class_<tomo::math::vec<3_D, T>>(m, "vec3f")
+    py::class_<tm::line<3_D, T>>(m, "line_3d")
+        .def_readwrite("origin", &tm::line<3_D, T>::origin)
+        .def_readwrite("delta", &tm::line<3_D, T>::delta)
+        .def_readwrite("length", &tm::line<3_D, T>::length);
+
+    py::class_<tm::vec<2_D, int>>(m, "vec2i").def(py::init<int, int>());
+    py::class_<tm::vec<3_D, T>>(m, "vec3f")
         .def(py::init<T, T, T>())
-        .def_readwrite("x", &tomo::math::vec<3_D, T>::x)
-        .def_readwrite("y", &tomo::math::vec<3_D, T>::y)
-        .def_readwrite("z", &tomo::math::vec<3_D, T>::z);
+        .def_readwrite("x", &tm::vec<3_D, T>::x)
+        .def_readwrite("y", &tm::vec<3_D, T>::y)
+        .def_readwrite("z", &tm::vec<3_D, T>::z);
 
     py::class_<tomo::volume<3_D>>(m, "volume_3d")
         .def(py::init<int, int, int>())
@@ -125,24 +127,31 @@ void init_operations(py::module& m, Ps ps, Gs gs) {
 
 template <typename Ps, typename Gs>
 void init_algorithm(py::module& m, Ps ps, Gs gs) {
+    namespace tr = tomo::reconstruction;
+
     auto combinations = hana::cartesian_product(hana::make_tuple(gs, ps));
     hana::for_each(combinations, [&](auto x) {
         using G = typename decltype(+(x[0_c][1_c]))::type;
         using P = typename decltype(+x[1_c][1_c])::type;
 
-        m.def("art", &tomo::reconstruction::art<2_D, T, G, P>,
-              "ART reconstruction algorithm", py::arg("volume"),
-              py::arg("geometry"), py::arg("projection"), py::arg("beta") = 0.5,
-              py::arg("iterations") = 10);
-        m.def("sart", &tomo::reconstruction::sart<2_D, T, G, P>,
-              "SART reconstruction algorithm", py::arg("volume"),
-              py::arg("geometry"), py::arg("projection"), py::arg("beta") = 0.5,
-              py::arg("iterations") = 10);
-        m.def("sirt", &tomo::reconstruction::sirt<2_D, T, G, P>,
-              "SIRT reconstruction algorithm", py::arg("volume"),
-              py::arg("geometry"), py::arg("projection"), py::arg("beta") = 0.5,
-              py::arg("iterations") = 10);
+        m.def("art", &tr::art<2_D, T, G, P>, "ART reconstruction algorithm",
+              py::arg("volume"), py::arg("geometry"), py::arg("projection"),
+              py::arg("beta") = 0.5, py::arg("iterations") = 10);
+        m.def("sart", &tr::sart<2_D, T, G, P>, "SART reconstruction algorithm",
+              py::arg("volume"), py::arg("geometry"), py::arg("projection"),
+              py::arg("beta") = 0.5, py::arg("iterations") = 10);
+        m.def("sirt", &tr::sirt<2_D, T, G, P>, "SIRT reconstruction algorithm",
+              py::arg("volume"), py::arg("geometry"), py::arg("projection"),
+              py::arg("beta") = 0.5, py::arg("iterations") = 10);
     });
+}
+
+template <typename Ps, typename Gs>
+void init_distributed(py::module& m, Ps ps, Gs gs) {
+    namespace td = tomo::distributed;
+
+    py::class_<td::partitioned_volume<3_D>>(m, "partitioned_volume");
+    py::class_<td::slabbed_volume<3_D>>(m, "slabbed_volume");
 }
 
 #ifdef USE_CUDA
@@ -172,54 +181,52 @@ void init_cuda(py::module& m, Gs gs) {
 #endif
 
 PYBIND11_PLUGIN(py_galactica) {
+    namespace tm = tomo::math;
+    namespace td = tomo::dim;
+    namespace tg = tomo::geometry;
+
     py::module m("py_galactica", "bindings for galactica");
 
     // this is a list of the projector and geometry types, used to instantiate
     // the template algorithms and operations
     auto ps = hana::make_tuple(
-        hana::make_tuple("linear"s, hana::type_c<tomo::dim::linear<2_D, T>>),
-        hana::make_tuple("joseph"s, hana::type_c<tomo::dim::joseph<T>>),
-        hana::make_tuple("closest"s, hana::type_c<tomo::dim::closest<2_D, T>>));
+        hana::make_tuple("linear"s, hana::type_c<td::linear<2_D, T>>),
+        hana::make_tuple("joseph"s, hana::type_c<td::joseph<T>>),
+        hana::make_tuple("closest"s, hana::type_c<td::closest<2_D, T>>));
 
     // the third entry is the signature of the constructor
     auto gs = hana::make_tuple(
-        hana::make_tuple("parallel"s,
-                         hana::type_c<tomo::geometry::parallel<2_D, T>>,
+        hana::make_tuple("parallel"s, hana::type_c<tg::parallel<2_D, T>>,
                          hana::tuple_t<int, int, tomo::volume<2_D>>),
-        hana::make_tuple("list"s, hana::type_c<tomo::geometry::list<2_D, T>>,
-                         hana::tuple_t<std::vector<tomo::math::line<2_D, T>>>));
+        hana::make_tuple("list"s, hana::type_c<tg::list<2_D, T>>,
+                         hana::tuple_t<std::vector<tm::line<2_D, T>>>));
 
     auto gs3 = hana::make_tuple(
-        hana::make_tuple("dual_axis_parallel"s,
-                         hana::type_c<tomo::geometry::dual_axis_parallel<T>>,
+        hana::make_tuple(
+            "dual_axis_parallel"s, hana::type_c<tg::dual_axis_parallel<T>>,
+            hana::tuple_t<tomo::volume<3_D>, int, T, tm::vec<2_D, int>>),
+        hana::make_tuple(
+            "cone_beam"s, hana::type_c<tg::cone_beam<T>>,
+            hana::tuple_t<tomo::volume<3_D>, int, T, tm::vec<2_D, int>, T, T>),
+        hana::make_tuple(
+            "helical_cone_beam"s, hana::type_c<tg::helical_cone_beam<T>>,
+            hana::tuple_t<tomo::volume<3_D>, int, T, tm::vec<2_D, int>, T, T>),
+        hana::make_tuple(
+            "dynamic_cone_beam"s, hana::type_c<tg::dynamic_cone_beam<T>>,
+            hana::tuple_t<tomo::volume<3_D>, int, T, tm::vec<2_D, int>>),
+        hana::make_tuple("laminography"s, hana::type_c<tg::laminography<T>>,
                          hana::tuple_t<tomo::volume<3_D>, int, T,
-                                       tomo::math::vec<2_D, int>>),
-        hana::make_tuple("cone_beam"s,
-                         hana::type_c<tomo::geometry::cone_beam<T>>,
+                                       tm::vec<2_D, int>, T, T, T, T>),
+        hana::make_tuple("tomosynthesis"s, hana::type_c<tg::tomosynthesis<T>>,
                          hana::tuple_t<tomo::volume<3_D>, int, T,
-                                       tomo::math::vec<2_D, int>, T, T>),
-        hana::make_tuple("helical_cone_beam"s,
-                         hana::type_c<tomo::geometry::helical_cone_beam<T>>,
-                         hana::tuple_t<tomo::volume<3_D>, int, T,
-                                       tomo::math::vec<2_D, int>, T, T>),
-        hana::make_tuple("dynamic_cone_beam"s,
-                         hana::type_c<tomo::geometry::dynamic_cone_beam<T>>,
-                         hana::tuple_t<tomo::volume<3_D>, int, T,
-                                       tomo::math::vec<2_D, int>>),
-        hana::make_tuple("laminography"s,
-                         hana::type_c<tomo::geometry::laminography<T>>,
-                         hana::tuple_t<tomo::volume<3_D>, int, T,
-                                       tomo::math::vec<2_D, int>, T, T, T, T>),
-        hana::make_tuple("tomosynthesis"s,
-                         hana::type_c<tomo::geometry::tomosynthesis<T>>,
-                         hana::tuple_t<tomo::volume<3_D>, int, T,
-                                       tomo::math::vec<2_D, int>, T, T, T>));
+                                       tm::vec<2_D, int>, T, T, T>));
 
     init_image(m);
     init_geometry(m, ps, gs);
     init_geometry_3d(m, gs3);
     init_operations(m, ps, gs);
     init_algorithm(m, ps, gs);
+    //init_distributed(m);
 
 #ifdef USE_CUDA
     init_cuda(m, gs);

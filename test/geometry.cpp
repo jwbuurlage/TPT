@@ -32,7 +32,7 @@ TEST_CASE("Trajectory based geometry", "[geometry]") {
         CHECK(g.lines() == 10);
         bool static_lines_correct = true;
         for (auto line : g) {
-            if (!math::approx_equal(line.origin.x, -10.0f) ||
+            if (!math::approx_equal(line.origin.x, 0.0f) ||
                 !math::approx_equal(line.origin.y, 5.0f) ||
                 !math::approx_equal(line.delta.x, 1.0f) ||
                 !math::approx_equal(line.delta.y, 0.0f)) {
@@ -41,21 +41,6 @@ TEST_CASE("Trajectory based geometry", "[geometry]") {
             }
         }
         CHECK(static_lines_correct);
-    }
-
-    SECTION("Detector arrays computed correctly") {
-        int k = 10;
-        auto v = tomo::volume<2_D>(k);
-        auto g = static_trajectory_test(v, 1, (T)1, math::vec<1_D, int>{2});
-        CHECK(g.lines() == 2);
-
-        CHECK(g.get_line(0).origin == g.get_line(1).origin);
-
-        auto detector_diff =
-            (g.get_line(0).origin + 20.0f * g.get_line(0).delta) -
-            (g.get_line(1).origin + 20.0f * g.get_line(1).delta);
-
-        CHECK(math::approx_equal(math::norm<2_D, float>(detector_diff), 1.0f));
     }
 
     class static_trajectory_test_3d : public geometry::trajectory<3_D, float> {
@@ -86,7 +71,7 @@ TEST_CASE("Trajectory based geometry", "[geometry]") {
 
         bool static_lines_correct = true;
         for (auto line : g) {
-            if (!math::approx_equal(line.origin.x, -10.0f) ||
+            if (!math::approx_equal(line.origin.x, 0.0f) ||
                 !math::approx_equal(line.origin.y, 5.0f) ||
                 !math::approx_equal(line.origin.z, 5.0f) ||
                 !math::approx_equal(line.delta.x, 1.0f) ||
@@ -97,28 +82,6 @@ TEST_CASE("Trajectory based geometry", "[geometry]") {
             }
         }
         CHECK(static_lines_correct);
-    }
-
-    SECTION("Detector arrays computed correctly (3D)") {
-        int k = 10;
-        auto v = tomo::volume<3_D>(k);
-        auto g = static_trajectory_test_3d(v, 1, (T)1, math::vec<2_D, int>{2});
-        CHECK(g.lines() == 4);
-
-        CHECK(g.get_line(0).origin == g.get_line(1).origin);
-
-        auto detector_diff =
-            (g.get_line(0).origin + 20.0f * g.get_line(0).delta) -
-            (g.get_line(1).origin + 20.0f * g.get_line(1).delta);
-
-        CHECK(math::approx_equal(math::norm<3_D, float>(detector_diff), 1.0f));
-
-        auto detector_diag_diff =
-            (g.get_line(0).origin + 20.0f * g.get_line(0).delta) -
-            (g.get_line(3).origin + 20.0f * g.get_line(3).delta);
-
-        CHECK(math::approx_equal(math::norm<3_D, float>(detector_diag_diff),
-                                 math::sqrt2<float>));
     }
 
     SECTION("Detector tilts computed correctly (3D)") {

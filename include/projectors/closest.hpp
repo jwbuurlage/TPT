@@ -1,6 +1,7 @@
 #pragma once
 
-#include "tomo.hpp"
+#include "../common.hpp"
+#include "../projector.hpp"
 
 namespace tomo {
 namespace dim {

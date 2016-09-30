@@ -15,6 +15,21 @@ TEST_CASE("We can create reconstruction volumes", "[core]") {
         tomo::volume<3_D> v(k, k, k);
         REQUIRE(v.cells() == k * k * k);
     }
+
+    SECTION("indexing") {
+        int k = 16;
+        tomo::volume<2_D> v2(k);
+        tomo::volume<3_D> v3(k);
+
+        CHECK(v2.index(2, 3) == 2 + 3 * k);
+        CHECK(v2.unroll(v2.index(2, 3))[0] == 2);
+        CHECK(v2.unroll(v2.index(2, 3))[1] == 3);
+
+        CHECK(v3.index(2, 3, 5) == 2 + 3 * k + 5 * k * k);
+        CHECK(v3.unroll(v2.index(2, 3, 5))[0] == 2);
+        CHECK(v3.unroll(v2.index(2, 3, 5))[1] == 3);
+        CHECK(v3.unroll(v2.index(2, 3, 5))[2] == 5);
+    }
 }
 
 TEST_CASE("We can initialize geometry", "[core]") {

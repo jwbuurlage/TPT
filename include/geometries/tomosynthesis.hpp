@@ -38,7 +38,7 @@ class tomosynthesis : public trajectory<3_D, T> {
         return apply_rotation_(pivot, step);
     }
 
-    math::vec<3_D, T> detector_location(int step) const override final {
+    math::vec<3_D, T> detector_location(int /* step */) const override final {
         auto pivot = image_center_() -
                      relative_detector_distance_ * this->volume_.y() *
                          math::standard_basis<3_D, T>(1);
@@ -47,7 +47,7 @@ class tomosynthesis : public trajectory<3_D, T> {
     }
 
     std::array<math::vec<3_D, T>, 2>
-    detector_tilt(int step) const override final {
+    detector_tilt(int /* step */) const override final {
         return {math::standard_basis<3_D, T>(0),
                 math::standard_basis<3_D, T>(2)};
     }

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0.0)
-
-
 project(tomo)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 link_directories("~/.local/lib")
 
@@ -13,7 +13,8 @@ include_directories(
     "../ext/bulk/include"
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wfatal-errors -Werror -pedantic -O3 -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wno-missing-braces -Wfatal-errors -Werror -pedantic -O3 -g")
+# ignore warnings from external libs
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ../ext/fmt -isystem ~/.local/include -isystem ../ext/bulk/include -isystem /usr/local/cuda/include")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
@@ -41,8 +42,8 @@ set(
 set(
     EXAMPLE_SOURCES
     "reconstruction.cpp"
+    "geometry_benchmark.cpp"
 )
-
 
 set(
     LIB_NAMES
@@ -51,6 +52,7 @@ set(
     "boost_program_options"
 )
 
+set(CMAKE_CXX_COMPILER "/ufs/buurlage/.local/bin/clang++")
 foreach(source_file ${EXAMPLE_SOURCES})
     string(REPLACE ".cpp" "" source_name ${source_file})
     add_executable(${source_name} ${EXAMPLE_DIR}${source_file})

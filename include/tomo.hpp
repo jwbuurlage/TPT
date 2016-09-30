@@ -39,6 +39,8 @@
 #include "algorithms/sart.hpp"
 #include "algorithms/sirt.hpp"
 
+#include "distributed/partitionings.hpp"
+
 #include "geometries/cone.hpp"
 #include "geometries/dual_axis_parallel.hpp"
 #include "geometries/dynamic_cone_beam.hpp"
