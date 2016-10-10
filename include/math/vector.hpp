@@ -1,6 +1,10 @@
 #pragma once
 
+#include <array>
+
 #include <glm/glm.hpp>
+
+#include "../common.hpp"
 
 namespace tomo {
 

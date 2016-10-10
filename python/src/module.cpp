@@ -152,6 +152,10 @@ void init_distributed(py::module& m, Ps ps, Gs gs) {
 
     py::class_<td::partitioned_volume<3_D>>(m, "partitioned_volume");
     py::class_<td::slabbed_volume<3_D>>(m, "slabbed_volume");
+    py::class_<td::bisected_volume<3_D>>(m, "bisected_volume");
+
+    // functions to partition
+    // FIXME
 }
 
 #ifdef USE_CUDA
@@ -226,7 +230,7 @@ PYBIND11_PLUGIN(py_galactica) {
     init_geometry_3d(m, gs3);
     init_operations(m, ps, gs);
     init_algorithm(m, ps, gs);
-    //init_distributed(m);
+    init_distributed(m);
 
 #ifdef USE_CUDA
     init_cuda(m, gs);

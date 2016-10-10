@@ -21,6 +21,9 @@ void run(std::string name, Geometry g, tomo::util::report& table,
 
     auto part_trivial = tomo::distributed::partition_trivial(g, v, 4);
     table.add_result(name, "trivial", overlap_count(g, part_trivial));
+
+    auto part_bisected = tomo::distributed::partition_bisection(g, v, 4);
+    table.add_result(name, "binary", overlap_count(g, part_bisected));
 }
 
 int main(int argc, char* argv[]) {
@@ -36,7 +39,7 @@ int main(int argc, char* argv[]) {
     // 2) [x] sum over all overlaps
     // 3) [x] support a distribution of the volume
     // 4) [x] make a trivial partition[er/ing]
-    // 5) [ ] make a simple partitioner
+    // 5) [ ] make the recursive bijection partitioner and compare
     // 6) [ ] add cli flags
 
     int k = 16;
@@ -52,6 +55,9 @@ int main(int argc, char* argv[]) {
     run("dual_parallel",
         tomo::geometry::dual_axis_parallel<T>(v, k, (T)1.0, {k, k}), table, v);
     run("cone", tomo::geometry::cone_beam<T>(v, k, (T)1.0, {k, k}), table, v);
+    run("laminography", tomo::geometry::laminography<T>(v, k, (T)1.0, {k, k},
+                                                       1.0, 1.0, k / 2, k / 2),
+        table, v);
 
     // 'print result table'
     table.print();

@@ -46,6 +46,10 @@ def show_geometry(geom, volume, steps, detector_count):
     clear()
     stop = False
 
+def show_parititoning():
+    # also show geometry at the same time, would be perfect
+    pass
+
 def handle(s):
     global stop
     stop = True
