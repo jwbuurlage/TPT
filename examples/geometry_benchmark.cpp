@@ -14,21 +14,24 @@ namespace hana = boost::hana;
 #include "tomo.hpp"
 #include "util/report.hpp"
 
+using T = float;
+
 template <typename Geometry>
 void run(std::string name, Geometry g, tomo::util::report& table,
          tomo::volume<3_D> v) {
+    namespace td = tomo::distributed;
+    using Dim = tomo::dim::closest<3_D, T>;
+
     table.add_row(name);
 
-    auto part_trivial = tomo::distributed::partition_trivial(g, v, 4);
-    table.add_result(name, "trivial", overlap_count(g, part_trivial));
+    auto part_trivial = td::partition_trivial<Dim>(g, v, 4);
+    table.add_result(name, "trivial", td::overlap_count<Dim>(g, part_trivial));
 
-    auto part_bisected = tomo::distributed::partition_bisection(g, v, 4);
-    table.add_result(name, "binary", overlap_count(g, part_bisected));
+    auto part_bisected = td::partition_bisection(g, v, 4);
+    table.add_result(name, "binary", td::overlap_count<Dim>(g, part_bisected));
 }
 
 int main(int argc, char* argv[]) {
-    using T = float;
-
     (void)argc;
     (void)argv;
     // we need simple mechanism for computing 'size of overlap', and see what
@@ -56,7 +59,7 @@ int main(int argc, char* argv[]) {
         tomo::geometry::dual_axis_parallel<T>(v, k, (T)1.0, {k, k}), table, v);
     run("cone", tomo::geometry::cone_beam<T>(v, k, (T)1.0, {k, k}), table, v);
     run("laminography", tomo::geometry::laminography<T>(v, k, (T)1.0, {k, k},
-                                                       1.0, 1.0, k / 2, k / 2),
+                                                        1.0, 1.0, k / 2, k / 2),
         table, v);
 
     // 'print result table'

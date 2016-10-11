@@ -95,10 +95,10 @@ class bisected_volume : public partitioned_volume<D> {
     core::binary_tree<split> splits_;
 };
 
-template <typename Geometry>
+template <typename Dim, typename Geometry>
 int overlap_count(Geometry& g, partitioned_volume<3_D>& v) {
-    using T = typename Geometry::value_type;
-    tomo::dim::closest<3_D, T> proj(v.volume());
+    Dim proj(v.volume());
+
     int overlap = 0;
 
     std::vector<int> seen(v.processors());
@@ -116,7 +116,7 @@ int overlap_count(Geometry& g, partitioned_volume<3_D>& v) {
     return overlap;
 }
 
-template <dimension D, typename Geometry>
+template <typename Dim, dimension D, typename Geometry>
 slabbed_volume<D> partition_trivial(Geometry& g, tomo::volume<D> v,
                                     int processors) {
 
@@ -125,7 +125,7 @@ slabbed_volume<D> partition_trivial(Geometry& g, tomo::volume<D> v,
 
     for (int d = 0; d < D; ++d) {
         slabbed_volume<D> slabbed{v, processors, d};
-        auto overlap = overlap_count(g, slabbed);
+        auto overlap = overlap_count<Dim>(g, slabbed);
         if (overlap < best_overlap) {
             vol = slabbed;
             best_overlap = overlap;

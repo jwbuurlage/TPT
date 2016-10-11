@@ -150,11 +150,25 @@ template <typename Ps, typename Gs>
 void init_distributed(py::module& m, Ps ps, Gs gs) {
     namespace td = tomo::distributed;
 
-    py::class_<td::partitioned_volume<3_D>>(m, "partitioned_volume");
     py::class_<td::slabbed_volume<3_D>>(m, "slabbed_volume");
     py::class_<td::bisected_volume<3_D>>(m, "bisected_volume");
 
     // functions to partition
+    auto combinations = hana::cartesian_product(hana::make_tuple(gs, ps));
+    hana::for_each(combinations, [&](auto x) {
+        using G = typename decltype(+(x[0_c][1_c]))::type;
+        using P = typename decltype(+x[1_c][1_c])::type;
+
+        m.def("partition_trivial", &td::partition_trivial<P, 3_D, G>,
+              "Find the best slabbed partitioning",
+              py::arg("geometry"), py::arg("volume"), py::arg("processors"));
+
+        // fix add smart partitioning here
+        //m.def("partition_trivial", &td::partition_trivial<P, 3_D, G>,
+        //      "Find the best slabbed partitioning",
+        //      py::arg("geometry"), py::arg("volume"), py::arg("processors"));
+    });
+
     // FIXME
 }
 
@@ -225,12 +239,16 @@ PYBIND11_PLUGIN(py_galactica) {
                          hana::tuple_t<tomo::volume<3_D>, int, T,
                                        tm::vec<2_D, int>, T, T, T>));
 
+    auto ps3 = hana::make_tuple(
+        hana::make_tuple("linear_3d"s, hana::type_c<td::linear<3_D, T>>),
+        hana::make_tuple("closest_3d"s, hana::type_c<td::closest<3_D, T>>));
+
     init_image(m);
     init_geometry(m, ps, gs);
     init_geometry_3d(m, gs3);
     init_operations(m, ps, gs);
     init_algorithm(m, ps, gs);
-    init_distributed(m);
+    init_distributed(m, ps3, gs3);
 
 #ifdef USE_CUDA
     init_cuda(m, gs);
