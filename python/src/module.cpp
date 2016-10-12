@@ -32,6 +32,10 @@ auto lines(G& g) {
     return g.lines();
 }
 
+int volume_index(tomo::volume<3_D>& v, int x, int y, int z) {
+    return v.index(x, y, z);
+}
+
 void init_image(py::module& m) {
     py::class_<tomo::volume<2_D>>(m, "volume").def(py::init<int, int>());
 
@@ -94,7 +98,8 @@ void init_geometry_3d(py::module& m, Gs gs) {
         .def(py::init<int, int, int>())
         .def("x", &tomo::volume<3_D>::x)
         .def("y", &tomo::volume<3_D>::y)
-        .def("z", &tomo::volume<3_D>::z);
+        .def("z", &tomo::volume<3_D>::z)
+        .def("index", &volume_index, "obtain the index");
 
     hana::for_each(gs, [&](auto x) {
         using G = typename decltype(+x[1_c])::type;
@@ -150,8 +155,10 @@ template <typename Ps, typename Gs>
 void init_distributed(py::module& m, Ps ps, Gs gs) {
     namespace td = tomo::distributed;
 
-    py::class_<td::slabbed_volume<3_D>>(m, "slabbed_volume");
-    py::class_<td::bisected_volume<3_D>>(m, "bisected_volume");
+    py::class_<td::slabbed_volume<3_D>>(m, "slabbed_volume")
+        .def("owner", &td::slabbed_volume<3_D>::owner);
+    py::class_<td::bisected_volume<3_D>>(m, "bisected_volume")
+        .def("owner", &td::bisected_volume<3_D>::owner);
 
     // functions to partition
     auto combinations = hana::cartesian_product(hana::make_tuple(gs, ps));
@@ -160,16 +167,13 @@ void init_distributed(py::module& m, Ps ps, Gs gs) {
         using P = typename decltype(+x[1_c][1_c])::type;
 
         m.def("partition_trivial", &td::partition_trivial<P, 3_D, G>,
-              "Find the best slabbed partitioning",
-              py::arg("geometry"), py::arg("volume"), py::arg("processors"));
+              "Find the best slabbed partitioning", py::arg("geometry"),
+              py::arg("volume"), py::arg("processors"));
 
-        // fix add smart partitioning here
-        //m.def("partition_trivial", &td::partition_trivial<P, 3_D, G>,
-        //      "Find the best slabbed partitioning",
-        //      py::arg("geometry"), py::arg("volume"), py::arg("processors"));
+        m.def("partition_bisection", &td::partition_bisection<3_D, G>,
+              "Find the best bisected partitioning", py::arg("geometry"),
+              py::arg("volume"), py::arg("processors"), py::arg("epsilon"));
     });
-
-    // FIXME
 }
 
 #ifdef USE_CUDA

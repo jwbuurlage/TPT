@@ -43,9 +43,9 @@ TEST_CASE("Intersection and box checking", "[math]") {
         }
 
         SECTION("Non-intersecting segment") {
-            auto result =
-                tomo::math::intersection<T>(vec{-2.0f, 0.0f}, vec{2.0f, 0.0f},
-                                            vec{-1.0f, -2.0f}, vec{-1.0f, -1.0f});
+            auto result = tomo::math::intersection<T>(
+                vec{-2.0f, 0.0f}, vec{2.0f, 0.0f}, vec{-1.0f, -2.0f},
+                vec{-1.0f, -1.0f});
             REQUIRE(!result);
         }
     }
@@ -96,6 +96,26 @@ TEST_CASE("Intersection and box checking", "[math]") {
         }
 
         CHECK(can_compute_inside_correctly);
+    }
+
+    SECTION("Bounds intersection") {
+            //using vec = tomo::math::vec3<T>;
+        using veci = tomo::math::vec2<int>;
+        using lin = tomo::math::line<3_D, T>;
+
+        std::array<veci, 3> bounds = {veci{1, 3}, veci{1, 3}, veci{1, 3}};
+
+        SECTION("Normal crossing line") {
+            auto result = tomo::math::intersect_bounds<3_D, T>(
+                lin({0.0f, 2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}), bounds);
+            REQUIRE(result);
+        }
+
+        SECTION("Parallel line") {
+            auto result = tomo::math::intersect_bounds<3_D, T>(
+                lin({0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}), bounds);
+            REQUIRE(!result);
+        }
     }
 }
 

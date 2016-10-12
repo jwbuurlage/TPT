@@ -39,6 +39,7 @@
 #include "algorithms/sart.hpp"
 #include "algorithms/sirt.hpp"
 
+#include "distributed/recursive_bisectioning.hpp"
 #include "distributed/partitionings.hpp"
 
 #include "geometries/cone.hpp"

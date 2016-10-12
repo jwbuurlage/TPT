@@ -61,6 +61,25 @@ struct matrix_element {
     T value;
 };
 
+/** Compute the absolute value of an object of type T. */
+template <typename T>
+auto abs(T obj) {
+    return glm::abs(obj);
+}
+
+/** Check if two real-valued numbers are approximately equal. */
+template <typename T, typename V>
+bool approx_equal(T lhs, T rhs, V max_rel_diff, V max_abs_diff) {
+    return abs((lhs - rhs) / rhs) <= max_rel_diff ||
+           (max_abs_diff != 0 && abs(lhs - rhs) <= max_abs_diff);
+}
+
+/** Check if two real-valued numbers are approximately equal. */
+template <typename T>
+bool approx_equal(T lhs, T rhs) {
+    return approx_equal(lhs, rhs, (T)1e-2, epsilon<T>);
+}
+
 /**
  * A line inside a volume.
  *
@@ -89,6 +108,20 @@ auto standard_basis(int axis) {
     return result;
 }
 
+/** Return a vector with the sign of each component as 1 or -1 */
+template <dimension D, typename T>
+vec<D, int> sign(vec<D, T> rhs) {
+    auto result = vec<D, int>{};
+    for (int d = 0; d < D; ++d) {
+        if (approx_equal(rhs[d], (T)0)) {
+            result[d] = 0;
+        } else {
+            result[d] = rhs[d] > 0 ? 1 : -1;
+        }
+    }
+    return result;
+}
+
 /** Compute the cosine for an object of type T. */
 template <typename T>
 auto cos(T obj) {
@@ -111,12 +144,6 @@ auto asin(T obj) {
 template <typename T>
 auto floor(T obj) {
     return glm::floor(obj);
-}
-
-/** Compute the absolute value of an object of type T. */
-template <typename T>
-auto abs(T obj) {
-    return glm::abs(obj);
 }
 
 /** Rotate a 3D vector */
@@ -155,19 +182,6 @@ constexpr auto sqrt(T obj) {
 template <typename T>
 auto normalize(T obj) {
     return glm::normalize(obj);
-}
-
-/** Check if two real-valued numbers are approximately equal. */
-template <typename T, typename V>
-bool approx_equal(T lhs, T rhs, V max_rel_diff, V max_abs_diff) {
-    return abs((lhs - rhs) / rhs) <= max_rel_diff ||
-           (max_abs_diff != 0 && abs(lhs - rhs) <= max_abs_diff);
-}
-
-/** Check if two real-valued numbers are approximately equal. */
-template <typename T>
-bool approx_equal(T lhs, T rhs) {
-    return approx_equal(lhs, rhs, (T)1e-2, epsilon<T>);
 }
 
 /** Compute the distance between two vectors. */
@@ -268,9 +282,11 @@ vec2<T> box_intersection(vec2<T> p, vec2<T> p2, vec2<T> box) {
     return best_point;
 }
 
+// intersect the line from 'a' to 'b' with the AABB cornered in the origin of
+// size 'sides'
 template <dimension D, typename T>
-optional<vec<D, T>> aabb_intersection(vec<D, T> a, vec<D, T> b,
-                                      vec<D, T> sides) {
+optional<std::pair<vec<D, T>, vec<D, T>>>
+aabb_intersection(vec<D, T> a, vec<D, T> b, vec<D, T> sides) {
     T t_min = std::numeric_limits<T>::min();
     T t_max = std::numeric_limits<T>::max();
     for (int d = 0; d < D; ++d) {
@@ -282,17 +298,19 @@ optional<vec<D, T>> aabb_intersection(vec<D, T> a, vec<D, T> b,
             t_max = std::min(t_max, (t1 > t2) ? t1 : t2);
         } else {
             if (a[d] < 0 || a[d] >= sides[d]) {
-                return optional<vec<D, T>>();
+                return optional<std::pair<vec<D, T>, vec<D, T>>>();
             }
         }
     }
 
     if (t_max <= t_min) {
         // no intersection
-        optional<vec<D, T>>();
+        return optional<std::pair<vec<D, T>, vec<D, T>>>();
     }
 
-    return optional<vec<D, T>>{a + (b - a) * t_min};
+    return optional<std::pair<vec<D, T>, vec<D, T>>>{
+        std::pair<vec<D, T>, vec<D, T>>{{a + (b - a) * t_min},
+                                        {a + (b - a) * t_max}}};
 }
 
 template <dimension D, typename T>
@@ -305,8 +323,35 @@ optional<line<D, T>> truncate_to_volume(vec<D, T> source, vec<D, T> detector,
         return optional<line<D, T>>();
     }
     return optional<line<D, T>>{
-        line<D, T>{origin.value(), normalize(detector - source),
-                   distance<D, T>(detector, origin.value())}};
+        line<D, T>{origin.value().first, normalize(detector - source),
+                   distance<D, T>(detector, origin.value().first)}};
+}
+
+/**
+ * for a line and bounds, return a pair of vectors consisting
+ * of the two intersection points with the bounds
+ */
+template <dimension D, typename T>
+optional<std::pair<vec<D, T>, vec<D, T>>>
+intersect_bounds(math::line<D, T> l, std::array<math::vec2<int>, D> bounds) {
+    vec<D, T> bounds_origin{bounds[0][0], bounds[1][0], bounds[2][0]};
+
+    vec<D, T> bounds_sides =
+        vec<D, T>{bounds[0][1], bounds[1][1], bounds[2][1]} - bounds_origin;
+
+    auto result = math::aabb_intersection<D, T>(
+        l.origin - bounds_origin,
+        l.origin - bounds_origin +
+            l.delta * math::sqrt<T>(3) *
+                (bounds_sides.x + bounds_sides.y + bounds_sides.z),
+        bounds_sides);
+
+    if (result) {
+        return std::pair<vec<D, T>, vec<D, T>>{
+            result.value().first + bounds_origin,
+            result.value().second + bounds_origin};
+    }
+    return result;
 }
 
 /** Checks whether a vector lies in the *open* box defined by a volume. */
@@ -332,8 +377,10 @@ void interpolate(vec<D, T> a, volume<D> vol,
         cells_indices[i] = {b[i] - 1, b[i]};
     }
 
-    /* This cartesian product uses bit shifts to compute it efficiently, we can
-     * do this because each set only has two elements. Note: requires D < 32,
+    /* This cartesian product uses bit shifts to compute it efficiently, we
+     * can
+     * do this because each set only has two elements. Note: requires D <
+     * 32,
      * which we should never exceed, ever. */
     auto cartesian_product = [](std::array<std::array<int, 2>, D> indices) {
         std::array<vec<D, int>, pow(2, D)> result;
