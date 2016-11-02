@@ -36,6 +36,10 @@ class bisected_volume : public partitioned_volume<D> {
     bisected_volume(tomo::volume<D> v, int processors)
         : partitioned_volume<D>(v, processors) {}
 
+    bisected_volume(bisected_volume&& other)
+        : splits_(std::move(other.splits_)),
+          partitioned_volume<D>(other.v_, other.processors_) {}
+
     int owner(int index) final override {
         auto voxel = this->v_.unroll(index);
 
@@ -101,7 +105,7 @@ bisected_volume<D> partition_bisection(const Geometry& g, tomo::volume<D> v,
         // first intersect each line with the bounds
         std::size_t idx = 0;
         for (auto line : lines) {
-            auto intersections = math::intersect_bounds(line, bounds);
+            auto intersections = math::intersect_bounds<D, T>(line, bounds);
             if (intersections) {
                 auto a = intersections.value().first;
                 auto b = intersections.value().second;

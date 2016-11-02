@@ -48,6 +48,9 @@ class cone_beam : public trajectory<3_D, T> {
                 apply_rotation_(math::standard_basis<3_D, T>(2), step)};
     }
 
+    T& relative_source_distance() { return relative_source_distance_; }
+    T& relative_detector_distance() { return relative_detector_distance_; }
+
   private:
     T relative_source_distance_;
     T relative_detector_distance_;

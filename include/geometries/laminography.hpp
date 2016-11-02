@@ -64,6 +64,11 @@ class laminography : public trajectory<3_D, T> {
                 math::rotate(math::standard_basis<3_D, T>(2), n_hat, theta)};
     }
 
+    T& relative_source_distance() { return relative_source_distance_; }
+    T& relative_detector_distance() { return relative_detector_distance_; }
+    T& source_radius() { return source_radius_; }
+    T& detector_radius() { return detector_radius_; }
+
   private:
     T relative_source_distance_;
     T relative_detector_distance_;

@@ -21,7 +21,8 @@ namespace core {
 
 template <typename T>
 struct binary_tree {
-    binary_tree() {}
+    binary_tree() = default;
+    binary_tree(binary_tree&& other) : root(std::move(other.root)) {}
 
     enum class dir { left, right };
 

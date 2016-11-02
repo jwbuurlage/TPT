@@ -39,8 +39,7 @@ class trajectory : public base<D, T, trajectory<D, T>> {
         int detector = i % detector_count_;
 
         auto source = source_location(step);
-        auto target = detector_location(step) +
-                      detector_offset_(step, detector, detector_size_);
+        auto target = detector_pixel_location(step, detector);
 
         return math::truncate_to_volume<D, T>(source, target, this->volume_)
             .value_or(math::line<D, T>());
@@ -52,6 +51,11 @@ class trajectory : public base<D, T, trajectory<D, T>> {
     /** The location of the detector in step `step`. */
     virtual math::vec<D, T> detector_location(int step) const = 0;
 
+    math::vec<D, T> detector_pixel_location(int step, int detector) const {
+        return detector_location(step) +
+               detector_offset_(step, detector, detector_size_);
+    }
+
     /**
      * The tilt of the detector in step `step`. The tilt is given as the
      * principal axes of the hyperplane, i.e. by (D - 1) D-dimensional
@@ -59,6 +63,12 @@ class trajectory : public base<D, T, trajectory<D, T>> {
      */
     virtual std::array<math::vec<D, T>, D - 1>
     detector_tilt(int step) const = 0;
+
+    int steps() const { return steps_; }
+    int& steps() { return steps_; }
+
+    int detector_count() const { return detector_count_; }
+    auto detector_size() const { return detector_size_; }
 
   protected:
     virtual ~trajectory() = default;

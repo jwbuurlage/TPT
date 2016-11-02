@@ -52,6 +52,10 @@ class tomosynthesis : public trajectory<3_D, T> {
                 math::standard_basis<3_D, T>(2)};
     }
 
+    T& relative_source_distance() { return relative_source_distance_; }
+    T& relative_detector_distance() { return relative_detector_distance_; }
+    T& source_arc() { return source_arc_; }
+
   private:
     T relative_source_distance_;
     T relative_detector_distance_;
@@ -59,9 +63,11 @@ class tomosynthesis : public trajectory<3_D, T> {
 
     inline math::vec<3_D, T> apply_rotation_(math::vec<3_D, T> location,
                                              int step) const {
-        static auto axis = math::standard_basis<3_D, T>(2);
+        static auto axis = math::standard_basis<3_D, T>(0);
         T angle_step = source_arc_ / this->steps_;
-        return math::rotate(location, axis, -source_arc_ * (T)0.5 + angle_step * step);
+        return math::rotate(location - image_center_(), axis,
+                            -source_arc_ * (T)0.5 + angle_step * step) +
+               image_center_();
     }
 
     inline math::vec<3_D, T> image_center_() const {

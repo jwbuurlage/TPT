@@ -34,9 +34,9 @@ class partitioned_volume {
 
     const tomo::volume<D>& volume() const { return v_; };
 
-  protected:
     virtual ~partitioned_volume() = default;
 
+  protected:
     tomo::volume<D> v_;
     int processors_ = 0;
 };
@@ -54,6 +54,9 @@ class slabbed_volume : public partitioned_volume<D> {
         auto voxel = this->v_.unroll(index);
         return voxel[dir_] / per_proc_;
     }
+
+    int axis() const { return dir_; }
+    int slab_height() const { return per_proc_; }
 
   private:
     int dir_ = 0;

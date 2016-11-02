@@ -96,6 +96,9 @@ class base {
      */
     math::vec2<int> groups() const { return dimensions_; }
 
+    /* Obtain the i-th line */
+    auto get_line(int i) const { return *((Derived*)this).get_line(i); }
+
   protected:
     int line_count_;
     math::vec2<int> dimensions_;
