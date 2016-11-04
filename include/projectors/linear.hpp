@@ -29,7 +29,7 @@ class linear
   private:
     void reset_(math::line<D, T> line) override {
         queue_.clear();
-        auto current_point = line.origin;
+        auto current_point = line.origin + (T)0.5 * line.delta;
 
         while (math::inside<D, T>(current_point, this->volume_)) {
             math::interpolate<D, T>(current_point, this->volume_, queue_);

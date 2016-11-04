@@ -52,7 +52,7 @@ set(
     "boost_program_options"
 )
 
-set(CMAKE_CXX_COMPILER "/ufs/buurlage/.local/bin/clang++")
+#set(CMAKE_CXX_COMPILER "g++")
 foreach(source_file ${EXAMPLE_SOURCES})
     string(REPLACE ".cpp" "" source_name ${source_file})
     add_executable(${source_name} ${EXAMPLE_DIR}${source_file})
@@ -66,7 +66,7 @@ if(CUDA_FOUND)
     set(CUDA_64_BIT_DEVICE_CODE ON)
     set(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
-    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11 --expt-extended-lambda")
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --gpu-architecture=sm_52 -std=c++11 --expt-extended-lambda -ccbin /opt/sw/gcc-5.4.0/bin")
 
     set(
         CUDA_LIB_SOURCES

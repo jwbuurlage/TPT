@@ -109,7 +109,7 @@ inline math::line<2_D, T> compute_line(math::vec<1_D, T> current_detector,
         }
     }
 
-    return {best_point + (T)0.5 * delta, delta};
+    return {best_point, delta};
 }
 
 /** ditto */

@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
 
         auto obtain_owner = [m](int index) -> int { return index / m; };
 
-        auto available_locally = [s, &obtain_owner](int index) -> bool {
+        auto available_locally = [&, s](int index) -> bool {
             return obtain_owner(index) == s;
         };
 

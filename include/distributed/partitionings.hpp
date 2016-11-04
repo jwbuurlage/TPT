@@ -9,6 +9,7 @@
 #include <stack>
 #include <utility>
 #include <vector>
+#include <sstream>
 
 template <typename T>
 using optional = std::experimental::optional<T>;

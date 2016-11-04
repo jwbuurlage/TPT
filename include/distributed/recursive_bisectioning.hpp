@@ -37,8 +37,8 @@ class bisected_volume : public partitioned_volume<D> {
         : partitioned_volume<D>(v, processors) {}
 
     bisected_volume(bisected_volume&& other)
-        : splits_(std::move(other.splits_)),
-          partitioned_volume<D>(other.v_, other.processors_) {}
+        : partitioned_volume<D>(other.v_, other.processors_),
+          splits_(std::move(other.splits_)) {}
 
     int owner(int index) final override {
         auto voxel = this->v_.unroll(index);

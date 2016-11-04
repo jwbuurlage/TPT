@@ -29,7 +29,7 @@ class closest: public base<D, T, closest_iterator<T>> {
     void reset_(math::line<D, T> line) override {
         queue_.clear();
 
-        auto current_point = line.origin;
+        auto current_point = line.origin + (T)0.5 * line.delta;
         while (math::inside<D, T>(current_point, this->volume_)) {
             std::array<int, D> xs;
             for (int i = 0; i < D; ++i) {

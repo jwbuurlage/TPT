@@ -144,11 +144,11 @@ class volume {
                                std::multiplies<int>());
     }
 
-    math::vec<D, int> unroll(int index) {
+    math::vec<D, int> unroll(int idx) {
         math::vec<D, int> cell;
         for (int d = 0; d < D; ++d) {
-            cell[d] = index % dimensions_[d];
-            index /= dimensions_[d];
+            cell[d] = idx % dimensions_[d];
+            idx /= dimensions_[d];
         }
         return cell;
     }
