@@ -9,6 +9,10 @@ namespace tomo {
 namespace cuda {
 namespace device {
 
+// TODO:
+// lines are now rays
+// should fix all this
+// ...
 template <typename T, typename Geometry>
 class geometry_bridge {
   public:

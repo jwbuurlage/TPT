@@ -11,6 +11,7 @@ int main(int argc, char* argv[]) {
     using T = float;
 
     int k = 0;
+    int o = 0;
     int iterations = 0;
     float beta = 0.0f;
 
@@ -21,9 +22,10 @@ int main(int argc, char* argv[]) {
     po::options_description desc("Allowed arguments");
     desc.add_options()("help,h", "show help message")(
         "size,s", po::value<int>(&k)->default_value(256),
-        "size of the phantom")("iterations,i",
-                               po::value<int>(&iterations)->default_value(10),
-                               "number of iterations")(
+        "size of the phantom")("offset,o", po::value<int>(&o)->default_value(0),
+                               "offset")(
+        "iterations,i", po::value<int>(&iterations)->default_value(10),
+        "number of iterations")(
         "beta,b", po::value<float>(&beta)->default_value(0.5f),
         "value for update relaxation")("art", "reconstruct using ART")(
         "sart", "reconstruct using SART")("sirt", "reconstruct using SIRT");
@@ -40,20 +42,33 @@ int main(int argc, char* argv[]) {
     // TODO: want micro benchmarking merged here, instead of using `time ./prog`
 
     // create a 2D volume of size k x k
-    auto v = tomo::volume<2_D>(k, k);
+    // ----------(o+k, o+k)
+    // +               |
+    // +               |
+    // +               |
+    // +               |
+    // +               |
+    // +               |
+    // (o, o) ----------
+    auto v = tomo::volume<2_D>({o, o}, {k, k});
 
     auto f = tomo::modified_shepp_logan_phantom<T>(v);
     tomo::ascii_plot(f);
 
-    // create a parallel geometry for the volume with 250 detectors and
-    // 180 angles, for two dimensions
-    auto g = tomo::geometry::parallel<2_D, T>(180, 250, v);
+    // create a parallel geometry for the volume with k detectors and
+    // k angles, for two dimensions
+    auto g = tomo::geometry::parallel<2_D, T>(k, k, v);
 
     // simulate the experiment
     // auto proj = tomo::dim::linear<2_D, T>(v);
     // auto proj = tomo::dim::joseph<T>(v);
     auto proj = tomo::dim::closest<2_D, T>(v);
+
     auto sino = tomo::forward_projection<2_D, T>(f, g, proj);
+    auto img = tomo::back_projection<2_D, T>(sino, g, proj, v);
+
+    tomo::ascii_plot(img);
+    return 0;
 
     // run an algorithm to reconstruct the image
     if (vm.count("art")) {

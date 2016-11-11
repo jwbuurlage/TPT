@@ -32,10 +32,10 @@ TEST_CASE("Trajectory based geometry", "[geometry]") {
         CHECK(g.lines() == 10);
         bool static_lines_correct = true;
         for (auto line : g) {
-            if (!math::approx_equal(line.origin.x, 0.0f) ||
-                !math::approx_equal(line.origin.y, 5.0f) ||
-                !math::approx_equal(line.delta.x, 1.0f) ||
-                !math::approx_equal(line.delta.y, 0.0f)) {
+            if (!math::approx_equal(line.source.x, 0.0f) ||
+                !math::approx_equal(line.source.y, 5.0f) ||
+                !math::approx_equal(line.detector.x, 1.0f) ||
+                !math::approx_equal(line.detector.y, 0.0f)) {
                 static_lines_correct = false;
                 break;
             }
@@ -71,12 +71,12 @@ TEST_CASE("Trajectory based geometry", "[geometry]") {
 
         bool static_lines_correct = true;
         for (auto line : g) {
-            if (!math::approx_equal(line.origin.x, 0.0f) ||
-                !math::approx_equal(line.origin.y, 5.0f) ||
-                !math::approx_equal(line.origin.z, 5.0f) ||
-                !math::approx_equal(line.delta.x, 1.0f) ||
-                !math::approx_equal(line.delta.y, 0.0f) ||
-                !math::approx_equal(line.delta.z, 0.0f)) {
+            if (!math::approx_equal(line.source.x, 0.0f) ||
+                !math::approx_equal(line.source.y, 5.0f) ||
+                !math::approx_equal(line.source.z, 5.0f) ||
+                !math::approx_equal(line.detector.x, 1.0f) ||
+                !math::approx_equal(line.detector.y, 0.0f) ||
+                !math::approx_equal(line.detector.z, 0.0f)) {
                 static_lines_correct = false;
                 break;
             }

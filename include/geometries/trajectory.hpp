@@ -16,6 +16,9 @@ namespace geometry {
  * The detector and the source move in steps along some trajectory, which is
  * described by concrete subclasses.
  *
+ * FIXME: maybe it is better to call this a 'focused geometry' (cone-beam
+ * geometry), where parallel is an 'unfocused geometry'.
+ *
  * \tparam D the dimension of the volume.
  * \tparam T the scalar type to use
  */
@@ -34,15 +37,14 @@ class trajectory : public base<D, T, trajectory<D, T>> {
     /**
      * Return the i-th line of this geometry.
      */
-    inline math::line<D, T> get_line(int i) const {
+    inline math::ray<D, T> get_line(int i) const {
         int step = i / detector_count_;
         int detector = i % detector_count_;
 
         auto source = source_location(step);
         auto target = detector_pixel_location(step, detector);
 
-        return math::truncate_to_volume<D, T>(source, target, this->volume_)
-            .value_or(math::line<D, T>());
+        return math::ray<D, T>(source, target);
     }
 
     /** The location of the source in step `step`. */

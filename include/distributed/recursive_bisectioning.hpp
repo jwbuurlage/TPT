@@ -88,9 +88,9 @@ bisected_volume<D> partition_bisection(const Geometry& g, tomo::volume<D> v,
     auto depth = (int)log2(processors);
     assert(1 << depth == processors);
 
-    auto find_split = [&](const std::vector<math::line<D, T>>& lines,
-                          std::vector<math::line<D, T>>& lines_left,
-                          std::vector<math::line<D, T>>& lines_right,
+    auto find_split = [&](const std::vector<math::ray<D, T>>& lines,
+                          std::vector<math::ray<D, T>>& lines_left,
+                          std::vector<math::ray<D, T>>& lines_right,
                           box_t bounds) -> split_t {
         struct crossing_event {
             math::vec<D, T> point;
@@ -208,7 +208,7 @@ bisected_volume<D> partition_bisection(const Geometry& g, tomo::volume<D> v,
 
     // containers for the current left and right lines
     // TODO: needed here?
-    std::vector<math::line<D, T>> all_lines;
+    std::vector<math::ray<D, T>> all_lines;
     for (auto l : g) {
         all_lines.emplace_back(l);
     }
@@ -224,7 +224,7 @@ bisected_volume<D> partition_bisection(const Geometry& g, tomo::volume<D> v,
         box_t bounds;
         node* parent;
         dir direction;
-        std::vector<math::line<D, T>> lines;
+        std::vector<math::ray<D, T>> lines;
         int depth;
     };
 
@@ -246,8 +246,8 @@ bisected_volume<D> partition_bisection(const Geometry& g, tomo::volume<D> v,
         auto sub_bounds = sub.bounds;
 
         // containers to hold the left and right lines
-        std::vector<math::line<D, T>> left;
-        std::vector<math::line<D, T>> right;
+        std::vector<math::ray<D, T>> left;
+        std::vector<math::ray<D, T>> right;
 
         // we now have the subvolume, and want to find the best split
         auto best_split = find_split(sub.lines, left, right, sub.bounds);

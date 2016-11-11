@@ -60,33 +60,33 @@ foreach(source_file ${EXAMPLE_SOURCES})
 endforeach(source_file)
 
 
-find_package(CUDA 7.5 QUIET)
-
-if(CUDA_FOUND)
-    set(CUDA_64_BIT_DEVICE_CODE ON)
-    set(CUDA_PROPAGATE_HOST_FLAGS OFF)
-
-    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --gpu-architecture=sm_52 -std=c++11 --expt-extended-lambda -ccbin /opt/sw/gcc-5.4.0/bin")
-
-    set(
-        CUDA_LIB_SOURCES
-        "../cuda/forward_project.cu"
-        "../cuda/sart.cu"
-        "../cuda/sirt.cu"
-    )
-
-    set(
-        CUDA_EXAMPLE_SOURCES
-        "../examples/cuda_reconstruction.cpp"
-    )
-
-    set(CUDA_LIB_NAME "galactica_cuda")
-
-    cuda_add_library(${CUDA_LIB_NAME} SHARED ${CUDA_LIB_SOURCES})
-    cuda_add_executable("cuda_reconstruction" ${CUDA_EXAMPLE_SOURCES})
-    target_link_libraries("cuda_reconstruction" ${LIB_NAMES} ${CUDA_LIB_NAME})
-
-endif(CUDA_FOUND)
+#find_package(CUDA 7.5 QUIET)
+#
+#if(CUDA_FOUND)
+#    set(CUDA_64_BIT_DEVICE_CODE ON)
+#    set(CUDA_PROPAGATE_HOST_FLAGS OFF)
+#
+#    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --gpu-architecture=sm_52 -std=c++11 --expt-extended-lambda -ccbin /opt/sw/gcc-5.4.0/bin")
+#
+#    set(
+#        CUDA_LIB_SOURCES
+#        "../cuda/forward_project.cu"
+#        "../cuda/sart.cu"
+#        "../cuda/sirt.cu"
+#    )
+#
+#    set(
+#        CUDA_EXAMPLE_SOURCES
+#        "../examples/cuda_reconstruction.cpp"
+#    )
+#
+#    set(CUDA_LIB_NAME "galactica_cuda")
+#
+#    cuda_add_library(${CUDA_LIB_NAME} SHARED ${CUDA_LIB_SOURCES})
+#    cuda_add_executable("cuda_reconstruction" ${CUDA_EXAMPLE_SOURCES})
+#    target_link_libraries("cuda_reconstruction" ${LIB_NAMES} ${CUDA_LIB_NAME})
+#
+#endif(CUDA_FOUND)
 
 # add_subdirectory(../test/build ../test/build)
 
@@ -100,7 +100,7 @@ if(MPI_CXX_FOUND)
 
     set(
         MPI_SOURCES
-        "sirt_test.cpp"
+        "distributed_reconstruction.cpp"
         )
 
     set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${MPI_COMPILE_FLAGS})
@@ -110,8 +110,8 @@ if(MPI_CXX_FOUND)
     # make distributed example
     foreach(source_file ${MPI_SOURCES})
         string(REPLACE ".cpp" "" source_name ${source_file})
-        add_executable(${source_name} ${MPI_DIR}${source_file})
-        target_link_libraries(${source_name} ${LIB_NAMES} ${MPI_LIBRARIES})
+        add_executable(mpi_${source_name} ${MPI_DIR}${source_file})
+        target_link_libraries(mpi_${source_name} ${LIB_NAMES} ${MPI_LIBRARIES})
     endforeach(source_file)
 else(MPI_CXX_FOUND)
     message("No MPI installation found.")

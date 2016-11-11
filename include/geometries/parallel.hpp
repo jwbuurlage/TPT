@@ -50,83 +50,45 @@ math::vec2<T> detector_location(int detector, int detector_count,
  * \param vol the volume being scanned
  */
 template <typename T>
-inline math::line<2_D, T> compute_line(math::vec<1_D, T> current_detector,
-                                 T current_angle, const volume<2_D>& vol) {
+inline math::ray<2_D, T> compute_line(math::vec<1_D, T> current_detector,
+                                      T current_angle, const volume<2_D>& vol) {
     // some performance can be gained here by *not* shifting with image
     // center, and maybe we even want to cache these results somehow
-    auto origin = math::vec2<T>(-vol.x(), current_detector[0]);
+    auto source = math::vec2<T>(-vol.x(), current_detector[0]);
+    auto detector = math::vec2<T>(vol.x(), current_detector[0]);
 
     auto c = math::cos(-current_angle);
     auto s = math::sin(-current_angle);
 
-    origin = math::vec2<T>(c * origin[0] - s * origin[1],
-                           s * origin[0] + c * origin[1]);
+    source = math::vec2<T>(c * source[0] - s * source[1],
+                           s * source[0] + c * source[1]);
+    detector = math::vec2<T>(c * detector[0] - s * detector[1],
+                             s * detector[0] + c * detector[1]);
 
     auto image_center = math::vec2<T>(0.5 * vol.x(), 0.5 * vol.y());
-    origin += image_center;
 
-    auto delta = math::vec2<T>(c, s);
+    source += image_center;
+    detector += image_center;
 
-    // we now need to intersect the line current, that has an angle
-    // current_angle_ with our box
-    // we can intersect with all 'three top lines' (a, b, c) and choose
-    // the intersection point with smallest distance
-
-    //  _->
-    // /
-    //   ----b----
-    //   |       |
-    // + |		 | -
-    // + a		 c -
-    // + | 		 | -
-    //   |       |
-    //	 ----d---- /
-    //            /
-    //         <--
-
-    static const std::array<std::array<math::vec2<T>, 2>, 3> lines = {
-        std::array<math::vec2<T>, 2>{math::vec2<T>(0, 0),
-                                     math::vec2<T>(0, vol.y())},
-        std::array<math::vec2<T>, 2>{math::vec2<T>(0, vol.y()),
-                                     math::vec2<T>(vol.x(), vol.y())},
-        std::array<math::vec2<T>, 2>{math::vec2<T>(vol.x(), vol.y()),
-                                     math::vec2<T>(vol.x(), 0)}};
-
-    auto end = origin + (T)3.0 * vol.x() * delta;
-
-    T min_distance = std::numeric_limits<T>::max();
-    math::vec2<T> best_point;
-    for (auto& line_segment : lines) {
-        auto intersection_point = math::intersection<T>(
-            origin, end, line_segment[0], line_segment[1]);
-        if (intersection_point) {
-            auto dist =
-                math::distance<2_D, T>(origin, intersection_point.value());
-            if (dist < min_distance) {
-                best_point = intersection_point.value();
-                min_distance = dist;
-            }
-        }
-    }
-
-    return {best_point, delta};
+    return {source, detector};
 }
 
 /** ditto */
 template <typename T>
-inline math::line<3_D, T> compute_line(math::vec2<T> current_detector,
-                                 T current_angle, const volume<3_D>& vol) {
+inline math::ray<3_D, T> compute_line(math::vec2<T> current_detector,
+                                      T current_angle, const volume<3_D>& vol) {
     // strategy: only consider current detector x, and ignore y, only add it at
     // the end
     auto volume_slice = volume<2_D>(vol.x(), vol.y());
     auto line_2d =
         compute_line({current_detector.x}, current_angle, volume_slice);
 
-    auto origin = math::vec3<T>(line_2d.origin.x, line_2d.origin.y,
+    auto source = math::vec3<T>(line_2d.source.x, line_2d.source.y,
                                 current_detector.y + 0.5 * vol.z());
-    auto delta = math::vec3<T>(line_2d.delta.x, line_2d.delta.y, 0.0);
+    auto detector = math::vec3<T>(line_2d.detector.x, line_2d.detector.y,
+                                  current_detector.y + 0.5 * vol.z());
 
-    return {origin, delta};
+    return {source, detector};
 }
 
 /**
@@ -184,7 +146,7 @@ class parallel : public base<D, T, parallel<D, T>> {
     const volume<D>& get_volume() const { return volume_; }
 
     /** Obtain the i-th line of the geometry. */
-    inline math::line<D, T> get_line(int i) const {
+    inline math::ray<D, T> get_line(int i) const {
         return compute_line(detectors_[i % detector_count()],
                             angles_[i / detector_count()], volume_);
     }

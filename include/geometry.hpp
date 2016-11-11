@@ -29,7 +29,7 @@ class base {
 
     /** An iterator to a line of the geometry. */
     class geometry_iterator
-        : public std::iterator<std::forward_iterator_tag, math::line<D, T>> {
+        : public std::iterator<std::forward_iterator_tag, math::ray<D, T>> {
       public:
 
         /** Construct the iterator with a line index and a geometry. */
@@ -58,7 +58,7 @@ class base {
         }
 
         /** Dereference the iterator to obtain the represented line. */
-        math::line<D, T> operator*() const { return geometry_.get_line(i_); }
+        math::ray<D, T> operator*() const { return geometry_.get_line(i_); }
 
         /** Increase the iterator. */
         geometry_iterator& operator++() {
@@ -97,7 +97,7 @@ class base {
     math::vec2<int> groups() const { return dimensions_; }
 
     /* Obtain the i-th line */
-    auto get_line(int i) const { return *((Derived*)this).get_line(i); }
+    auto get_line(int i) const { return (*static_cast<Derived*>(this)).get_line(i); }
 
   protected:
     int line_count_;

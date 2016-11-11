@@ -21,6 +21,8 @@ namespace tomo {
 template <dimension D, typename T = default_scalar_type>
 class image {
   public:
+    using value_type = T;
+
     /** Construct a default-initialized image for a given volume. */
     image(volume<D> v) : v_(v) {
         int cells = 1;
@@ -30,7 +32,7 @@ class image {
     }
 
     /** Obtain the index of an image voxel within the volume. */
-    size_t index(std::array<int, D> xs) const { return v_.index(xs); }
+    size_t index(math::vec<D, int> xs) const { return v_.index(xs); }
 
     /**
      * Obtain the value for the an image voxel.
@@ -45,8 +47,8 @@ class image {
      *
      * \param xs an array containing the indices of the voxel in each dimension.
      */
-    T& operator()(std::array<int, D> xs) { return (*this)[index(xs)]; }
-    const T& operator()(std::array<int, D> xs) const {
+    T& operator()(math::vec<D, int> xs) { return (*this)[index(xs)]; }
+    const T& operator()(math::vec<D, int> xs) const {
         return (*this)[index(xs)];
     }
 
@@ -57,7 +59,7 @@ class image {
     int size(int i) const { return v_[i]; }
 
     /** Obtain an array with the dimensions of the image. */
-    std::array<int, D> dimensions() const { return v_.dimensions(); }
+    math::vec<D, int> dimensions() const { return v_.dimensions(); }
 
     /** Obtain a reference to the underlying image data. */
     std::vector<T>& mutable_data() { return data_; }

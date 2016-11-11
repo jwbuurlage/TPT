@@ -19,14 +19,12 @@ class joseph: public base<2_D, T, joseph_iterator<T>> {
     joseph(volume<2_D> vol)
         : base<2_D, T, joseph_iterator<T>>(vol) {
         auto dims = this->volume_.dimensions();
-        auto max_width = *std::max_element(dims.begin(), dims.end());
+        auto max_width = tomo::math::max_element<2_D, int>(dims);
         queue_.reserve((int)(2 * max_width));
     }
 
   private:
     void reset_(math::line<2_D, T> line) override {
-        queue_.clear();
-
         auto interpolate = [&](math::vec2<T> position, int axis) {
             math::vec2<int> closest_cell;
             closest_cell[1 - axis] = math::floor(position[1 - axis]);
@@ -59,6 +57,10 @@ class joseph: public base<2_D, T, joseph_iterator<T>> {
         }
 
         this->line_ = line;
+    }
+
+    void clear_() override {
+        queue_.clear();
     }
 
     joseph_iterator<T> begin_() override { return queue_.begin(); }

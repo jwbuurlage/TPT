@@ -22,6 +22,7 @@ class sinogram {
   public:
     /** The type of the projector used for this sinogram. */
     using projector_type = Projector;
+    using value_type = T;
 
     /** Construct a default-initialized sinogram for a geometry. */
     sinogram(const Geometry& geometry) : geometry_(geometry) {

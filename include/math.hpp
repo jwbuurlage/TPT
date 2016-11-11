@@ -81,7 +81,26 @@ bool approx_equal(T lhs, T rhs) {
 }
 
 /**
- * A line inside a volume.
+ * A ray is a line segment from source to a detector
+ *
+ * \tparam D the dimension of the volume.
+ * \tparam T the scalar type to use
+ */
+template <dimension D, typename T = default_scalar_type>
+struct ray {
+    /** Construct a line using defaults. */
+    ray() = default;
+
+    /** Construct a line from two vectors. */
+    ray(vec<D, T> source_in, vec<D, T> detector_in)
+        : source(source_in), detector(detector_in) {}
+
+    vec<D, T> source;   //> the position of the source
+    vec<D, T> detector; //> the position of the detector pixel
+};
+
+/**
+ * A line has an origin, and a delta -- and is used for numerical integration
  *
  * \tparam D the dimension of the volume.
  * \tparam T the scalar type to use
@@ -92,12 +111,11 @@ struct line {
     line() = default;
 
     /** Construct a line from two vectors. */
-    line(vec<D, T> origin_in, vec<D, T> delta_in, T length_in = 0)
-        : origin(origin_in), delta(delta_in), length(length_in) {}
+    line(vec<D, T> origin_in, vec<D, T> delta_in)
+        : origin(origin_in), delta(delta_in) {}
 
     vec<D, T> origin; //> first intersection of line with a volume
     vec<D, T> delta;  //> the direction vector
-    T length = 0;
 };
 
 /** Return the `axis`-th vector of the standard basis */
@@ -182,6 +200,18 @@ constexpr auto sqrt(T obj) {
 template <typename T>
 auto normalize(T obj) {
     return glm::normalize(obj);
+}
+
+/** Compute the distance between two vectors. */
+template <dimension D, typename T>
+T max_element(vec<D, T> v) {
+    auto max = std::numeric_limits<T>::min();
+    for (int d = 0; d < D; ++d) {
+        if (v[d] > max) {
+            max = v[d];
+        }
+    }
+    return max;
 }
 
 /** Compute the distance between two vectors. */
@@ -284,11 +314,17 @@ vec2<T> box_intersection(vec2<T> p, vec2<T> p2, vec2<T> box) {
 
 // intersect the line from 'a' to 'b' with the AABB cornered in the origin of
 // size 'sides'
+// FIXME: allow for origin (i.e. non-centered volume)
 template <dimension D, typename T>
 optional<std::pair<vec<D, T>, vec<D, T>>>
-aabb_intersection(vec<D, T> a, vec<D, T> b, vec<D, T> sides) {
+aabb_intersection(vec<D, T> a, vec<D, T> b, vec<D, T> sides,
+                  vec<D, T> origin = vec<D, T>{0}) {
     T t_min = std::numeric_limits<T>::min();
     T t_max = std::numeric_limits<T>::max();
+
+    a -= origin;
+    b -= origin;
+
     for (int d = 0; d < D; ++d) {
         if (!approx_equal(a[d], b[d])) {
             auto delta = b[d] - a[d];
@@ -308,23 +344,25 @@ aabb_intersection(vec<D, T> a, vec<D, T> b, vec<D, T> sides) {
         return optional<std::pair<vec<D, T>, vec<D, T>>>();
     }
 
+    a += origin;
+    b += origin;
+
     return optional<std::pair<vec<D, T>, vec<D, T>>>{
         std::pair<vec<D, T>, vec<D, T>>{{a + (b - a) * t_min},
                                         {a + (b - a) * t_max}}};
 }
 
 template <dimension D, typename T>
-optional<line<D, T>> truncate_to_volume(vec<D, T> source, vec<D, T> detector,
-                                        volume<D> v) {
+optional<line<D, T>> truncate_to_volume(ray<D, T> ray, volume<D> v) {
     // need line plane intersection, because the box is axis aligned (AABB) we
     // need to do a ray/AABB intersection.
-    auto origin = aabb_intersection<D, T>(source, detector, v.lengths());
+    auto origin = aabb_intersection<D, T>(ray.source, ray.detector, v.lengths(),
+                                          math::vec<D, T>(v.origin()));
     if (!origin) {
         return optional<line<D, T>>();
     }
     return optional<line<D, T>>{
-        line<D, T>{origin.value().first, normalize(detector - source),
-                   distance<D, T>(detector, origin.value().first)}};
+        line<D, T>{origin.value().first, normalize(ray.detector - ray.source)}};
 }
 
 /**
@@ -333,30 +371,27 @@ optional<line<D, T>> truncate_to_volume(vec<D, T> source, vec<D, T> detector,
  */
 template <dimension D, typename T>
 optional<std::pair<vec<D, T>, vec<D, T>>>
-intersect_bounds(math::line<D, T> l, std::array<math::vec2<int>, D> bounds) {
+intersect_bounds(math::ray<D, T> l, std::array<math::vec2<int>, D> bounds) {
     vec<D, T> bounds_origin{bounds[0][0], bounds[1][0], bounds[2][0]};
 
     vec<D, T> bounds_sides =
         vec<D, T>{bounds[0][1], bounds[1][1], bounds[2][1]} - bounds_origin;
 
-    auto result = math::aabb_intersection<D, T>(
-        l.origin - bounds_origin,
-        l.origin - bounds_origin +
-            l.delta * math::sqrt<T>(3) *
-                (bounds_sides.x + bounds_sides.y + bounds_sides.z),
-        bounds_sides);
+    auto result = math::aabb_intersection<D, T>(l.source, l.detector,
+                                                bounds_sides, bounds_origin);
 
     if (result) {
-        return std::pair<vec<D, T>, vec<D, T>>{
-            result.value().first + bounds_origin,
-            result.value().second + bounds_origin};
+        return std::pair<vec<D, T>, vec<D, T>>{result.value().first,
+                                               result.value().second};
     }
+
     return result;
 }
 
 /** Checks whether a vector lies in the *open* box defined by a volume. */
 template <dimension D, typename T>
 bool inside(vec<D, T> a, volume<D> vol) {
+    a -= vol.origin();
     for (int dim = 0; dim < D; ++dim) {
         if (a[dim] <= (T)0 || a[dim] >= (T)vol[dim])
             return false;

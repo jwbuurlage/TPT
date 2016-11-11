@@ -8,7 +8,7 @@ set(
     "../src/module.cpp"
 )
 
-include_directories("../../include" "../../ext/fmt" "../include")
+include_directories("../../include" "../../ext/fmt" "../include" "../../ext/bulk/include")
 link_directories("../../bin")
 
 find_package(CUDA 7.5 QUIET)

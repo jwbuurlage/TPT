@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vector>
 #include <type_traits>
+#include <vector>
 
 #include "common.hpp"
 #include "geometry.hpp"
@@ -51,12 +51,15 @@ class base {
     };
 
     /** Returns an iterable container for line `line` with this DIM. */
-    touch_container operator()(math::line<D, T> line) {
-        // TODO: only reset if line is not current
-        this->reset_(line);
+    touch_container operator()(math::ray<D, T> incoming_ray) {
+        // truncate to volume here first, then reset
+        auto truncated_line = truncate_to_volume(incoming_ray, volume_);
+        this->clear_();
+        if (truncated_line) {
+            this->reset_(truncated_line.value());
+        }
         return touch_container(*this);
     }
-
 
     /** Obtain the current line of the DIM. */
     math::line<D, T> get_line() const { return line_; }
@@ -75,6 +78,7 @@ class base {
     virtual Iterator begin_() = 0;
     virtual Iterator end_() = 0;
     virtual void reset_(math::line<D, T> line) = 0;
+    virtual void clear_() = 0;
 };
 
 } // namespace dim

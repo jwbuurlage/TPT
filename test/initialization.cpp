@@ -26,9 +26,10 @@ TEST_CASE("We can create reconstruction volumes", "[core]") {
         CHECK(v2.unroll(v2.index(2, 3))[1] == 3);
 
         CHECK(v3.index(2, 3, 5) == 2 + 3 * k + 5 * k * k);
-        CHECK(v3.unroll(v2.index(2, 3, 5))[0] == 2);
-        CHECK(v3.unroll(v2.index(2, 3, 5))[1] == 3);
-        CHECK(v3.unroll(v2.index(2, 3, 5))[2] == 5);
+        auto unrolled = v3.unroll(v3.index(2, 3, 5));
+        CHECK(unrolled[0] == 2);
+        CHECK(unrolled[1] == 3);
+        CHECK(unrolled[2] == 5);
     }
 }
 

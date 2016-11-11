@@ -52,7 +52,7 @@ void init_image(py::module& m) {
 
 template <typename Ps, typename Gs>
 void init_geometry(py::module& m, Ps ps, Gs gs) {
-    py::class_<tomo::math::line<2_D, T>>(m, "line_2d");
+    py::class_<tomo::math::ray<2_D, T>>(m, "ray_2d");
     // TODO: add 'get_line' or some iterable adapter function
     hana::for_each(gs, [&](auto x) {
         using G = typename decltype(+x[1_c])::type;
@@ -82,10 +82,9 @@ template <typename Gs>
 void init_geometry_3d(py::module& m, Gs gs) {
     namespace tm = tomo::math;
 
-    py::class_<tm::line<3_D, T>>(m, "line_3d")
-        .def_readwrite("origin", &tm::line<3_D, T>::origin)
-        .def_readwrite("delta", &tm::line<3_D, T>::delta)
-        .def_readwrite("length", &tm::line<3_D, T>::length);
+    py::class_<tm::ray<3_D, T>>(m, "ray_3d")
+        .def_readwrite("source", &tm::ray<3_D, T>::source)
+        .def_readwrite("detector", &tm::ray<3_D, T>::detector);
 
     py::class_<tm::vec<2_D, int>>(m, "vec2i").def(py::init<int, int>());
     py::class_<tm::vec<3_D, T>>(m, "vec3f")
@@ -126,7 +125,7 @@ void init_operations(py::module& m, Ps ps, Gs gs) {
     hana::for_each(combinations, [&](auto x) {
         using G = typename decltype(+(x[0_c][1_c]))::type;
         using P = typename decltype(+x[1_c][1_c])::type;
-        m.def("forward_project", &tomo::forward_projection<2_D, T, G, P>);
+        m.def("forward_project", &tomo::forward_projection<2_D, T, G, tomo::image<2_D, T>, P>);
     });
 }
 
@@ -219,9 +218,7 @@ PYBIND11_PLUGIN(py_galactica) {
     // the third entry is the signature of the constructor
     auto gs = hana::make_tuple(
         hana::make_tuple("parallel"s, hana::type_c<tg::parallel<2_D, T>>,
-                         hana::tuple_t<int, int, tomo::volume<2_D>>),
-        hana::make_tuple("list"s, hana::type_c<tg::list<2_D, T>>,
-                         hana::tuple_t<std::vector<tm::line<2_D, T>>>));
+                         hana::tuple_t<int, int, tomo::volume<2_D>>));
 
     auto gs3 = hana::make_tuple(
         hana::make_tuple(

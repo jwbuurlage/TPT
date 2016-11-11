@@ -38,13 +38,13 @@ image<2_D, T> downscale_(const image<2_D, T>& f, volume<2_D> new_volume) {
 
 /** Print the image as ascii art to stdout. */
 template <typename T>
-void ascii_plot(const image<2_D, T>& f) {
+void ascii_plot(const image<2_D, T>& f, T max = -1) {
     int limit = 40;
     if (f.size(0) > limit || f.size(1) > limit) {
         ascii_plot_output(downscale_(f, volume<2_D>(limit, limit)),
-                          {limit, limit});
+                          {limit, limit}, max);
     } else {
-        ascii_plot_output(f, {f.size(0), f.size(1)});
+        ascii_plot_output(f, {f.size(0), f.size(1)}, max);
     }
 }
 
@@ -56,16 +56,18 @@ void ascii_plot(const sinogram<D, T, G, P>& sino) {
 
 /** Output an image-like object to the standard output. */
 template <class ImageLike>
-void ascii_plot_output(const ImageLike& image, math::vec2<int> dimensions) {
+void ascii_plot_output(const ImageLike& image, math::vec2<int> dimensions,
+                       typename ImageLike::value_type max = -1) {
     using namespace std::string_literals;
     auto chars = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/"
                  "\\|()1{}[]?-_+~<>i!lI;:,\"^`'. "s;
     std::reverse(chars.begin(), chars.end());
 
-    double max = 0;
-    for (int k = 0; k < dimensions[0] * dimensions[1]; ++k)
-        if (image[k] > max)
-            max = image[k];
+    if (max == -1) {
+        for (int k = 0; k < dimensions[0] * dimensions[1]; ++k)
+            if (image[k] > max)
+                max = image[k];
+    }
 
     int cur = 0;
     for (int i = 0; i < dimensions[0]; ++i) {
@@ -150,10 +152,12 @@ auto random_list_geometry(int k, volume<D> v) {
     }
 
     // initialize random set of lines, this implies \phi for now
-    std::vector<math::line<D, T>> line_list(k);
+    std::vector<math::ray<D, T>> line_list(k);
     for (int i = 0; i < k; ++i) {
-        line_list[i].origin = random_origin[i] + (T)0.5 * random_direction[i];
-        line_list[i].delta = random_direction[i];
+        line_list[i].source = random_origin[i] - random_direction[i];
+        line_list[i].detector =
+            line_list[i].source +
+            random_direction[i] * math::sqrt<T>(D) * (T)2.0 * random_direction[i];
     }
 
     auto g = geometry::list<D, T>(std::move(line_list));

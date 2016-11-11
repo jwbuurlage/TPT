@@ -7,7 +7,7 @@ namespace tomo {
 namespace geometry {
 
 /**
- * Geometry defined by a list of lines.
+ * Geometry defined by a list of rays.
  *
  * \tparam D the dimension of the volume.
  * \tparam T the scalar type to use
@@ -16,15 +16,15 @@ template <dimension D, typename T = default_scalar_type>
 class list : public base<D, T, list<D, T>> {
   public:
     /** Construct a list geometry by copying a vector of lines. */
-    list(const std::vector<math::line<D, T>>& lines)
+    list(const std::vector<math::ray<D, T>>& lines)
         : base<D, T, list<D, T>>(lines.size()), lines_(lines) {}
 
     /** Construct a list geometry by moving a vector of lines. */
-    list(std::vector<math::line<D, T>>&& lines)
+    list(std::vector<math::ray<D, T>>&& lines)
         : base<D, T, list<D, T>>(lines.size()), lines_(lines) {}
 
     /** Obtain the i-th line of the geometry. */
-    inline math::line<D, T> get_line(int i) const { return lines_[i]; }
+    inline math::ray<D, T> get_line(int i) const { return lines_[i]; }
 
     /**
      * Set the dimensions of the list geometry.
@@ -36,7 +36,7 @@ class list : public base<D, T, list<D, T>> {
     }
 
   private:
-    std::vector<math::line<D, T>> lines_;
+    std::vector<math::ray<D, T>> lines_;
 };
 
 } // namespace geometry
