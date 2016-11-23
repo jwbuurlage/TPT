@@ -9,10 +9,13 @@
 #include "sinogram.hpp"
 #include "volume.hpp"
 
+#include "bulk/bulk.hpp"
+
 namespace tomo {
 namespace distributed {
 
-class sinogram_exchanges() {
+template <tomo::dimension D>
+class sinogram_exchanges {
   public:
     struct exchange {
         int global_line_number;
@@ -20,18 +23,19 @@ class sinogram_exchanges() {
         int remote_index;
     };
 
-    sinogram_exchanges(partitioning& part, int s) {
+    sinogram_exchanges(bulk::partitioning<D, 1>& part, int s) {
         // perform a forward projection and mark all the non-local partitionings
     }
 
   private:
-}
+};
 
 template <dimension D, typename T, class Geometry, class Image, class Projector,
           class World>
 class partitioned_sinogram {
   public:
-    partitioned_sinogram(geometry, exchanges) {}
+    partitioned_sinogram(Geometry& geometry, sinogram_exchanges<D>& exchanges)
+        : exchanges_(exchanges) {}
 
     void harmonize() {
         for (auto exchange : exchanges_) {
@@ -40,7 +44,8 @@ class partitioned_sinogram {
     }
 
   private:
-    bulk::coarray<T, D, World> data_;
+    sinogram_exchanges<D> exchanges_;
+    bulk::coarray<T, World> data_;
 };
 
 /**
@@ -50,12 +55,11 @@ class partitioned_sinogram {
  * the partitioned sinogram itself, so that we can still return it from this
  * function.
  * */
-template <dimension D, typename T, class Geometry, class Image,
+template <dimension D, typename T, class Geometry, class Image, class World,
           class Projector = dim::linear<D, T>>
-auto forward_project(Image& f, const Geometry& g, Projector& proj,
-                     partitioned_sinogram<D, T, Geometry, Projector> sino) {
-    auto sino = sinogram<D, T, Geometry, Projector>(g);
-
+auto forward_project(
+    Image& f, const Geometry& g, Projector& proj,
+    partitioned_sinogram<D, T, Geometry, Image, Projector, World> sino) {
     int line_number = 0;
     for (auto line : g) {
         for (auto elem : proj(line)) {

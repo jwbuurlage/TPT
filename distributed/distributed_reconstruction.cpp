@@ -171,18 +171,6 @@ int main() {
         // [x] 1E. The forward projection is modified so that we can perform it
         // in
         // parallel on a distributed image, obtaining a 'distributed sinogram'
-        // auto partitioned_sino =
-        //     tomo::distributed::partitioned_sinogram<2_D, T, decltype(geom),
-        //                                             decltype(proj)>(geom);
-        // tomo::distributed::forward_project<2_D, T>(img, geom, proj, partitioned_sino);
-
-        // // TODO define distributed sinogram
-        // // restricting geometry
-        // // restricting image
-        // // TODO: exchange all sinograms, we shall call this 'harmonizing'
-
-        // output_in_turn(world, [&]() { tomo::ascii_plot(sino); });
-        // sino.harmonize();
 
         // [ ] 2. D-SIRT
 

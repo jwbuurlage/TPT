@@ -39,6 +39,7 @@
 #include "algorithms/sart.hpp"
 #include "algorithms/sirt.hpp"
 
+#include "distributed/forward_projection.hpp"
 #include "distributed/recursive_bisectioning.hpp"
 #include "distributed/partitionings.hpp"
 
