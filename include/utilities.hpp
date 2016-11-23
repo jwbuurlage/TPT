@@ -112,11 +112,15 @@ void ascii_plot_output(const ImageLike& image, math::vec2<int> dimensions,
                  "\\|()1{}[]?-_+~<>i!lI;:,\"^`'. "s;
     std::reverse(chars.begin(), chars.end());
 
+    std::cout << "MAX: " << max << "\n";
+
     if (max < 0) {
         for (int k = 0; k < image.get_volume().cells(); ++k)
             if (image[k] > max)
                 max = image[k];
     }
+
+    std::cout << "MAX (a): " << max << "\n";
 
     int cur = 0;
     for (int i = 0; i < dimensions[0]; ++i) {
