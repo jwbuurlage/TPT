@@ -15,7 +15,36 @@
 
 namespace tomo {
 
-/** A helper function that downscales the image for plotting in the terminal. */
+template <typename T>
+image<2_D, T> slice(const image<3_D, T>& f, int slice, int along_axis = 0) {
+    std::array<int, 2> axes;
+    int idx = 0;
+    for (int d = 0; d < 3; ++d) {
+        if (d == along_axis)
+            continue;
+        axes[idx++] = d;
+    }
+
+    auto large_volume = f.get_volume();
+
+    volume<2_D> v{large_volume[axes[0]], large_volume[axes[1]]};
+    image<2_D, T> slice_image(v);
+
+    math::vec<3_D, int> image_idx;
+    image_idx[along_axis] = slice;
+    for (int i = 0; i < large_volume[axes[0]]; ++i) {
+        image_idx[axes[0]] = i;
+        for (int j = 0; j < large_volume[axes[1]]; ++j) {
+            image_idx[axes[1]] = j;
+            slice_image({i, j}) = f(image_idx);
+        }
+    }
+
+    return slice_image;
+}
+
+/** A helper function that downscales the image for plotting in the
+ * terminal. */
 template <typename T>
 image<2_D, T> downscale_(const image<2_D, T>& f, volume<2_D> new_volume) {
     assert(f.size(0) == f.size(1));
@@ -39,12 +68,29 @@ image<2_D, T> downscale_(const image<2_D, T>& f, volume<2_D> new_volume) {
 /** Print the image as ascii art to stdout. */
 template <typename T>
 void ascii_plot(const image<2_D, T>& f, T max = -1) {
-    int limit = 40;
+    const int limit = 40;
     if (f.size(0) > limit || f.size(1) > limit) {
         ascii_plot_output(downscale_(f, volume<2_D>(limit, limit)),
                           {limit, limit}, max);
     } else {
         ascii_plot_output(f, {f.size(0), f.size(1)}, max);
+    }
+}
+
+/** Print the 3d image in slices as ascii art to stdout. */
+template <typename T>
+void ascii_plot(const image<3_D, T>& f, int slices = 3) {
+    T max = (T)0;
+    for (int k = 0; k < f.get_volume().cells(); ++k)
+        if (f[k] > max)
+            max = f[k];
+
+    for (int i = 0; i < slices; ++i) {
+        auto delta = f.get_volume()[0] / (slices + 1);
+        auto slice_idx = delta * (i + 1);
+        auto g = slice(f, slice_idx);
+        std::cout << "Slice @ " << slice_idx << "\n";
+        ascii_plot(g, max);
     }
 }
 
@@ -63,8 +109,8 @@ void ascii_plot_output(const ImageLike& image, math::vec2<int> dimensions,
                  "\\|()1{}[]?-_+~<>i!lI;:,\"^`'. "s;
     std::reverse(chars.begin(), chars.end());
 
-    if (max == -1) {
-        for (int k = 0; k < dimensions[0] * dimensions[1]; ++k)
+    if (max < 0) {
+        for (int k = 0; k < image.get_volume().cells(); ++k)
             if (image[k] > max)
                 max = image[k];
     }
@@ -73,7 +119,7 @@ void ascii_plot_output(const ImageLike& image, math::vec2<int> dimensions,
     for (int i = 0; i < dimensions[0]; ++i) {
         for (int j = 0; j < dimensions[1]; ++j) {
             auto idx =
-                (unsigned int)(math::sqrt(image[cur++] / max) * chars.size());
+                (std::size_t)(math::sqrt(image[cur++] / max) * chars.size());
             if (idx >= chars.size())
                 idx = chars.size() - 1;
             std::cout << chars[idx] << " ";
@@ -107,7 +153,8 @@ auto random_list_geometry(int k, volume<D> v) {
     std::vector<int> chosen_planes;
     for (auto& origin : random_origin) {
         // The origin should be on the boundary of the volume
-        // Note that a D-dimensional volume has 2 * D (hyper)sides. We choose
+        // Note that a D-dimensional volume has 2 * D (hyper)sides. We
+        // choose
         // such a side
         // for our origin to lie on.
 
@@ -131,7 +178,8 @@ auto random_list_geometry(int k, volume<D> v) {
     }
 
     // Next we generate random directions
-    // Here we use that the Guassian distribution is spherically symmetric, so
+    // Here we use that the Guassian distribution is spherically symmetric,
+    // so
     // that we can generate a point on the sphere using D random gaussian
     // variables.
     std::vector<math::vec<D, T>> random_direction(k);
@@ -155,9 +203,9 @@ auto random_list_geometry(int k, volume<D> v) {
     std::vector<math::ray<D, T>> line_list(k);
     for (int i = 0; i < k; ++i) {
         line_list[i].source = random_origin[i] - random_direction[i];
-        line_list[i].detector =
-            line_list[i].source +
-            random_direction[i] * math::sqrt<T>(D) * (T)2.0 * random_direction[i];
+        line_list[i].detector = line_list[i].source +
+                                random_direction[i] * math::sqrt<T>(D) *
+                                    (T)2.0 * random_direction[i];
     }
 
     auto g = geometry::list<D, T>(std::move(line_list));

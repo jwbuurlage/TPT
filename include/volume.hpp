@@ -49,6 +49,7 @@ class volume {
     volume(math::vec<D, int> origin, math::vec<D, int> lengths)
         : lengths_(lengths), origin_(origin) {}
 
+
     /**
      * Construct a (hyper)rectangular volume.
      *
