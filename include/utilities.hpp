@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <chrono>
+#include <iomanip>
 #include <iostream>
 #include <random>
 #include <string>
@@ -104,7 +105,9 @@ void ascii_plot(const sinogram<D, T, G, P>& sino) {
 template <class ImageLike>
 void ascii_plot_output(const ImageLike& image, math::vec2<int> dimensions,
                        typename ImageLike::value_type max = -1) {
+    using T = typename ImageLike::value_type;
     using namespace std::string_literals;
+
     auto chars = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/"
                  "\\|()1{}[]?-_+~<>i!lI;:,\"^`'. "s;
     std::reverse(chars.begin(), chars.end());
@@ -119,7 +122,8 @@ void ascii_plot_output(const ImageLike& image, math::vec2<int> dimensions,
     for (int i = 0; i < dimensions[0]; ++i) {
         for (int j = 0; j < dimensions[1]; ++j) {
             auto idx =
-                (std::size_t)(math::sqrt(image[cur++] / max) * chars.size());
+                (std::size_t)(math::sqrt(std::max(image[cur++], (T)0.0) / max) *
+                              chars.size());
             if (idx >= chars.size())
                 idx = chars.size() - 1;
             std::cout << chars[idx] << " ";

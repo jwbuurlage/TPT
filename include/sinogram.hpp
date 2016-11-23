@@ -49,6 +49,8 @@ class sinogram {
     /** Clear the sinogram. Sets each measurement to zero. */
     void clear() { std::fill(data_.begin(), data_.end(), 0); }
 
+    auto get_volume() const { return geometry().get_volume(); }
+
   private:
     const Geometry& geometry_;
     std::vector<T> data_;
