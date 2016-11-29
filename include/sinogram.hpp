@@ -7,6 +7,14 @@
 namespace tomo {
 
 /**
+ * FIXME
+ * - I want to redo this.
+ * - [ ] Definition of a sinogram
+ * - [ ] Stack of projections
+ * - [ ] What about 2d vs 3d vs Dd?
+ */
+
+/**
  * An object that represents the measurements for a given geometry (and
  * projector).
  *

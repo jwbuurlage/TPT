@@ -158,6 +158,12 @@ auto asin(T obj) {
     return glm::asin(obj);
 }
 
+/** Compute the exponential of an object of type T. */
+template <typename T>
+auto exp(T obj) {
+    return glm::exp(obj);
+}
+
 /** Floor an object of type T. */
 template <typename T>
 auto floor(T obj) {

@@ -42,6 +42,7 @@ set(
 set(
     EXAMPLE_SOURCES
     "reconstruction.cpp"
+    "dose_deposition.cpp"
     "geometry_benchmark.cpp"
 )
 

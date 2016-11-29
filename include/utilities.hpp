@@ -80,17 +80,17 @@ void ascii_plot(const image<2_D, T>& f, T max = -1) {
 
 /** Print the 3d image in slices as ascii art to stdout. */
 template <typename T>
-void ascii_plot(const image<3_D, T>& f, int slices = 3) {
+void ascii_plot(const image<3_D, T>& f, int slices = 3, int axis = 0) {
     T max = (T)0;
     for (int k = 0; k < f.get_volume().cells(); ++k)
         if (f[k] > max)
             max = f[k];
 
     for (int i = 0; i < slices; ++i) {
-        auto delta = f.get_volume()[0] / (slices + 1);
-        auto slice_idx = delta * (i + 1);
-        auto g = slice(f, slice_idx);
-        std::cout << "Slice @ " << slice_idx << "\n";
+        auto delta = (T)f.get_volume()[axis] / (slices + 1);
+        auto slice_idx = (int)(delta * (i + 1));
+        auto g = slice(f, slice_idx, axis);
+        std::cout << "Slice @ x_" << axis << " = " << slice_idx << "\n";
         ascii_plot(g, max);
     }
 }
