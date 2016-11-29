@@ -40,19 +40,20 @@
 #include "algorithms/sirt.hpp"
 
 #include "distributed/forward_projection.hpp"
-#include "distributed/recursive_bisectioning.hpp"
+#include "distributed/partitioned_image.hpp"
 #include "distributed/partitionings.hpp"
+#include "distributed/recursive_bisectioning.hpp"
 
 #include "geometries/cone.hpp"
 #include "geometries/dual_axis_parallel.hpp"
 #include "geometries/dynamic_cone_beam.hpp"
 #include "geometries/fan.hpp"
 #include "geometries/helical_cone_beam.hpp"
+#include "geometries/laminography.hpp"
 #include "geometries/list.hpp"
 #include "geometries/parallel.hpp"
-#include "geometries/trajectory.hpp"
 #include "geometries/tomosynthesis.hpp"
-#include "geometries/laminography.hpp"
+#include "geometries/trajectory.hpp"
 
 #include "projectors/closest.hpp"
 #include "projectors/joseph.hpp"
@@ -74,6 +75,6 @@ namespace dim {}
 
 #ifndef TOMO_NO_LITERALS
 // This exposes user-defined literals,
-// TODO do we want to allow this by default?
+// TODO do we want to disallow this by default?
 using namespace tomo::literals;
 #endif

@@ -1,13 +1,17 @@
-#CONTINUE:
-* [ ] A 'CUDA stream' can have associated buffers (geometry, image, sino bridges), which stay alive while the stream stays alive.
-* [ ] Other geometries
-    - [ ] 3D
-    - [ ] fan
-    - [x] slices (for parallel)
+# Short-term:
+
+It is necessary for my experiments to have distributed 3d reconstruction of arbitrary geometry. The inbetween steps:
+- [ ] Have a version working for e.g. parallel geometry in 3d for ShLo phantom.
+    - [ ] We require the notion of a distributed sinogram that can be harmonized
+- [ ] Read tiff stack
+- [ ] Start working on GPU system
+
+# Future:
 * [ ] Optimize CPU algorithms (cache-use, limit recomputations, data-oriented, SIMD, ...)
 * [ ] We may want a 'geometry::persist' that stores each geometry as a list geometry. This is more efficient then recomputing. This also makes distribution easier, because you can save the 'local origin' in this cache.
+* [ ] A 'CUDA stream' can have associated buffers (geometry, image, sino bridges), which stay alive while the stream stays alive.
 
-#List of ideas
+# List of ideas
 * We want the objects to be able to 'morph' into matrices and vectors for algorithm operations
 * Set up proper profiling code, look into `boost::accumulator` (see Benchmarking C++ @ CppCon 2015).
 * Should cache 'R', 'C' and 'w_norms' somewhere so we can perform iterations independently for testing. This can be done for example by objectifying the reconstruction algorithms.
@@ -18,7 +22,7 @@
 * In order to accelerate efficiently, we need to layout object data efficiently (*data oriented development*) to prevent inefficient copying
 * Simulate noise?
 
-#Documentation
+# Documentation
 * For each entity (class, function, ...):
   - Brief description
   - (optional) detailed description, here high-level overview can be given (or intent).
@@ -26,5 +30,5 @@
   - (if relevant) Description of parameters.
   - (if relevant) Description of return value.
 
-#Known bugs:
+# Known bugs:
 - SART fails (diverges) when using linear projector on over-determined system.

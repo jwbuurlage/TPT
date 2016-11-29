@@ -83,7 +83,7 @@ void run(options opt) {
     auto g = tomo::geometry::parallel<D, T>(opt.k, opt.k, v);
 
     //    // simulate the experiment
-    auto proj = tomo::dim::linear<D, T>(v);
+    auto proj = tomo::dim::closest<D, T>(v);
     //    // auto proj = tomo::dim::joseph<T>(v);
     //    auto proj = tomo::dim::closest<D, T>(v);
     auto sino = tomo::forward_projection<D, T>(f, g, proj);

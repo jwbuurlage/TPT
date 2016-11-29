@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "common.hpp"
 #include "image.hpp"
@@ -14,7 +15,7 @@
 namespace tomo {
 namespace distributed {
 
-template <tomo::dimension D>
+template <tomo::dimension D, typename Geometry>
 class sinogram_exchanges {
   public:
     struct exchange {
@@ -23,19 +24,21 @@ class sinogram_exchanges {
         int remote_index;
     };
 
-    sinogram_exchanges(bulk::partitioning<D, 1>& part, int s) {
+    sinogram_exchanges(Geometry& g, bulk::partitioning<D, 1>& part, int s) {
         // perform a forward projection and mark all the non-local partitionings
     }
 
   private:
+    std::vector<exchange> data_;
 };
 
 template <dimension D, typename T, class Geometry, class Image, class Projector,
           class World>
 class partitioned_sinogram {
   public:
-    partitioned_sinogram(Geometry& geometry, sinogram_exchanges<D>& exchanges)
-        : exchanges_(exchanges) {}
+    partitioned_sinogram(Geometry& geometry, World& world,
+                         bulk::partitioning<D, 1>& part)
+        : exchanges(g, part, world.processor_id()) {}
 
     void harmonize() {
         for (auto exchange : exchanges_) {
