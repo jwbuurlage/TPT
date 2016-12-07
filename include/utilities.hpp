@@ -47,12 +47,9 @@ image<2_D, T> slice(const image<3_D, T>& f, int slice, int along_axis = 0) {
 /** A helper function that downscales the image for plotting in the
  * terminal. */
 template <typename T>
-image<2_D, T> downscale_(const image<2_D, T>& f, volume<2_D> new_volume) {
-    assert(f.size(0) == f.size(1));
+image<2_D, T> downscale_(const image<2_D, T>& f, T scale) {
+    volume<2_D> new_volume{f.size(0) * scale, f.size(1) * scale};
     image<2_D, T> g(new_volume);
-
-    double scale = ((double)new_volume[0] * new_volume[0]) /
-                   ((double)f.size(0) * f.size(0));
 
     for (int i = 0; i < f.size(0); ++i) {
         for (int j = 0; j < f.size(1); ++j) {
@@ -70,9 +67,13 @@ image<2_D, T> downscale_(const image<2_D, T>& f, volume<2_D> new_volume) {
 template <typename T>
 void ascii_plot(const image<2_D, T>& f, T max = -1) {
     const int limit = 40;
-    if (f.size(0) > limit || f.size(1) > limit) {
-        ascii_plot_output(downscale_(f, volume<2_D>(limit, limit)),
-                          {limit, limit}, max);
+    int max_size = f.size(0) > f.size(1) ? f.size(0) : f.size(1);
+
+    if (max_size > limit) {
+        T scale = (T)limit / (T)max_size;
+        auto downscaled_img = downscale_(f, scale);
+        ascii_plot_output(downscaled_img,
+                          {f.size(0) * scale, f.size(1) * scale}, max);
     } else {
         ascii_plot_output(f, {f.size(0), f.size(1)}, max);
     }
@@ -103,7 +104,7 @@ void ascii_plot(const sinogram<D, T, G, P>& sino) {
 
 /** Output an image-like object to the standard output. */
 template <class ImageLike>
-void ascii_plot_output(const ImageLike& image, math::vec2<int> dimensions,
+void ascii_plot_output(ImageLike& image, math::vec2<int> dimensions,
                        typename ImageLike::value_type max = -1) {
     using T = typename ImageLike::value_type;
     using namespace std::string_literals;
@@ -112,19 +113,17 @@ void ascii_plot_output(const ImageLike& image, math::vec2<int> dimensions,
                  "\\|()1{}[]?-_+~<>i!lI;:,\"^`'. "s;
     std::reverse(chars.begin(), chars.end());
 
-    std::cout << "MAX: " << max << "\n";
-
     if (max < 0) {
         for (int k = 0; k < image.get_volume().cells(); ++k)
             if (image[k] > max)
                 max = image[k];
     }
 
-    std::cout << "MAX (a): " << max << "\n";
+    std::cout << max << " (max) \n";
 
     int cur = 0;
-    for (int i = 0; i < dimensions[0]; ++i) {
-        for (int j = 0; j < dimensions[1]; ++j) {
+    for (int j = 0; j < dimensions[1]; ++j) {
+        for (int i = 0; i < dimensions[0]; ++i) {
             auto idx =
                 (std::size_t)(math::sqrt(std::max(image[cur++], (T)0.0) / max) *
                               chars.size());

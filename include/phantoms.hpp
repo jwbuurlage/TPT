@@ -14,8 +14,6 @@ namespace tomo {
 
 using namespace tomo::literals;
 
-// TODO add 3D shepp logan, see ODL
-
 /**
  * An ellipse is defined completely by 6 reals, these are:
  * [I, a, b, x0, y0, phi].
