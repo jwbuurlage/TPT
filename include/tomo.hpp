@@ -35,6 +35,9 @@
 #include "utilities.hpp"
 #include "volume.hpp"
 
+#include "util/bench.hpp"
+#include "util/report.hpp"
+
 #include "algorithms/art.hpp"
 #include "algorithms/sart.hpp"
 #include "algorithms/sirt.hpp"
@@ -70,6 +73,9 @@ namespace geometry {}
 
 /** Implementation of different discrete integration methods (DIM). */
 namespace dim {}
+
+/** Support for distributed tomography. */
+namespace distributed {}
 
 } // namespace tomo
 

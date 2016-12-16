@@ -37,7 +37,10 @@ int main() {
 
     bulk::environment<provider> env;
 
-    env.spawn(env.available_processors(), [=](auto world, int /* s */, int p) {
+    env.spawn(env.available_processors(), [=](auto world, int s, int p) {
+		auto bench = tomo::benchmark("reconstruction");
+		bench.phase("initialize");
+
         std::array<int, D> size{};
         std::fill(size.begin(), size.end(), k);
 
@@ -71,13 +74,16 @@ int main() {
         auto partitioned_sino =
             td::partitioned_sinogram<D, T, decltype(geom), decltype(world)>(
                 world, block, geom);
+
+		bench.phase("compute overlap");
         partitioned_sino.compute_overlap(proj);
 
+		bench.phase("one fp");
         td::forward_project(img, geom, proj, partitioned_sino);
 
-        world.sync();
+		bench.phase("compute rs, cs");
 
-        // [ ] 2. D-SIRT
+        // [x] 2. D-SIRT
         // TODO compute r and c
         std::vector<T> rs(geom.lines());
         std::vector<T> cs(geom.lines());
@@ -111,34 +117,40 @@ int main() {
         for (auto& c : cs)
             c = beta / c;
 
+
+		bench.phase("initialize sirt");
         // temporary sino
-        auto tmp_sino = td::partitioned_sinogram<D, T, decltype(geom), decltype(world)>(
+        auto buffer_sino = td::partitioned_sinogram<D, T, decltype(geom), decltype(world)>(
                 world, block, geom);
         // TODO construct using already computed exchanges
-        tmp_sino.compute_overlap(proj);
+        buffer_sino.compute_overlap(proj);
 
         auto x = td::partitioned_image<T, D, decltype(world)>(world, block);
-        auto tmp_image = td::partitioned_image<T, D, decltype(world)>(world, block);
+        auto buffer_image = td::partitioned_image<T, D, decltype(world)>(world, block);
 
-        for (int iter = 0; iter < 100; ++iter) {
-            tmp_sino.clear();
+		bench.phase("10 times sirt");
+        for (int iter = 0; iter < 10; ++iter) {
+            buffer_sino.clear();
 
             // forward project x
-            td::forward_project(x, geom, proj, tmp_sino);
+            td::forward_project(x, geom, proj, buffer_sino);
 
             for (int j = 0; j < geom.lines(); ++j) {
-                tmp_sino[j] = rs[j] * (partitioned_sino[j] - tmp_sino[j]);
+                buffer_sino[j] = rs[j] * (partitioned_sino[j] - buffer_sino[j]);
             }
 
-            tmp_image.clear();
-            td::back_project(tmp_image, geom, proj, tmp_sino);
+            buffer_image.clear();
+            td::back_project(buffer_image, geom, proj, buffer_sino);
 
             for (int j = 0; j < v.cells(); ++j) {
-                x[j] += cs[j] * tmp_image[j];
+                x[j] += cs[j] * buffer_image[j];
             }
         }
 
         td::plot(x);
+
+		if (s != 0)
+			bench.silence();
 
         // [ ] 3. Support for boxing and so on
 

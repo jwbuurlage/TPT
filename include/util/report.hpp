@@ -95,8 +95,8 @@ class report {
         std::cout << hline << "\n";
     }
 
-    void saveToCSV();
-    void readFromCSV();
+    void save_to_csv();
+    void read_from_csv();
 
     void save_to_tex(std::string filename) {
         auto replaceTex = [](std::string entry) {

@@ -1,10 +1,16 @@
 # Short-term:
 
 It is necessary for my experiments to have distributed 3d reconstruction of arbitrary geometry. The inbetween steps:
-- [ ] Have a version working for e.g. parallel geometry in 3d for ShLo phantom.
-    - [ ] We require the notion of a distributed sinogram that can be harmonized
+- [ ] Have a version working for e.g. parallel geometry in 3d for ShLo phantom
+	- [x] Set up a benchmarking tool (maybe adaptation of the Zee one)
+    - [ ] Need to plot the resulting image (per iteration), could maybe use Cinder for this
+    - [ ] Need to heavily optimize the 'harmonizing' (probably MPI backend of Bulk)
+    - [ ] We require a more general notion of a distributed sinogram (!= stack of projections) that can be harmonized
+- [ ] Test bulk cpp backend too
 - [ ] Read tiff stack
 - [ ] Start working on GPU system
+- [ ] Install GCC 7.0 and use C++17 to clean up code
+
 
 # Future:
 * [ ] Optimize CPU algorithms (cache-use, limit recomputations, data-oriented, SIMD, ...)
