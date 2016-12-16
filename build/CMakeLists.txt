@@ -11,6 +11,7 @@ include_directories(
     "../ext/fmt/"
     "../ext/date/"
     "../ext/bulk/include"
+
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wno-missing-braces -Wfatal-errors -Werror -pedantic -O3 -g")
@@ -59,6 +60,17 @@ foreach(source_file ${EXAMPLE_SOURCES})
     add_executable(${source_name} ${EXAMPLE_DIR}${source_file})
     target_link_libraries( ${source_name} ${LIB_NAMES} )
 endforeach(source_file)
+
+include_directories(
+    "../ext/tomovis/include"
+    "../ext/tomovis/ext/zmq/include"
+    "../ext/tomovis/ext/cppzmq"
+)
+
+link_directories("../ext/tomovis/ext/zmq/lib")
+
+add_executable("external_plotter" "../examples/external_plotter.cpp")
+target_link_libraries("external_plotter" ${LIB_NAMES} "zmq")
 
 
 #find_package(CUDA 7.5 QUIET)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <vector>
 
 namespace tomo {
@@ -33,7 +34,8 @@ namespace reconstruction {
 template <dimension D, typename T, class Geometry, class Projector>
 image<D, T> sirt(const volume<D>& v, const Geometry& g,
                  const sinogram<D, T, Geometry, Projector>& p,
-                 double beta = 0.5, int iterations = 10) {
+                 double beta = 0.5, int iterations = 10,
+                 std::function<void(image<D, T>&)> callback = {}) {
     image<D, T> f(v);
     Projector proj(v);
 
@@ -89,6 +91,10 @@ image<D, T> sirt(const volume<D>& v, const Geometry& g,
         // update image while scaling with beta * C
         for (int j = 0; j < v.cells(); ++j) {
             f[j] += bC[j] * s2[j];
+        }
+
+        if (callback) {
+            callback(f);
         }
     }
 
