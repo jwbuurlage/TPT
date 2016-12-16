@@ -49,17 +49,11 @@ set(
 
 set(
     LIB_NAMES
+    "zmq"
     "pthread"
     "galactica"
     "boost_program_options"
 )
-
-#set(CMAKE_CXX_COMPILER "g++")
-foreach(source_file ${EXAMPLE_SOURCES})
-    string(REPLACE ".cpp" "" source_name ${source_file})
-    add_executable(${source_name} ${EXAMPLE_DIR}${source_file})
-    target_link_libraries( ${source_name} ${LIB_NAMES} )
-endforeach(source_file)
 
 include_directories(
     "../ext/tomovis/include"
@@ -68,6 +62,14 @@ include_directories(
 )
 
 link_directories("../ext/tomovis/ext/zmq/lib")
+
+#set(CMAKE_CXX_COMPILER "g++")
+foreach(source_file ${EXAMPLE_SOURCES})
+    string(REPLACE ".cpp" "" source_name ${source_file})
+    add_executable(${source_name} ${EXAMPLE_DIR}${source_file})
+    target_link_libraries( ${source_name} ${LIB_NAMES} )
+endforeach(source_file)
+
 
 add_executable("external_plotter" "../examples/external_plotter.cpp")
 target_link_libraries("external_plotter" ${LIB_NAMES} "zmq")
