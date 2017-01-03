@@ -11,67 +11,15 @@
 #include <cmath>
 #include <iostream>
 
-#include <boost/program_options.hpp>
-namespace po = boost::program_options;
 #include "fmt/format.h"
 
 #include "tomo.hpp"
+#include "util/plotter.hpp"
 
 using T = float;
 
-struct options {
-    int k = 0;
-    int iterations = 0;
-    float beta = 0.0f;
-
-    bool two = true;
-    bool three = false;
-
-    bool art = false;
-    bool sart = false;
-    bool sirt = false;
-
-    bool help = false;
-};
-
-options read_options(int argc, char* argv[]) {
-    options opt;
-
-    po::options_description desc("Allowed arguments");
-    desc.add_options()("help,h", "show help message")(
-        "size,s", po::value<int>(&opt.k)->default_value(32),
-        "size of the phantom")(
-        "iterations,i", po::value<int>(&opt.iterations)->default_value(10),
-        "number of iterations")(
-        "beta,b", po::value<float>(&opt.beta)->default_value(0.5f),
-        "value for update relaxation")("art", "reconstruct using ART")(
-        "sart", "reconstruct using SART")("sirt", "reconstruct using SIRT")(
-        "two", "do 2d reconstruction")("three", "do 3d reconstruction");
-
-    po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, desc), vm);
-    po::notify(vm);
-
-    opt.art = vm.count("art");
-    opt.sart = vm.count("sart");
-    opt.sirt = vm.count("sirt");
-
-    opt.two = vm.count("two");
-    opt.three = vm.count("three");
-
-    if (vm.count("help")) {
-        std::cout << desc << "\n";
-        opt.help = true;
-    }
-
-    // TODO: can we merge --use-cuda into these options, so that we dont need to
-    // duplicate this
-
-    return opt;
-}
-
 template <tomo::dimension D>
-void run(options opt) {
+void run(tomo::util::args opt) {
     // create a 2D volume of size k x k
     auto v = tomo::volume<D>(opt.k);
 
@@ -91,26 +39,32 @@ void run(options opt) {
 
     // run an algorithm to reconstruct the image
     if (opt.art) {
+        auto plotter =
+            tomo::ext_plotter<D, T>("tcp://localhost:5555", "ART");
         auto x =
             tomo::reconstruction::art(v, g, sino, opt.beta, opt.iterations);
-        fmt::print("ART: \n");
-        tomo::ascii_plot(x);
+        fmt::print("ART\n");
+        plotter.plot(x);
     }
 
     // run an algorithm to reconstruct the image
     if (opt.sart) {
+        auto plotter =
+            tomo::ext_plotter<D, T>("tcp://localhost:5555", "SART");
         auto y =
             tomo::reconstruction::sart(v, g, sino, opt.beta, opt.iterations);
-        fmt::print("SART: \n");
-        tomo::ascii_plot(y);
+        fmt::print("SART\n");
+        plotter.plot(y);
     }
 
     if (opt.sirt) {
+        auto plotter =
+            tomo::ext_plotter<D, T>("tcp://localhost:5555", "SIRT");
         // run an algorithm to reconstruct the image
         auto z =
             tomo::reconstruction::sirt(v, g, sino, opt.beta, opt.iterations);
-        fmt::print("SIRT: \n");
-        tomo::ascii_plot(z);
+        fmt::print("SIRT\n");
+        plotter.plot(z);
     }
 
     fmt::print("Parameters: size = {}x{}, iterations = {}, beta = {}\n", opt.k,
@@ -118,7 +72,7 @@ void run(options opt) {
 }
 
 int main(int argc, char* argv[]) {
-    auto opt = read_options(argc, argv);
+    auto opt = tomo::util::args(argc, argv);
 
     // TODO: can we make option for which projector to use (now compile time,
     // need different options)

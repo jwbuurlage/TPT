@@ -320,7 +320,6 @@ vec2<T> box_intersection(vec2<T> p, vec2<T> p2, vec2<T> box) {
 
 // intersect the line from 'a' to 'b' with the AABB cornered in the origin of
 // size 'sides'
-// FIXME: allow for origin (i.e. non-centered volume)
 template <dimension D, typename T>
 optional<std::pair<vec<D, T>, vec<D, T>>>
 aabb_intersection(vec<D, T> a, vec<D, T> b, vec<D, T> sides,
@@ -394,7 +393,7 @@ intersect_bounds(math::ray<D, T> l, std::array<math::vec2<int>, D> bounds) {
     return result;
 }
 
-/** Checks whether a vector lies in the *open* box defined by a volume. */
+/** Checks whether a world vector lies in the *open* box defined by a volume. */
 template <dimension D, typename T>
 bool inside(vec<D, T> a, volume<D> vol) {
     a -= vol.origin();
@@ -405,12 +404,14 @@ bool inside(vec<D, T> a, volume<D> vol) {
     return true;
 }
 
-/** Reverse-interpolate a vector to the surrounding voxels. */
+/** Reverse-interpolate a world vector to the
+ * surrounding voxels. */
 template <dimension D, typename T>
 void interpolate(vec<D, T> a, volume<D> vol,
                  std::vector<matrix_element<T>>& queue) {
+    auto relative = a - vec2<T>(vol.origin());
     // First we see what cell corner we are closest to
-    vec<D, int> b = floor(a + vec<D, T>(0.5));
+    vec<D, int> b = floor(relative + vec<D, T>(0.5));
 
     // the corresponding indices for each dimension
     std::array<std::array<int, 2>, D> cells_indices;
@@ -437,9 +438,10 @@ void interpolate(vec<D, T> a, volume<D> vol,
     // Next we do a general interpolation
     for (auto cell : cells) {
         vec<D, T> cell_center = vec<D, T>(cell) + vec<D, T>((T)0.5);
-        if (inside<D, T>(cell_center, vol)) {
+        if (inside<D, T>(cell_center + tomo::math::vec2<T>(vol.origin()),
+                         vol)) {
             int index = vol.index_by_vector(cell);
-            T value = (T)1.0 - ((distance(a, cell_center)) / sqrt<T>(D));
+            T value = (T)1.0 - ((distance(relative, cell_center)) / sqrt<T>(D));
             queue.push_back({index, value});
         }
     }

@@ -35,6 +35,8 @@ class partitioned_sinogram {
 
     void clear() { std::fill(data_.begin(), data_.end(), 0); }
 
+    int communication_volume() { return exchanges_.size(); }
+
     void harmonize() {
         auto sino_q = bulk::create_queue<int, T>(world_);
         // make exchange queue
@@ -53,14 +55,15 @@ class partitioned_sinogram {
     template <typename Projector>
     void compute_overlap(Projector& proj) {
         auto cyclic = bulk::cyclic_partitioning<1, 1>(
-            {geometry_.lines()}, {world_.active_processors()});
+            {world_.active_processors()}, {geometry_.lines()});
 
         auto q = bulk::create_queue<int, int>(world_);
         int idx = 0;
         for (auto l : geometry_) {
             for (auto elem : proj(l)) {
                 (void)elem;
-                q(cyclic.owner({idx})[0]).send(idx, world_.processor_id());
+                auto owner = cyclic.owner({idx})[0];
+                q(owner).send(idx, world_.processor_id());
                 break;
             }
             ++idx;
@@ -68,6 +71,7 @@ class partitioned_sinogram {
 
         world_.sync();
 
+        // targets[a] = list of procs for line a
         std::vector<std::vector<int>> targets(
             cyclic.local_extent({world_.processor_id()})[0]);
 
@@ -101,11 +105,26 @@ class partitioned_sinogram {
         }
     }
 
+    // FIXME do we want this here
+    auto as_image() {
+        auto v = tomo::volume<D>(geometry_.groups());
+        tomo::image<D, T> result(v);
+
+        int i = 0;
+        for (auto& x : data_) {
+            result[i++] = x;
+        }
+
+        return result;
+    }
+
     auto& operator[](int idx) { return data_[idx]; }
     const auto& operator[](int idx) const { return data_[idx]; }
 
     auto get_volume() const { return geometry_.get_volume(); }
     const std::vector<exchange>& exchanges() const { return exchanges_; }
+
+    auto& world() { return world_; }
 
   private:
     World& world_;
@@ -124,7 +143,7 @@ class partitioned_sinogram {
  * function.
  * */
 template <dimension D, typename T, class Geometry, class World, class Projector>
-void forward_project(tomo::distributed::partitioned_image<T, D, World>& f,
+void forward_project(tomo::distributed::partitioned_image<D, T, World>& f,
                      const Geometry& g, Projector& proj,
                      partitioned_sinogram<D, T, Geometry, World>& sino) {
     int line_number = 0;
@@ -146,7 +165,7 @@ void forward_project(tomo::distributed::partitioned_image<T, D, World>& f,
  * function.
  * */
 template <dimension D, typename T, class Geometry, class World, class Projector>
-void back_project(tomo::distributed::partitioned_image<T, D, World>& f,
+void back_project(tomo::distributed::partitioned_image<D, T, World>& f,
                   const Geometry& g, Projector& proj,
                   partitioned_sinogram<D, T, Geometry, World>& sino) {
     int line_number = 0;

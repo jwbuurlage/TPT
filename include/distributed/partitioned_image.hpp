@@ -18,7 +18,7 @@ auto to_vec(std::array<int, D> in) {
     return out;
 }
 
-template <typename T, tomo::dimension D, typename World>
+template <tomo::dimension D, typename T, typename World>
 class partitioned_image {
   public:
     partitioned_image(World& world, bulk::partitioning<D, 1>& part)
@@ -50,6 +50,50 @@ class partitioned_image {
             part_.local_extent({world_.processor_id()}), xs)];
     }
 
+    tomo::image<D, T> gather() {
+        auto volume_from_array = [](std::array<int, D> xs) -> tomo::volume<D> {
+            tomo::math::vec<D, int> lengths;
+            for (int d = 0; d < D; ++d) {
+                lengths[d] = xs[d];
+            }
+            return tomo::volume<D>(lengths);
+        };
+
+        auto v = volume_from_array(part_.global_size());
+        tomo::image<D, T> result(v);
+
+        int cells = v.cells();
+        auto xs = bulk::create_coarray<T>(world_, world_.processor_id() == 0 ? cells : 0);
+
+        int idx = 0;
+        for (auto& x : data_) {
+            // origin
+            // block size
+            auto global_pos = bulk::unflatten<D>(
+                part_.local_extent({world_.processor_id()}), idx);
+
+            // flatten wrt global size
+            for (int d = 0; d < D; ++d) {
+                global_pos[d] += part_.origin({world_.processor_id()})[d];
+            }
+
+            int global_idx = bulk::flatten<D>(part_.global_size(), global_pos);
+
+            xs(0)[global_idx] = x;
+
+            ++idx;
+        }
+
+        world_.sync();
+
+        idx = 0;
+        for (auto x : xs) {
+            result[idx++] = x;
+        }
+
+        return result;
+    }
+
   private:
     World& world_;
     bulk::partitioning<D, 1>& part_;
@@ -59,7 +103,7 @@ class partitioned_image {
 };
 
 template <typename Func, typename T, int D, typename World>
-void transform_in_place(partitioned_image<T, D, World>& img, Func func) {
+void transform_in_place(partitioned_image<D, T, World>& img, Func func) {
     for (auto& elem : img) {
         elem = func(elem);
     }
@@ -83,7 +127,7 @@ void output_in_turn(World& world, Func func) {
 }
 
 template <typename T, typename World>
-void partitioned_phantom(partitioned_image<T, 2, World>& img) {
+void partitioned_phantom(partitioned_image<2_D, T, World>& img) {
     auto global_volume =
         tomo::volume<2>(img.global_size()[0], img.global_size()[1]);
     tomo::fill_ellipses_(img, tomo::mshl_ellipses_<T>(), img.local_volume(),
@@ -91,7 +135,7 @@ void partitioned_phantom(partitioned_image<T, 2, World>& img) {
 }
 
 template <typename T, typename World>
-void plot(partitioned_image<T, 2_D, World>& img) {
+void plot(partitioned_image<2_D, T, World>& img) {
     auto& world = img.world();
     auto volume = img.local_volume();
     auto cells = volume.cells();

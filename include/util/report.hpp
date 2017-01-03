@@ -161,5 +161,5 @@ class report {
     unsigned int rowSize_;
 };
 
-}  // namespace util
-}  // namespace tomo
+} // namespace util
+} // namespace tomo

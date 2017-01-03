@@ -38,16 +38,19 @@ int main() {
     bulk::environment<provider> env;
 
     env.spawn(env.available_processors(), [=](auto world, int s, int p) {
-		auto bench = tomo::benchmark("reconstruction");
-		bench.phase("initialize");
+        td::ext_plotter<D, T> plotter("tcp://localhost:5555",
+                                      "Distributed reconstruction", world);
+
+        auto bench = tomo::benchmark("reconstruction");
+        bench.phase("initialize");
 
         std::array<int, D> size{};
         std::fill(size.begin(), size.end(), k);
 
-        auto block = bulk::block_partitioning<D, 1>(size, {p});
+        auto block = bulk::block_partitioning<D, 1>({p}, {size});
 
         // construct distributed image
-        auto img = td::partitioned_image<T, D, decltype(world)>(world, block);
+        auto img = td::partitioned_image<D, T, decltype(world)>(world, block);
 
         // global_size why doesnt it match?
         auto global_volume = tomo::volume<D>(img.global_size());
@@ -58,7 +61,7 @@ int main() {
 
         // support for distributed phantom construction
         td::partitioned_phantom(img);
-        td::plot(img);
+        plotter.plot(img);
 
         // projectors and geometries are modified so that they are
         // intersected with volumes at proper location
@@ -66,7 +69,7 @@ int main() {
         auto proj = tomo::dim::closest<D, T>(v);
 
         // TODO restrict the geometry to the local volume
-        //auto local_g = tomo::distributed::geometry(g, local_v);
+        // auto local_g = tomo::distributed::geometry(g, local_v);
 
         // The forward projection is modified so that we can perform it
         // in parallel on a distributed image, obtaining a 'distributed
@@ -75,18 +78,19 @@ int main() {
             td::partitioned_sinogram<D, T, decltype(geom), decltype(world)>(
                 world, block, geom);
 
-		bench.phase("compute overlap");
+        bench.phase("compute overlap");
         partitioned_sino.compute_overlap(proj);
+        world.log("com vol = %i\n", partitioned_sino.communication_volume());
 
-		bench.phase("one fp");
+        bench.phase("one fp");
         td::forward_project(img, geom, proj, partitioned_sino);
 
-		bench.phase("compute rs, cs");
+        bench.phase("compute rs, cs");
 
         // [x] 2. D-SIRT
         // TODO compute r and c
         std::vector<T> rs(geom.lines());
-        std::vector<T> cs(geom.lines());
+        std::vector<T> cs(v.cells());
 
         int row = 0;
         for (auto l : geom) {
@@ -117,18 +121,20 @@ int main() {
         for (auto& c : cs)
             c = beta / c;
 
-
-		bench.phase("initialize sirt");
+        bench.phase("initialize sirt");
         // temporary sino
-        auto buffer_sino = td::partitioned_sinogram<D, T, decltype(geom), decltype(world)>(
+        auto buffer_sino =
+            td::partitioned_sinogram<D, T, decltype(geom), decltype(world)>(
                 world, block, geom);
         // TODO construct using already computed exchanges
         buffer_sino.compute_overlap(proj);
 
-        auto x = td::partitioned_image<T, D, decltype(world)>(world, block);
-        auto buffer_image = td::partitioned_image<T, D, decltype(world)>(world, block);
+        auto x = td::partitioned_image<D, T, decltype(world)>(world, block);
+        auto buffer_image =
+            td::partitioned_image<D, T, decltype(world)>(world, block);
 
-		bench.phase("10 times sirt");
+
+        bench.phase("10 times sirt");
         for (int iter = 0; iter < 10; ++iter) {
             buffer_sino.clear();
 
@@ -139,18 +145,19 @@ int main() {
                 buffer_sino[j] = rs[j] * (partitioned_sino[j] - buffer_sino[j]);
             }
 
+
             buffer_image.clear();
             td::back_project(buffer_image, geom, proj, buffer_sino);
 
             for (int j = 0; j < v.cells(); ++j) {
                 x[j] += cs[j] * buffer_image[j];
             }
+
+            plotter.plot(x);
         }
 
-        td::plot(x);
-
-		if (s != 0)
-			bench.silence();
+        if (s != 0)
+            bench.silence();
 
         // [ ] 3. Support for boxing and so on
 
