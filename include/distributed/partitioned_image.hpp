@@ -10,7 +10,7 @@ namespace tomo {
 namespace distributed {
 
 template <tomo::dimension D>
-auto to_vec(std::array<int, D> in) {
+auto array_to_vec(std::array<int, D> in) {
     tomo::math::vec<D, int> out;
     for (int d = 0; d < D; ++d) {
         out[d] = in[d];
@@ -23,8 +23,8 @@ class partitioned_image {
   public:
     partitioned_image(World& world, bulk::partitioning<D, 1>& part)
         : world_(world), part_(part),
-          local_volume_(to_vec<D>(part_.origin({world.processor_id()})),
-                        to_vec<D>(part_.local_extent({world.processor_id()}))),
+          local_volume_(array_to_vec<D>(part_.origin({world.processor_id()})),
+                        array_to_vec<D>(part_.local_extent({world.processor_id()}))),
           data_(world_, local_volume_.cells()) {
         clear();
     }
@@ -34,10 +34,10 @@ class partitioned_image {
     auto& world() const { return world_; }
 
     tomo::math::vec<D, int> local_size() const {
-        return to_vec<D>(part_.local_extent({world_.processor_id()}));
+        return array_to_vec<D>(part_.local_extent({world_.processor_id()}));
     }
 
-    auto global_size() const { return to_vec<D>(part_.global_size()); }
+    auto global_size() const { return array_to_vec<D>(part_.global_size()); }
     auto local_volume() const { return local_volume_; }
 
     // get the element with _local index_ idx
