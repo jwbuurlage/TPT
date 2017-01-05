@@ -47,10 +47,10 @@ int main() {
         std::array<int, D> size{};
         std::fill(size.begin(), size.end(), k);
 
-        auto block = bulk::block_partitioning<D, 1>({p}, {size});
+        auto block = bulk::block_partitioning<D, 2>(size, {2, p / 2});
 
         // construct distributed image
-        auto img = td::partitioned_image<D, T, decltype(world)>(world, block);
+        auto img = td::partitioned_image<D, T>(world, block);
 
         // global_size why doesnt it match?
         auto global_volume = tomo::volume<D>(img.global_size());
@@ -75,7 +75,7 @@ int main() {
         // in parallel on a distributed image, obtaining a 'distributed
         // sinogram'
         auto partitioned_sino =
-            td::partitioned_sinogram<D, T, decltype(geom), decltype(world)>(
+            td::partitioned_sinogram<D, T, decltype(geom)>(
                 world, block, geom);
 
         bench.phase("compute overlap");
@@ -124,15 +124,14 @@ int main() {
         bench.phase("initialize sirt");
         // temporary sino
         auto buffer_sino =
-            td::partitioned_sinogram<D, T, decltype(geom), decltype(world)>(
+            td::partitioned_sinogram<D, T, decltype(geom)>(
                 world, block, geom);
         // TODO construct using already computed exchanges
         buffer_sino.compute_overlap(proj);
 
-        auto x = td::partitioned_image<D, T, decltype(world)>(world, block);
+        auto x = td::partitioned_image<D, T>(world, block);
         auto buffer_image =
-            td::partitioned_image<D, T, decltype(world)>(world, block);
-
+            td::partitioned_image<D, T>(world, block);
 
         bench.phase("10 times sirt");
         for (int iter = 0; iter < 10; ++iter) {
@@ -144,7 +143,6 @@ int main() {
             for (int j = 0; j < geom.lines(); ++j) {
                 buffer_sino[j] = rs[j] * (partitioned_sino[j] - buffer_sino[j]);
             }
-
 
             buffer_image.clear();
             td::back_project(buffer_image, geom, proj, buffer_sino);

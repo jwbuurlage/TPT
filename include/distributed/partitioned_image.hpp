@@ -18,10 +18,10 @@ auto array_to_vec(std::array<int, D> in) {
     return out;
 }
 
-template <tomo::dimension D, typename T, typename World>
+template <tomo::dimension D, typename T>
 class partitioned_image {
   public:
-    partitioned_image(World& world, bulk::partitioning<D, 1>& part)
+    partitioned_image(bulk::world& world, bulk::partitioning<D>& part)
         : world_(world), part_(part),
           local_volume_(array_to_vec<D>(part_.origin({world.processor_id()})),
                         array_to_vec<D>(part_.local_extent({world.processor_id()}))),
@@ -95,22 +95,22 @@ class partitioned_image {
     }
 
   private:
-    World& world_;
-    bulk::partitioning<D, 1>& part_;
+    bulk::world& world_;
+    bulk::partitioning<D>& part_;
 
     tomo::volume<D> local_volume_;
-    bulk::coarray<T, World> data_;
+    bulk::coarray<T> data_;
 };
 
-template <typename Func, typename T, int D, typename World>
-void transform_in_place(partitioned_image<D, T, World>& img, Func func) {
+template <typename Func, typename T, int D>
+void transform_in_place(partitioned_image<D, T>& img, Func func) {
     for (auto& elem : img) {
         elem = func(elem);
     }
 }
 
-template <typename World, typename Func>
-void output_in_turn(World& world, Func func) {
+template <typename Func>
+void output_in_turn(bulk::world& world, Func func) {
     // easiest is to copy the local elements into a tomo::image, then output the
     // pid, origin, extent, and finally plot it.
     // we ensure correct oder here
@@ -126,16 +126,16 @@ void output_in_turn(World& world, Func func) {
     }
 }
 
-template <typename T, typename World>
-void partitioned_phantom(partitioned_image<2_D, T, World>& img) {
+template <typename T>
+void partitioned_phantom(partitioned_image<2_D, T>& img) {
     auto global_volume =
         tomo::volume<2>(img.global_size()[0], img.global_size()[1]);
     tomo::fill_ellipses_(img, tomo::mshl_ellipses_<T>(), img.local_volume(),
                          global_volume);
 }
 
-template <typename T, typename World>
-void plot(partitioned_image<2_D, T, World>& img) {
+template <typename T>
+void plot(partitioned_image<2_D, T>& img) {
     auto& world = img.world();
     auto volume = img.local_volume();
     auto cells = volume.cells();
