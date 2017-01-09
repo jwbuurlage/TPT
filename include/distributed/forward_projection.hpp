@@ -24,8 +24,8 @@ namespace distributed {
  * the partitioned sinogram itself, so that we can still return it from this
  * function.
  * */
-template <dimension D, typename T, class Geometry, class Projector>
-void forward_project(tomo::distributed::partitioned_image<D, T>& f,
+template <dimension D, dimension G, typename T, class Geometry, class Projector>
+void forward_project(tomo::distributed::partitioned_image<D, G, T>& f,
                      const Geometry& g, Projector& proj,
                      partitioned_sinogram<D, T, Geometry>& sino) {
     int line_number = 0;
@@ -46,8 +46,8 @@ void forward_project(tomo::distributed::partitioned_image<D, T>& f,
  * the partitioned sinogram itself, so that we can still return it from this
  * function.
  * */
-template <dimension D, typename T, class Geometry, class Projector>
-void back_project(tomo::distributed::partitioned_image<D, T>& f,
+template <dimension D, dimension G, typename T, class Geometry, class Projector>
+void back_project(tomo::distributed::partitioned_image<D, G, T>& f,
                   const Geometry& g, Projector& proj,
                   partitioned_sinogram<D, T, Geometry>& sino) {
     int line_number = 0;

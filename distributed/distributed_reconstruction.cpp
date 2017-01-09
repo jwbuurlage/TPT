@@ -26,31 +26,36 @@
 
 #include "bulk/backends/mpi/mpi.hpp"
 #include "bulk/bulk.hpp"
-using provider = bulk::mpi::provider;
 
 int main() {
     using T = float;
-    int k = 256;
+    int k = 512;
     constexpr tomo::dimension D = 2;
 
     namespace td = tomo::distributed;
 
-    bulk::environment<provider> env;
+    bulk::mpi::environment env;
 
-    env.spawn(env.available_processors(), [=](auto world, int s, int p) {
+    env.spawn(env.available_processors(), [=](auto& world, int s, int p) {
         td::ext_plotter<D, T> plotter("tcp://localhost:5555",
                                       "Distributed reconstruction", world);
 
         auto bench = tomo::benchmark("reconstruction");
+        if (s != 0)
+            bench.silence();
+
         bench.phase("initialize");
 
         std::array<int, D> size{};
         std::fill(size.begin(), size.end(), k);
 
-        auto block = bulk::block_partitioning<D, 2>(size, {2, p / 2});
+        auto block = bulk::block_partitioning<D, 2>(world, size, {2, p / 2});
+
+        std::cout << block.origin(s)[0] << "+" << block.origin(s)[1] << " " <<
+            block.local_size(s)[0] << "x" << block.local_size(s)[1] << "\n";
 
         // construct distributed image
-        auto img = td::partitioned_image<D, T>(world, block);
+        auto img = td::partitioned_image<D, D, T>(world, block);
 
         // global_size why doesnt it match?
         auto global_volume = tomo::volume<D>(img.global_size());
@@ -103,7 +108,7 @@ int main() {
 
         // communicate row elements
         // note that this is exactly exchange in sino
-        auto row_queue = bulk::create_queue<int, T>(world);
+        auto row_queue = bulk::queue<int, T>(world);
         for (auto exchange : partitioned_sino.exchanges()) {
             row_queue(exchange.target).send(exchange.line, rs[exchange.line]);
         }
@@ -129,9 +134,9 @@ int main() {
         // TODO construct using already computed exchanges
         buffer_sino.compute_overlap(proj);
 
-        auto x = td::partitioned_image<D, T>(world, block);
+        auto x = td::partitioned_image<D, D, T>(world, block);
         auto buffer_image =
-            td::partitioned_image<D, T>(world, block);
+            td::partitioned_image<D, D, T>(world, block);
 
         bench.phase("10 times sirt");
         for (int iter = 0; iter < 10; ++iter) {
@@ -154,8 +159,6 @@ int main() {
             plotter.plot(x);
         }
 
-        if (s != 0)
-            bench.silence();
 
         // [ ] 3. Support for boxing and so on
 

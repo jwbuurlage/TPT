@@ -18,13 +18,15 @@ auto array_to_vec(std::array<int, D> in) {
     return out;
 }
 
-template <tomo::dimension D, typename T>
+template <tomo::dimension D, tomo::dimension G, typename T>
 class partitioned_image {
   public:
-    partitioned_image(bulk::world& world, bulk::partitioning<D>& part)
+    partitioned_image(bulk::world& world,
+                      bulk::rectangular_partitioning<D, G>& part)
         : world_(world), part_(part),
-          local_volume_(array_to_vec<D>(part_.origin({world.processor_id()})),
-                        array_to_vec<D>(part_.local_extent({world.processor_id()}))),
+          local_volume_(
+              array_to_vec<D>(part_.origin({world.processor_id()})),
+              array_to_vec<D>(part_.local_size(world.processor_id()))),
           data_(world_, local_volume_.cells()) {
         clear();
     }
@@ -34,7 +36,7 @@ class partitioned_image {
     auto& world() const { return world_; }
 
     tomo::math::vec<D, int> local_size() const {
-        return array_to_vec<D>(part_.local_extent({world_.processor_id()}));
+        return array_to_vec<D>(part_.local_size(world_.processor_id()));
     }
 
     auto global_size() const { return array_to_vec<D>(part_.global_size()); }
@@ -46,8 +48,8 @@ class partitioned_image {
     T& operator()(std::array<int, D> xs) {
         // FIXME this is unnecessarily involved because of the
         // std::array/tomo::math::vec discrepency. Come up with a solution.
-        return (*this)[bulk::flatten<D>(
-            part_.local_extent({world_.processor_id()}), xs)];
+        return (*this)[bulk::flatten<D>(part_.local_size(world_.processor_id()),
+                                        xs)];
     }
 
     tomo::image<D, T> gather() {
@@ -63,14 +65,15 @@ class partitioned_image {
         tomo::image<D, T> result(v);
 
         int cells = v.cells();
-        auto xs = bulk::create_coarray<T>(world_, world_.processor_id() == 0 ? cells : 0);
+        auto xs =
+            bulk::coarray<T>(world_, world_.processor_id() == 0 ? cells : 0);
 
         int idx = 0;
         for (auto& x : data_) {
             // origin
             // block size
             auto global_pos = bulk::unflatten<D>(
-                part_.local_extent({world_.processor_id()}), idx);
+                part_.local_size(world_.processor_id()), idx);
 
             // flatten wrt global size
             for (int d = 0; d < D; ++d) {
@@ -96,14 +99,14 @@ class partitioned_image {
 
   private:
     bulk::world& world_;
-    bulk::partitioning<D>& part_;
+    bulk::rectangular_partitioning<D, G>& part_;
 
     tomo::volume<D> local_volume_;
     bulk::coarray<T> data_;
 };
 
-template <typename Func, typename T, int D>
-void transform_in_place(partitioned_image<D, T>& img, Func func) {
+template <typename Func, typename T, int D, int G>
+void transform_in_place(partitioned_image<D, G, T>& img, Func func) {
     for (auto& elem : img) {
         elem = func(elem);
     }
@@ -126,16 +129,16 @@ void output_in_turn(bulk::world& world, Func func) {
     }
 }
 
-template <typename T>
-void partitioned_phantom(partitioned_image<2_D, T>& img) {
+template <typename T, int G>
+void partitioned_phantom(partitioned_image<2_D, G, T>& img) {
     auto global_volume =
         tomo::volume<2>(img.global_size()[0], img.global_size()[1]);
     tomo::fill_ellipses_(img, tomo::mshl_ellipses_<T>(), img.local_volume(),
                          global_volume);
 }
 
-template <typename T>
-void plot(partitioned_image<2_D, T>& img) {
+template <typename T, int G>
+void plot(partitioned_image<2_D, G, T>& img) {
     auto& world = img.world();
     auto volume = img.local_volume();
     auto cells = volume.cells();
