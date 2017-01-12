@@ -1,23 +1,5 @@
 #include "tomo.hpp"
 
-/**
- * TODO:
- * [ ] How to 'check' and visualize result?
- * [ ] Compare reconstruction with distributed ASTRA code.
- */
-// TODO border operations with ghost voxels, boundary on cpu rest on gpu?
-
-// // for reference, this is sequential code
-// auto v = tomo::volume<2_D>(k, k);
-// auto f = tomo::modified_shepp_logan_phantom<T>(v);
-// auto g = tomo::geometry::parallel<2_D, T>(180, 250, v);
-//
-// auto proj = tomo::dim::closest<2_D, T>(v);
-// auto sino = tomo::forward_projection<2_D, T>(f, g, proj);
-//
-// auto x = tomo::reconstruction::sirt(v, g, sino, beta, iterations);
-// tomo::ascii_plot(x);
-
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -26,31 +8,37 @@
 
 #include "bulk/backends/mpi/mpi.hpp"
 #include "bulk/bulk.hpp"
-using provider = bulk::mpi::provider;
 
 int main() {
     using T = float;
-    int k = 256;
+    int k = 512;
     constexpr tomo::dimension D = 2;
 
     namespace td = tomo::distributed;
 
-    bulk::environment<provider> env;
+    bulk::mpi::environment env;
 
-    env.spawn(env.available_processors(), [=](auto world, int s, int p) {
+    env.spawn(env.available_processors(), [=](auto& world, int s, int p) {
         td::ext_plotter<D, T> plotter("tcp://localhost:5555",
                                       "Distributed reconstruction", world);
 
         auto bench = tomo::benchmark("reconstruction");
+        if (s != 0)
+            bench.silence();
+
         bench.phase("initialize");
 
         std::array<int, D> size{};
         std::fill(size.begin(), size.end(), k);
 
-        auto block = bulk::block_partitioning<D, 1>({p}, {size});
+        auto block = bulk::block_partitioning<D, 2>(world, size, {2, p / 2});
+
+        std::cout << block.origin(s)[0] << "+" << block.origin(s)[1] << " "
+                  << block.local_size(s)[0] << "x" << block.local_size(s)[1]
+                  << "\n";
 
         // construct distributed image
-        auto img = td::partitioned_image<D, T, decltype(world)>(world, block);
+        auto img = td::partitioned_image<D, D, T>(world, block);
 
         // global_size why doesnt it match?
         auto global_volume = tomo::volume<D>(img.global_size());
@@ -68,15 +56,11 @@ int main() {
         auto geom = tomo::geometry::parallel<D, T>(k, k, global_volume);
         auto proj = tomo::dim::closest<D, T>(v);
 
-        // TODO restrict the geometry to the local volume
-        // auto local_g = tomo::distributed::geometry(g, local_v);
-
         // The forward projection is modified so that we can perform it
         // in parallel on a distributed image, obtaining a 'distributed
         // sinogram'
         auto partitioned_sino =
-            td::partitioned_sinogram<D, T, decltype(geom), decltype(world)>(
-                world, block, geom);
+            td::partitioned_sinogram<D, T, decltype(geom)>(world, block, geom);
 
         bench.phase("compute overlap");
         partitioned_sino.compute_overlap(proj);
@@ -103,7 +87,7 @@ int main() {
 
         // communicate row elements
         // note that this is exactly exchange in sino
-        auto row_queue = bulk::create_queue<int, T>(world);
+        auto row_queue = bulk::queue<int, T>(world);
         for (auto exchange : partitioned_sino.exchanges()) {
             row_queue(exchange.target).send(exchange.line, rs[exchange.line]);
         }
@@ -124,15 +108,12 @@ int main() {
         bench.phase("initialize sirt");
         // temporary sino
         auto buffer_sino =
-            td::partitioned_sinogram<D, T, decltype(geom), decltype(world)>(
-                world, block, geom);
+            td::partitioned_sinogram<D, T, decltype(geom)>(world, block, geom);
         // TODO construct using already computed exchanges
         buffer_sino.compute_overlap(proj);
 
-        auto x = td::partitioned_image<D, T, decltype(world)>(world, block);
-        auto buffer_image =
-            td::partitioned_image<D, T, decltype(world)>(world, block);
-
+        auto x = td::partitioned_image<D, D, T>(world, block);
+        auto buffer_image = td::partitioned_image<D, D, T>(world, block);
 
         bench.phase("10 times sirt");
         for (int iter = 0; iter < 10; ++iter) {
@@ -145,7 +126,6 @@ int main() {
                 buffer_sino[j] = rs[j] * (partitioned_sino[j] - buffer_sino[j]);
             }
 
-
             buffer_image.clear();
             td::back_project(buffer_image, geom, proj, buffer_sino);
 
@@ -156,13 +136,5 @@ int main() {
             plotter.plot(x);
         }
 
-        if (s != 0)
-            bench.silence();
-
-        // [ ] 3. Support for boxing and so on
-
-        // [ ] 4. Non-local (boundary) operations
-
-        // [ ] 5. CUDA storage backend here
     });
 }
