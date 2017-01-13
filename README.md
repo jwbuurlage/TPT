@@ -56,10 +56,58 @@ cmake .
 make
 ```
 
-The python bindings can be used through `tomo.py` in the `Python` folder, which also adds some rudimentary plotting functionality on top of the bindings.
+The Python bindings can be used through `tomo.py` in the `Python` folder, which also adds some rudimentary plotting functionality on top of the bindings.
 
 # Writing your own algorithms
 
 ## C++
 
+First of all, have a look at the examples provided in the `examples` folder.
+
+There are four core components that are used for reconstruction:
+
+- `tomo::volume` represents the volume geometry, i.e. the part of space in which the image object resides.
+- `tomo::dim` is the namespace for the 'discrete integration methods' (also called interpolators, projectors or kernels).
+    - `closest` projects any point on the ray to the closest voxel
+    - `linear` does D-dimensional linear interpolation around the ray point to the surrounding voxels
+    - `joseph` does (D-1) dimensional linear interpolation by considering point on the ray that have integer coordinates in one fixed dimension.
+- `tomo::geometry` it the namespace for the various acquisition geometries
+    - `cone_beam`
+    - `dual_axis_parallel`
+    - `dynamic_cone_beam`
+    - `fan`
+    - `helical_cone_beam`
+    - `laminography`
+    - `list` is a list of lines without any implied stucture.
+    - `parallel<2_D>`
+    - `parallel<3_D>`
+    - `tomosynthesis`
+    - `trajectory` is the base class for cone-beam-like geometries where the source and the (position and tilt of the) detector follow a given path.
+- `tomo::image` represents the image data, there is only one phantom
+    - `shepp_logan<2_D>`
+    - `shepp_logan<3_D>`
+    - `modified_shepp_logan<2_D>`
+    - `modified_shepp_logan<3_D>`
+
+These can be used however. We take the following approach:
+
+- A geometry is a container of lines, so you can write:
+```
+for (auto& line : geometry) {
+    // use line
+}
+```
+- A discrete integration method takes a line, and gives a number of 'matrix elements', that contain the voxel (as an index), and the attenuation coefficient (value of the matrix element):
+```
+for (auto& element : projector(line)) {
+    // element.index is the voxel
+    // element.value is the coefficient
+}
+```
+Using this approach, many interesting algorithms can be written in an efficient but flexible manner.
+
+There are also some standard algorithms implemented, including `ART`, `SART`, and `SIRT`.
+
 ## Python
+
+The Python bindings expose the different concepts (images, volumes, geometries and dims) as well as the standard implemented algorithms.
