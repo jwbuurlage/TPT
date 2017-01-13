@@ -1,7 +1,14 @@
 cmake_minimum_required(VERSION 3.0.0)
-project(tomo)
+project(tomos)
+
+include(FeatureSummary)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+option(WITH_MPI "Build MPI specific parts")
+option(WITH_ZMQ "Build ZeroMQ support for visualization servers")
+
+feature_summary(WHAT ALL)
 
 link_directories("~/.local/lib")
 
@@ -11,7 +18,6 @@ include_directories(
     "../ext/fmt/"
     "../ext/date/"
     "../ext/bulk/include"
-
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wno-missing-braces -Wfatal-errors -Werror -pedantic -O3 -g")
@@ -19,13 +25,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -Wall -Wextra -Wshadow -Wnon-
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ../ext/fmt -isystem ~/.local/include -isystem ../ext/bulk/include -isystem /usr/local/cuda/include")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
-
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 
-set(LIB_NAME "galactica")
+set(LIB_NAME "tomos")
 
 set(
     LIB_SOURCES
@@ -49,31 +52,28 @@ set(
 
 set(
     LIB_NAMES
-    "zmq"
     "pthread"
-    "galactica"
+    "tomos"
     "boost_program_options"
 )
 
-include_directories(
-    "../ext/tomovis/include"
-    "../ext/tomovis/ext/zmq/include"
-    "../ext/tomovis/ext/cppzmq"
-)
-
-link_directories("../ext/tomovis/ext/zmq/lib")
-
-#set(CMAKE_CXX_COMPILER "g++")
 foreach(source_file ${EXAMPLE_SOURCES})
     string(REPLACE ".cpp" "" source_name ${source_file})
     add_executable(${source_name} ${EXAMPLE_DIR}${source_file})
     target_link_libraries( ${source_name} ${LIB_NAMES} )
 endforeach(source_file)
 
-
-add_executable("external_plotter" "../examples/external_plotter.cpp")
-target_link_libraries("external_plotter" ${LIB_NAMES} "zmq")
-
+if(WITH_ZMQ)
+    link_directories("../ext/libzmq/build/lib")
+    include_directories(
+        "../ext/slicevis/include"
+        "../ext/cppzmq"
+        "../ext/libzmq/include"
+    )
+    set(LIB_NAMES ${LIB_NAMES} "zmq")
+    add_executable("external_plotter" "../examples/external_plotter.cpp")
+    target_link_libraries("external_plotter" ${LIB_NAMES})
+endif(WITH_ZMQ)
 
 #find_package(CUDA 7.5 QUIET)
 #
@@ -95,7 +95,7 @@ target_link_libraries("external_plotter" ${LIB_NAMES} "zmq")
 #        "../examples/cuda_reconstruction.cpp"
 #    )
 #
-#    set(CUDA_LIB_NAME "galactica_cuda")
+#    set(CUDA_LIB_NAME "tomos_cuda")
 #
 #    cuda_add_library(${CUDA_LIB_NAME} SHARED ${CUDA_LIB_SOURCES})
 #    cuda_add_executable("cuda_reconstruction" ${CUDA_EXAMPLE_SOURCES})
@@ -107,6 +107,7 @@ target_link_libraries("external_plotter" ${LIB_NAMES} "zmq")
 
 find_package(MPI QUIET)
 
+if(WITH_MPI AND WITH_ZMQ)
 if(MPI_CXX_FOUND)
     set(
         MPI_DIR
@@ -131,5 +132,6 @@ if(MPI_CXX_FOUND)
 else(MPI_CXX_FOUND)
     message("No MPI installation found.")
 endif(MPI_CXX_FOUND)
+endif(WITH_MPI AND WITH_ZMQ)
 
 add_subdirectory(../test/build ../test/build)

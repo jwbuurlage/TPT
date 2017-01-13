@@ -16,6 +16,7 @@ The following libraries are required:
 External:
 - [glm](http://glm.g-truc.net/0.9.8/index.html) header only mathematics library mimicking GLSL
 - [boost::program_options](boost.org) for portable program options
+- (optional) [zeromq](zeromq.org) for communicating with visualization servers
 - (optional) [boost::hana](http://www.boost.org/doc/libs/1_61_0/libs/hana/doc/html/index.html) is used to generate the Python bindings.
 - (optional) [CUDA](http://www.nvidia.com/object/cuda_home_new.html) (>= 7.0)
 
@@ -23,12 +24,12 @@ Provided as submodules
 - [Catch](https://github.com/philsquared/Catch), for unit tests
 - [fmt](https://github.com/fmtlib/fmt) as an iostream replacement
 - [bulk](https://github.com/jwbuurlage/Bulk) for distributed computing
-- [slicevis](https://github.com/jwbuurlage/slicevis) as an optional visualization server
+- (optional) [slicevis](https://github.com/jwbuurlage/slicevis) as an visualization server
 - (optional) [pybind11](https://github.com/pybind/pybind11) to generate Python bindings
 
 The following build tools should be available:
 - [CMake](https://cmake.org/) (>= 3.0)
-- Modern C++ compiler (with support for at least C++14)
+- Modern C++ compiler (with support for at least C++14), e.g. GCC >= 6.0 or clang >= 3.8
 
 The library is being tested on Fedora 24 and Arch Linux, but the code should be portable to other platforms.
 
@@ -36,7 +37,14 @@ The library is being tested on Fedora 24 and Arch Linux, but the code should be 
 
 ## Examples
 
-The library is header only, so it does not have to be built itself. To build the examples:
+The core of the library is header only, so it does not have to be built itself. We start with initializing the submodules:
+
+```
+git submodule init
+git submodule update --remote
+```
+
+To build the examples:
 
 ```
 cd build
@@ -57,6 +65,16 @@ make
 ```
 
 The Python bindings can be used through `tomo.py` in the `Python` folder, which also adds some rudimentary plotting functionality on top of the bindings.
+
+# Building with optional features
+
+To build with ZMQ (and MPI), run instead of `cmake .`:
+
+```
+cmake -DWITH_MPI=on -DWITH_ZMQ=on .
+```
+
+CUDA support has been disabled for now.
 
 # Writing your own algorithms
 
@@ -89,15 +107,15 @@ There are four core components that are used for reconstruction:
     - `modified_shepp_logan<2_D>`
     - `modified_shepp_logan<3_D>`
 
-These can be used however. We take the following approach:
+These can be used together completely independently. The reason is that we take the following approach to these concepts:
 
-- A geometry is a container of lines, so you can write:
+- A geometry acts as nothing more than a container of lines, so you can write:
 ```
 for (auto& line : geometry) {
     // use line
 }
 ```
-- A discrete integration method takes a line, and gives a number of 'matrix elements', that contain the voxel (as an index), and the attenuation coefficient (value of the matrix element):
+- A discrete integration method takes a line, and produces a number of 'matrix elements', that contain the voxel (as an index), and the attenuation coefficient (value of the matrix element):
 ```
 for (auto& element : projector(line)) {
     // element.index is the voxel

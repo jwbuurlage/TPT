@@ -409,7 +409,7 @@ bool inside(vec<D, T> a, volume<D> vol) {
 template <dimension D, typename T>
 void interpolate(vec<D, T> a, volume<D> vol,
                  std::vector<matrix_element<T>>& queue) {
-    auto relative = a - vec2<T>(vol.origin());
+    auto relative = a - vec<D, T>(vol.origin());
     // First we see what cell corner we are closest to
     vec<D, int> b = floor(relative + vec<D, T>(0.5));
 
@@ -438,7 +438,7 @@ void interpolate(vec<D, T> a, volume<D> vol,
     // Next we do a general interpolation
     for (auto cell : cells) {
         vec<D, T> cell_center = vec<D, T>(cell) + vec<D, T>((T)0.5);
-        if (inside<D, T>(cell_center + tomo::math::vec2<T>(vol.origin()),
+        if (inside<D, T>(cell_center + tomo::math::vec<D, T>(vol.origin()),
                          vol)) {
             int index = vol.index_by_vector(cell);
             T value = (T)1.0 - ((distance(relative, cell_center)) / sqrt<T>(D));

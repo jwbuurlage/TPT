@@ -1,13 +1,8 @@
 #include "tomo.hpp"
-#include "util/plotter.hpp"
 
 using T = float;
 
 int main() {
-    // request a plotter scene
-    auto plotter =
-        tomo::ext_plotter<2_D, T>("tcp://localhost:5555", "Test plot");
-
     int k = 256;
     auto v = tomo::volume<2_D>(k);
     auto f = tomo::modified_shepp_logan_phantom<T>(v);
@@ -29,7 +24,7 @@ int main() {
                 intensity = new_intensity;
             }
         }
-        plotter.plot(dose);
+        tomo::ascii_plot(dose);
     }
 
     return 0;

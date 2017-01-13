@@ -1,4 +1,5 @@
 #include "tomo.hpp"
+#include "distributed/plotter.hpp"
 
 #include <algorithm>
 #include <array>

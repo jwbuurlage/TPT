@@ -44,7 +44,6 @@
 #include "algorithms/sirt.hpp"
 
 #include "distributed/forward_projection.hpp"
-#include "distributed/plotter.hpp"
 #include "distributed/partitioned_image.hpp"
 #include "distributed/partitionings.hpp"
 #include "distributed/recursive_bisectioning.hpp"

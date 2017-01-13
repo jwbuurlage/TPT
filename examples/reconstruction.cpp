@@ -14,7 +14,6 @@
 #include "fmt/format.h"
 
 #include "tomo.hpp"
-#include "util/plotter.hpp"
 
 using T = float;
 
@@ -30,41 +29,35 @@ void run(tomo::util::args opt) {
     // auto g = tomo::geometry::helical_cone_beam<T>(v, k, (T)1.0, {k, k});
     auto g = tomo::geometry::parallel<D, T>(opt.k, opt.k, v);
 
-    //    // simulate the experiment
+    // simulate the experiment
     auto proj = tomo::dim::closest<D, T>(v);
-    //    // auto proj = tomo::dim::joseph<T>(v);
-    //    auto proj = tomo::dim::closest<D, T>(v);
+    // auto proj = tomo::dim::joseph<T>(v);
+    // auto proj = tomo::dim::closest<D, T>(v);
     auto sino = tomo::forward_projection<D, T>(f, g, proj);
     //ascii_plot(sino);
 
     // run an algorithm to reconstruct the image
     if (opt.art) {
-        auto plotter =
-            tomo::ext_plotter<D, T>("tcp://localhost:5555", "ART");
         auto x =
             tomo::reconstruction::art(v, g, sino, opt.beta, opt.iterations);
         fmt::print("ART\n");
-        plotter.plot(x);
+        tomo::ascii_plot(x);
     }
 
     // run an algorithm to reconstruct the image
     if (opt.sart) {
-        auto plotter =
-            tomo::ext_plotter<D, T>("tcp://localhost:5555", "SART");
         auto y =
             tomo::reconstruction::sart(v, g, sino, opt.beta, opt.iterations);
         fmt::print("SART\n");
-        plotter.plot(y);
+        tomo::ascii_plot(y);
     }
 
     if (opt.sirt) {
-        auto plotter =
-            tomo::ext_plotter<D, T>("tcp://localhost:5555", "SIRT");
         // run an algorithm to reconstruct the image
         auto z =
             tomo::reconstruction::sirt(v, g, sino, opt.beta, opt.iterations);
         fmt::print("SIRT\n");
-        plotter.plot(z);
+        tomo::ascii_plot(z);
     }
 
     fmt::print("Parameters: size = {}x{}, iterations = {}, beta = {}\n", opt.k,
