@@ -1,28 +1,29 @@
-# Galactica
+# Tomos
 
-Personal goal: convince that ASTRA 2.0 is needed with the following features:
+Tomos is a library with many tools for tomographic reconstruction. Its features over other 'tomography toolboxes' include:
 
-* Written in modern C++, with OO / generic programming style like STL
-* Distributed from the start
-* Not bound to CUDA / MATLAB / Python, should have no reference anywhere in the main code
-* Better build system (CMake)
-* Data oriented => faster
-* No or very little specific code for 2D or 3D in main code
+- Written in modern C++, with OO / generic programming style like STL
+- Tomos supports a general model for distributed computing, enabling the resulting algorithms to run on clusters
+- It is not bound to CUDA, MATLAB, or Python, although Python bindings and GPU computing are supported
+- The CPU implementations are efficient
+- Support for 2D, 3D or higher dimensional reconstructions.
 
 # Dependencies
 
 We use:
+- Catch
+- fmtlib/fmt
+- glm
+- boost::program_options
+- thrust
 
-* Catch
-* fmtlib/fmt
-* glm
-* boost::hana
-* boost::program_options
-* pybind11
-* thrust
+For the Python bindings:
+- pybind11
+- boost::hana
 
-Build
+To build:
+- CMake (>= 3.0)
+- Modern compiler (with support for at least C++14)
 
-* cmake
-* cuda
-* modern compiler
+For GPU support:
+- CUDA (>= 7.0)

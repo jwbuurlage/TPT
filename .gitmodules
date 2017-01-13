@@ -1,9 +1,6 @@
 [submodule "pybind11"]
 	path = python/build/pybind11
 	url = https://github.com/pybind/pybind11
-[submodule "ext/hemi"]
-	path = ext/hemi
-	url = https://github.com/harrism/hemi
 [submodule "ext/fmt"]
 	path = ext/fmt
 	url = https://github.com/fmtlib/fmt
