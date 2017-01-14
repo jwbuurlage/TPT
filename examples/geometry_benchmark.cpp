@@ -10,9 +10,6 @@
 namespace po = boost::program_options;
 #include "fmt/format.h"
 
-#include <boost/hana.hpp>
-namespace hana = boost::hana;
-
 #include "tomo.hpp"
 #include "util/report.hpp"
 
