@@ -6,17 +6,17 @@
 	url = https://github.com/fmtlib/fmt
 [submodule "ext/bulk"]
 	path = ext/bulk
-	url = git@github.com/jwbuurlage/Bulk.git
+	url = https://github.com/jwbuurlage/Bulk.git
     branch = develop
 [submodule "catch"]
 	path = ext/catch
 	url = https://github.com/philsquared/Catch
 [submodule "ext/slicevis"]
 	path = ext/slicevis
-	url = git@github.com:jwbuurlage/slicevis.git
+	url = https://github.com/jwbuurlage/slicevis.git
 [submodule "ext/libzmq"]
 	path = ext/libzmq
-	url = git@github.com:zeromq/libzmq.git
+	url = https://github.com/zeromq/libzmq.git
 [submodule "ext/cppzmq"]
 	path = ext/cppzmq
-	url = git@github.com:zeromq/cppzmq.git
+	url = https://github.com/zeromq/cppzmq.git
