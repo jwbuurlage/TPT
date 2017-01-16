@@ -4,6 +4,7 @@
 #include <chrono>
 #include <thread>
 
+#include "../phantoms.hpp"
 #include "bulk/bulk.hpp"
 
 namespace tomo {
@@ -129,10 +130,9 @@ void output_in_turn(bulk::world& world, Func func) {
     }
 }
 
-template <typename T, int G>
-void partitioned_phantom(partitioned_image<2_D, G, T>& img) {
-    auto global_volume =
-        tomo::volume<2>(img.global_size()[0], img.global_size()[1]);
+template <tomo::dimension D, typename T, int G>
+void partitioned_phantom(partitioned_image<D, G, T>& img) {
+    auto global_volume = tomo::volume<D>(img.global_size());
     tomo::fill_ellipses_(img, tomo::mshl_ellipses_<T>(), img.local_volume(),
                          global_volume);
 }

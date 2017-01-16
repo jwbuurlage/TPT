@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <iostream>
 
 #include <zmq.hpp>
 
@@ -8,6 +9,7 @@
 
 #include "../common.hpp"
 #include "../image.hpp"
+#include "../utilities.hpp"
 
 namespace tomo {
 
@@ -117,9 +119,6 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D> {
             for (int d = 0; d < 2_D; ++d) {
                 image_size[d] = slice.size(d);
             }
-
-            std::cout << "size: " << image_size[0] << ", " << image_size[1]
-                      << "\n";
 
             auto upd_packet = tomovis::SliceDataPacket(
                 scene_id_, axis, image_size, std::move(pack_image(slice)));
