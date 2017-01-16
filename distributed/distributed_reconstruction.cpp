@@ -1,5 +1,5 @@
-#include "tomo.hpp"
 #include "distributed/plotter.hpp"
+#include "tomo.hpp"
 
 #include <algorithm>
 #include <array>
@@ -10,15 +10,14 @@
 #include "bulk/backends/mpi/mpi.hpp"
 #include "bulk/bulk.hpp"
 
+namespace td = tomo::distributed;
+
 int main() {
     using T = float;
-    int k = 512;
+    int k = 128 ;
     constexpr tomo::dimension D = 2;
 
-    namespace td = tomo::distributed;
-
     bulk::mpi::environment env;
-
     env.spawn(env.available_processors(), [=](auto& world, int s, int p) {
         td::ext_plotter<D, T> plotter("tcp://localhost:5555",
                                       "Distributed reconstruction", world);
@@ -29,26 +28,17 @@ int main() {
 
         bench.phase("initialize");
 
+        // set up the partitioning
         std::array<int, D> size{};
         std::fill(size.begin(), size.end(), k);
-
         auto block = bulk::block_partitioning<D, 2>(world, size, {2, p / 2});
 
-        std::cout << block.origin(s)[0] << "+" << block.origin(s)[1] << " "
-                  << block.local_size(s)[0] << "x" << block.local_size(s)[1]
-                  << "\n";
-
-        // construct distributed image
+        // construct distributed image and the associated volumes
         auto img = td::partitioned_image<D, D, T>(world, block);
-
-        // global_size why doesnt it match?
         auto global_volume = tomo::volume<D>(img.global_size());
-
-        // non-centered (local) volumes can be initialized here
-        // see img.local_volume().origin();
         auto v = img.local_volume();
 
-        // support for distributed phantom construction
+        // we initialize a Shepp-Logan phantom inside the image
         td::partitioned_phantom(img);
         plotter.plot(img);
 
@@ -57,23 +47,22 @@ int main() {
         auto geom = tomo::geometry::parallel<D, T>(k, k, global_volume);
         auto proj = tomo::dim::closest<D, T>(v);
 
-        // The forward projection is modified so that we can perform it
+        // the forward projection is modified so that we can perform it
         // in parallel on a distributed image, obtaining a 'distributed
         // sinogram'
         auto partitioned_sino =
             td::partitioned_sinogram<D, T, decltype(geom)>(world, block, geom);
 
+        // we compute the overlap on the projection stack
         bench.phase("compute overlap");
         partitioned_sino.compute_overlap(proj);
         world.log("com vol = %i\n", partitioned_sino.communication_volume());
 
-        bench.phase("one fp");
+        // we perform one forward projection
+        bench.phase("one fp (initialize projection stack)");
         td::forward_project(img, geom, proj, partitioned_sino);
 
         bench.phase("compute rs, cs");
-
-        // [x] 2. D-SIRT
-        // TODO compute r and c
         std::vector<T> rs(geom.lines());
         std::vector<T> cs(v.cells());
 
@@ -86,8 +75,8 @@ int main() {
             row++;
         }
 
-        // communicate row elements
-        // note that this is exactly exchange in sino
+        // communicate row elements, note that this corresponds to the computed
+        // overlap
         auto row_queue = bulk::queue<int, T>(world);
         for (auto exchange : partitioned_sino.exchanges()) {
             row_queue(exchange.target).send(exchange.line, rs[exchange.line]);
@@ -136,6 +125,5 @@ int main() {
 
             plotter.plot(x);
         }
-
     });
 }
