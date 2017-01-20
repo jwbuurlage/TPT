@@ -106,6 +106,8 @@ class ext_plotter<2_D, T> : public ext_plotter_base<2_D> {
 template <typename T>
 class ext_plotter<3_D, T> : public ext_plotter_base<3_D> {
   public:
+    ext_plotter() = default;
+
     ext_plotter(std::string address, std::string name = "Anonymous")
         : ext_plotter_base<3_D>() {
         connect(address, name);

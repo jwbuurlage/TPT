@@ -130,10 +130,17 @@ void output_in_turn(bulk::world& world, Func func) {
     }
 }
 
-template <tomo::dimension D, typename T, int G>
-void partitioned_phantom(partitioned_image<D, G, T>& img) {
-    auto global_volume = tomo::volume<D>(img.global_size());
+template <typename T, int G>
+void partitioned_phantom(partitioned_image<2_D, G, T>& img) {
+    auto global_volume = tomo::volume<2_D>(img.global_size());
     tomo::fill_ellipses_(img, tomo::mshl_ellipses_<T>(), img.local_volume(),
+                         global_volume);
+}
+
+template <typename T, int G>
+void partitioned_phantom(partitioned_image<3_D, G, T>& img) {
+    auto global_volume = tomo::volume<3_D>(img.global_size());
+    tomo::fill_ellipsoids_(img, tomo::mshl_ellipsoids_<T>(), img.local_volume(),
                          global_volume);
 }
 
