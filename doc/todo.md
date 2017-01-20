@@ -4,12 +4,13 @@ It is necessary for my experiments to have distributed 3d reconstruction of arbi
 - [x] Fix border error
 - [ ] Fix center error, interpolation shenanigans. (One of) the problem(s) is that 'inside' is relative to the projector.
       This means that even though the interopolation point can be outside the volume, one of the 'hit' voxels can be inside, depending on the projector.
+- [ ] Add tomo::args to distributed reconstruction
 - [ ] Have a version working for e.g. parallel geometry in 3d for ShLo phantom
 	- [x] Set up a benchmarking tool (maybe adaptation of the Zee one)
     - [x] Need to plot the resulting image (per iteration), could maybe use Cinder for this
     - [x] Need to heavily optimize the 'harmonizing' (probably MPI backend of Bulk)
     - [x] We require a more general notion of a distributed sinogram (= stack of projections) that can be harmonized (simply rename)
-    - [ ] Add 3D partitioned phantom support
+    - [x] Add 3D partitioned phantom support
     - [ ] Restrict the geometry to the local volume
 - [ ] Make Joseph for D > 2
 - [ ] Real data:
