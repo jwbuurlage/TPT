@@ -6,7 +6,7 @@ namespace tomo {
 namespace distributed {
 
 template <dimension D, typename T, typename Geometry>
-class partitioned_sinogram {
+class partitioned_projection_stack {
   public:
     struct exchange {
         int line;
@@ -15,7 +15,7 @@ class partitioned_sinogram {
 
     using value_type = T;
 
-    partitioned_sinogram(bulk::world& world, bulk::partitioning<D>& part,
+    partitioned_projection_stack(bulk::world& world, bulk::partitioning<D>& part,
                          Geometry& geometry)
         : world_(world), data_(world, geometry.lines()), part_(part),
           geometry_(geometry) {
