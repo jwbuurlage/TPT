@@ -14,7 +14,7 @@ namespace td = tomo::distributed;
 
 int main() {
     using T = float;
-    int k = 128 ;
+    int k = 512;
     constexpr tomo::dimension D = 2;
 
     bulk::mpi::environment env;
@@ -34,9 +34,9 @@ int main() {
         auto block = bulk::block_partitioning<D, 2>(world, size, {2, p / 2});
 
         // construct distributed image and the associated volumes
-        auto img = td::partitioned_image<D, D, T>(world, block);
+        auto img = td::partitioned_image<D, 2, T>(world, block);
         auto global_volume = tomo::volume<D>(img.global_size());
-        auto v = img.local_volume();
+        auto local_volume = img.local_volume();
 
         // we initialize a Shepp-Logan phantom inside the image
         td::partitioned_phantom(img);
@@ -45,7 +45,7 @@ int main() {
         // projectors and geometries are modified so that they are
         // intersected with volumes at proper location
         auto geom = tomo::geometry::parallel<D, T>(k, k, global_volume);
-        auto proj = tomo::dim::closest<D, T>(v);
+        auto proj = tomo::dim::closest<D, T>(local_volume);
 
         // the forward projection is modified so that we can perform it
         // in parallel on a distributed image, obtaining a 'distributed
@@ -64,7 +64,7 @@ int main() {
 
         bench.phase("compute rs, cs");
         std::vector<T> rs(geom.lines());
-        std::vector<T> cs(v.cells());
+        std::vector<T> cs(local_volume.cells());
 
         int row = 0;
         for (auto l : geom) {
@@ -119,7 +119,7 @@ int main() {
             buffer_image.clear();
             td::back_project(buffer_image, geom, proj, buffer_sino);
 
-            for (int j = 0; j < v.cells(); ++j) {
+            for (int j = 0; j < local_volume.cells(); ++j) {
                 x[j] += cs[j] * buffer_image[j];
             }
 

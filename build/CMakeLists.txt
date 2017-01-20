@@ -5,6 +5,7 @@ include(FeatureSummary)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(FOR_RELEASE "Build with all obtimizations turned on")
 option(WITH_MPI "Build MPI specific parts")
 option(WITH_ZMQ "Build ZeroMQ support for visualization servers")
 
@@ -20,7 +21,12 @@ include_directories(
     "../ext/bulk/include"
 )
 
+if(FOR_RELEASE)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wno-missing-braces -Wfatal-errors -Werror -pedantic -O3 -g")
+else(FOR_RELEASE)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wno-missing-braces -Wfatal-errors -Werror -pedantic -O3 -DNDEBUG")
+endif(FOR_RELEASE)
+
 # ignore warnings from external libs
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ../ext/fmt -isystem ~/.local/include -isystem ../ext/bulk/include -isystem /usr/local/cuda/include")
 
