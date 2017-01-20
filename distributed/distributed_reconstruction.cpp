@@ -14,7 +14,7 @@ namespace td = tomo::distributed;
 
 int main() {
     using T = float;
-    int k = 512;
+    int k = 128;
     constexpr tomo::dimension D = 3;
 
     bulk::mpi::environment env;
