@@ -26,13 +26,14 @@ class closest : public base<D, T, closest_iterator<T>> {
 
   private:
     void reset_(math::line<D, T> line) override {
-        auto current_point = line.origin + (T)0.5 * line.delta;
+        auto current_point = line.origin;
         while (math::inside<D, T>(current_point, this->volume_)) {
             // implicitely convert to vector of integers
             auto index = this->volume_.index(math::vec<D, int>(current_point) -
                                              this->volume_.origin());
-            if (index >= 0 && index <= this->volume_.cells())
+            if (index >= 0 && index <= this->volume_.cells()) {
                 queue_.push_back({index, (T)1.0});
+            }
             current_point += line.delta;
         }
 

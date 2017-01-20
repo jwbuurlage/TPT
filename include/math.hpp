@@ -170,6 +170,12 @@ auto floor(T obj) {
     return glm::floor(obj);
 }
 
+/** Ceil an object of type T. */
+template <typename T>
+auto ceil(T obj) {
+    return glm::ceil(obj);
+}
+
 /** Rotate a 3D vector */
 template <typename T>
 auto rotate(vec<3_D, T> v, vec<3_D, T> normal, T angle) {
@@ -366,8 +372,11 @@ optional<line<D, T>> truncate_to_volume(ray<D, T> ray, volume<D> v) {
     if (!origin) {
         return optional<line<D, T>>();
     }
-    return optional<line<D, T>>{
-        line<D, T>{origin.value().first, normalize(ray.detector - ray.source)}};
+
+    auto steps = (T)ceil(distance(ray.source, origin.value().first));
+    auto delta = normalize(ray.detector - ray.source);
+
+    return optional<line<D, T>>{line<D, T>{ray.source + steps * delta, delta}};
 }
 
 /**
@@ -393,12 +402,13 @@ intersect_bounds(math::ray<D, T> l, std::array<math::vec2<int>, D> bounds) {
     return result;
 }
 
-/** Checks whether a world vector lies in the *open* box defined by a volume. */
+/** Checks whether a world vector lies in the box defined by a volume. This is
+ * open by one side, the upper side in each axis. */
 template <dimension D, typename T>
 bool inside(vec<D, T> a, volume<D> vol) {
     a -= vol.origin();
     for (int dim = 0; dim < D; ++dim) {
-        if (a[dim] <= (T)0 || a[dim] >= (T)vol[dim])
+        if (a[dim] < (T)0 || a[dim] >= (T)vol[dim])
             return false;
     }
     return true;

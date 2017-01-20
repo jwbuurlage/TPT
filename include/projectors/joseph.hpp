@@ -12,22 +12,26 @@ using joseph_iterator = typename std::vector<math::matrix_element<T>>::iterator;
  * between the other axes. A benefit of this technique is that there are no
  * 'shadowing non-zeros', i.e. non-zeros with the same indices.
  */
-template <typename T>
-class joseph: public base<2_D, T, joseph_iterator<T>> {
+template <tomo::dimension D, typename T>
+class joseph: public base<D, T, joseph_iterator<T>> {
   public:
     /** Construct the DIM for a given volume. */
-    joseph(volume<2_D> vol)
-        : base<2_D, T, joseph_iterator<T>>(vol) {
+    joseph(volume<D> vol)
+        : base<D, T, joseph_iterator<T>>(vol) {
         auto dims = this->volume_.dimensions();
-        auto max_width = tomo::math::max_element<2_D, int>(dims);
+        auto max_width = tomo::math::max_element<D, int>(dims);
         queue_.reserve((int)(2 * max_width));
     }
 
   private:
-    void reset_(math::line<2_D, T> line) override {
-        auto interpolate = [&](math::vec2<T> position, int axis) {
-            math::vec2<int> closest_cell;
-            closest_cell[1 - axis] = math::floor(position[1 - axis]);
+    void reset_(math::line<D, T> line) override {
+        auto interpolate = [&](math::vec<D, T> position, int axis) {
+            math::vec<D, int> closest_cell;
+            for (int d = 0; d < D; ++d) {
+                if (d == axis)
+                    continue;
+                closest_cell[d] = math::floor(position[d]);
+            }
             closest_cell[axis] =
                 math::floor(position[axis] + 0.5 - math::epsilon<T>);
 
@@ -46,12 +50,15 @@ class joseph: public base<2_D, T, joseph_iterator<T>> {
         };
 
         auto current_point = line.origin;
+
+        // the axis should correspond to the lowest delta component, for highest precision
         int axis = (math::abs(line.delta.x) > math::abs(line.delta.y)) ? 1 : 0;
 
+        // FIXME actually implement this
         auto step = line.delta / math::abs(line.delta[1 - axis]);
         current_point += (T)0.5 * step;
 
-        while (math::inside<2_D, T>(current_point, this->volume_)) {
+        while (math::inside<D, T>(current_point, this->volume_)) {
             interpolate(current_point, axis);
             current_point += step;
         }
