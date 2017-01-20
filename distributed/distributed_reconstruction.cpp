@@ -15,7 +15,7 @@ namespace td = tomo::distributed;
 int main() {
     using T = float;
     int k = 512;
-    constexpr tomo::dimension D = 2;
+    constexpr tomo::dimension D = 3;
 
     bulk::mpi::environment env;
     env.spawn(env.available_processors(), [=](auto& world, int s, int p) {
@@ -104,8 +104,8 @@ int main() {
         // TODO construct using already computed exchanges
         buffer_ps.compute_overlap(proj);
 
-        auto x = td::partitioned_image<D, D, T>(world, block);
-        auto buffer_image = td::partitioned_image<D, D, T>(world, block);
+        auto x = td::partitioned_image<D, 2, T>(world, block);
+        auto buffer_image = td::partitioned_image<D, 2, T>(world, block);
 
         bench.phase("10 times sirt");
         for (int iter = 0; iter < 10; ++iter) {
