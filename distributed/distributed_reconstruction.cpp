@@ -49,18 +49,19 @@ int main() {
 
         // the forward projection is modified so that we can perform it
         // in parallel on a distributed image, obtaining a 'distributed
-        // sinogram'
-        auto partitioned_sino =
-            td::partitioned_sinogram<D, T, decltype(geom)>(world, block, geom);
+        // projection_stack'
+        auto partitioned_ps =
+            td::partitioned_projection_stack<D, T, decltype(geom)>(world, block,
+                                                                   geom);
 
         // we compute the overlap on the projection stack
         bench.phase("compute overlap");
-        partitioned_sino.compute_overlap(proj);
-        world.log("com vol = %i\n", partitioned_sino.communication_volume());
+        partitioned_ps.compute_overlap(proj);
+        world.log("com vol = %i\n", partitioned_ps.communication_volume());
 
         // we perform one forward projection
-        bench.phase("one fp (initialize projection stack)");
-        td::forward_project(img, geom, proj, partitioned_sino);
+        bench.phase("one fp (experiment)");
+        td::forward_project(img, geom, proj, partitioned_ps);
 
         bench.phase("compute rs, cs");
         std::vector<T> rs(geom.lines());
@@ -78,7 +79,7 @@ int main() {
         // communicate row elements, note that this corresponds to the computed
         // overlap
         auto row_queue = bulk::queue<int, T>(world);
-        for (auto exchange : partitioned_sino.exchanges()) {
+        for (auto exchange : partitioned_ps.exchanges()) {
             row_queue(exchange.target).send(exchange.line, rs[exchange.line]);
         }
         world.sync();
@@ -96,28 +97,29 @@ int main() {
             c = beta / c;
 
         bench.phase("initialize sirt");
-        // temporary sino
-        auto buffer_sino =
-            td::partitioned_sinogram<D, T, decltype(geom)>(world, block, geom);
+        // temporary ps
+        auto buffer_ps =
+            td::partitioned_projection_stack<D, T, decltype(geom)>(world, block,
+                                                                   geom);
         // TODO construct using already computed exchanges
-        buffer_sino.compute_overlap(proj);
+        buffer_ps.compute_overlap(proj);
 
         auto x = td::partitioned_image<D, D, T>(world, block);
         auto buffer_image = td::partitioned_image<D, D, T>(world, block);
 
         bench.phase("10 times sirt");
         for (int iter = 0; iter < 10; ++iter) {
-            buffer_sino.clear();
+            buffer_ps.clear();
 
             // forward project x
-            td::forward_project(x, geom, proj, buffer_sino);
+            td::forward_project(x, geom, proj, buffer_ps);
 
             for (int j = 0; j < geom.lines(); ++j) {
-                buffer_sino[j] = rs[j] * (partitioned_sino[j] - buffer_sino[j]);
+                buffer_ps[j] = rs[j] * (partitioned_ps[j] - buffer_ps[j]);
             }
 
             buffer_image.clear();
-            td::back_project(buffer_image, geom, proj, buffer_sino);
+            td::back_project(buffer_image, geom, proj, buffer_ps);
 
             for (int j = 0; j < local_volume.cells(); ++j) {
                 x[j] += cs[j] * buffer_image[j];

@@ -2,7 +2,7 @@
 
 It is necessary for my experiments to have distributed 3d reconstruction of arbitrary geometry. The inbetween steps:
 - [x] Fix border error
-- [ ] Fix center error
+- [ ] Fix center error, interpolation shenanigans
 - [ ] Have a version working for e.g. parallel geometry in 3d for ShLo phantom
 	- [x] Set up a benchmarking tool (maybe adaptation of the Zee one)
     - [x] Need to plot the resulting image (per iteration), could maybe use Cinder for this

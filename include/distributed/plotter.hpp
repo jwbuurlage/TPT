@@ -4,6 +4,7 @@
 
 #include "../util/plotter.hpp"
 #include "forward_projection.hpp"
+#include "partitioned_projection_stack.hpp"
 
 namespace tomo {
 namespace distributed {
@@ -30,11 +31,11 @@ class ext_plotter {
     }
 
     template <typename Geometry>
-    void plot(partitioned_sinogram<D, T, Geometry>& sino) {
-        if (sino.world().processor_id() != 0)
+    void plot(partitioned_projection_stack<D, T, Geometry>& ps) {
+        if (ps.world().processor_id() != 0)
             return;
 
-        plotter_.plot(sino.as_image());
+        plotter_.plot(ps.as_image());
     }
 
   private:
