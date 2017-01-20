@@ -23,10 +23,10 @@ class base {
     /** Construct a projector for a scanning volume. */
     base(volume<D> vol) : volume_(vol) {}
 
-    /** Obtain an iterator to the first voxel that is 'touched'. */
+    /** Obtain an iterator to the first voxel that is 'hit'. */
     Iterator begin() { return begin_(); }
 
-    /** Obtain an iterator beyond the final voxel that is 'touched'. */
+    /** Obtain an iterator beyond the final voxel that is 'hit'. */
     Iterator end() { return end_(); }
 
     /**
@@ -35,14 +35,14 @@ class base {
      * This allows for code such as:
      * ```{.cpp}
      * for (auto l : g)
-     *      for (auto touch : proj(l)) {
-     *        // do something with the touch
+     *      for (auto element : proj(l)) {
+     *        // do something with the element
      *      }
      * ```
      */
-    class touch_container {
+    class element_container {
       public:
-        touch_container(base& p) : p_(p) {}
+        element_container(base& p) : p_(p) {}
         inline Iterator begin() { return p_.begin(); }
         inline Iterator end() { return p_.end(); }
 
@@ -51,14 +51,14 @@ class base {
     };
 
     /** Returns an iterable container for line `line` with this DIM. */
-    touch_container operator()(math::ray<D, T> incoming_ray) {
+    element_container operator()(math::ray<D, T> incoming_ray) {
         // truncate to volume here first, then reset
         auto truncated_line = truncate_to_volume(incoming_ray, volume_);
         this->clear_();
         if (truncated_line) {
             this->reset_(truncated_line.value());
         }
-        return touch_container(*this);
+        return element_container(*this);
     }
 
     /** Obtain the current line of the DIM. */
