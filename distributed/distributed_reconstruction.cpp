@@ -12,11 +12,10 @@
 
 namespace td = tomo::distributed;
 
-int main() {
-    using T = float;
-    int k = 128;
-    constexpr tomo::dimension D = 3;
+using T = float;
 
+template <tomo::dimension D>
+void run(tomo::util::args opt) {
     bulk::mpi::environment env;
     env.spawn(env.available_processors(), [=](auto& world, int s, int p) {
         td::ext_plotter<D, T> plotter("tcp://localhost:5555",
@@ -30,7 +29,7 @@ int main() {
 
         // set up the partitioning
         std::array<int, D> size{};
-        std::fill(size.begin(), size.end(), k);
+        std::fill(size.begin(), size.end(), opt.k);
         auto block = bulk::block_partitioning<D, 2>(world, size, {2, p / 2});
 
         // construct distributed image and the associated volumes
@@ -44,7 +43,7 @@ int main() {
 
         // projectors and geometries are modified so that they are
         // intersected with volumes at proper location
-        auto geom = tomo::geometry::parallel<D, T>(k, k, global_volume);
+        auto geom = tomo::geometry::parallel<D, T>(opt.k, opt.k, global_volume);
         auto proj = tomo::dim::closest<D, T>(local_volume);
 
         // the forward projection is modified so that we can perform it
@@ -98,17 +97,16 @@ int main() {
 
         bench.phase("initialize sirt");
         // temporary ps
-        auto buffer_ps =
-            td::partitioned_projection_stack<D, T, decltype(geom)>(world, block,
-                                                                   geom);
+        auto buffer_ps = td::partitioned_projection_stack<D, T, decltype(geom)>(
+            world, block, geom);
         // TODO construct using already computed exchanges
         buffer_ps.compute_overlap(proj);
 
         auto x = td::partitioned_image<D, 2, T>(world, block);
         auto buffer_image = td::partitioned_image<D, 2, T>(world, block);
 
-        bench.phase("10 times sirt");
-        for (int iter = 0; iter < 10; ++iter) {
+        bench.phase("iterating sirt");
+        for (int iter = 0; iter < opt.iterations; ++iter) {
             buffer_ps.clear();
 
             // forward project x
@@ -128,4 +126,22 @@ int main() {
             plotter.plot(x);
         }
     });
+}
+
+int main(int argc, char* argv[]) {
+    auto opt = tomo::util::args(argc, argv);
+
+    // TODO: can we make option for which projector to use (now compile time,
+    // need different options)
+    // TODO: want micro benchmarking merged here, instead of using `time ./prog`
+
+    if (opt.two) {
+        run<2_D>(opt);
+    } else if (opt.three) {
+        run<3_D>(opt);
+    } else {
+        std::cout << "No D given\n";
+    }
+
+    return 0;
 }
