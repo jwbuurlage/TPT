@@ -31,12 +31,11 @@ class closest : public base<D, T, closest_iterator<T>> {
             // implicitely convert to vector of integers
             auto index = this->volume_.index(math::vec<D, int>(current_point) -
                                              this->volume_.origin());
-            if (index >= 0 && index <= this->volume_.cells()) {
+            if (index >= 0 && index < this->volume_.cells()) {
                 queue_.push_back({index, (T)1.0});
             }
             current_point += line.delta;
         }
-
         this->line_ = line;
     }
 

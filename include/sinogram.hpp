@@ -59,6 +59,13 @@ class sinogram {
 
     auto get_volume() const { return geometry().get_volume(); }
 
+    image<D, T> as_image() const {
+        image<2_D, T> img(
+            volume<2_D>(geometry_.groups()[0], geometry_.groups()[1]));
+        img.mutable_data() = data_;
+        return img;
+    }
+
   private:
     const Geometry& geometry_;
     std::vector<T> data_;

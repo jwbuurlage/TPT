@@ -56,7 +56,8 @@ void run(tomo::util::args opt) {
         // we compute the overlap on the projection stack
         bench.phase("compute overlap");
         partitioned_ps.compute_overlap(proj);
-        world.log("com vol = %i\n", partitioned_ps.communication_volume());
+        world.log("com vol = %i / %i\n", partitioned_ps.communication_volume(),
+                  geom.lines() * (p - 1));
 
         // we perform one forward projection
         bench.phase("one fp (experiment)");
