@@ -363,6 +363,17 @@ aabb_intersection(vec<D, T> a, vec<D, T> b, vec<D, T> sides,
                                         {a + (b - a) * t_max}}};
 }
 
+/** Checks whether a world vector lies in the box defined by a volume. */
+template <dimension D, typename T>
+bool inside(vec<D, T> a, volume<D> vol) {
+    a -= vol.origin();
+    for (int dim = 0; dim < D; ++dim) {
+        if (a[dim] < -epsilon<T> || a[dim] > (T)vol[dim] + epsilon<T>)
+            return false;
+    }
+    return true;
+}
+
 template <dimension D, typename T>
 optional<line<D, T>> truncate_to_volume(ray<D, T> ray, volume<D> v) {
     // need line plane intersection, because the box is axis aligned (AABB) we
@@ -373,10 +384,11 @@ optional<line<D, T>> truncate_to_volume(ray<D, T> ray, volume<D> v) {
         return optional<line<D, T>>();
     }
 
-    auto steps = (T)ceil(distance(ray.source, origin.value().first));
+    //auto steps = (T)ceil(distance(ray.source, origin.value().first));
     auto delta = normalize(ray.detector - ray.source);
+    //auto start = ray.source + steps * delta;
 
-    return optional<line<D, T>>{line<D, T>{ray.source + steps * delta, delta}};
+    return optional<line<D, T>>{line<D, T>{origin.value().first + (T)0.5 * delta, delta}};
 }
 
 /**
@@ -400,18 +412,6 @@ intersect_bounds(math::ray<D, T> l, std::array<math::vec2<int>, D> bounds) {
     }
 
     return result;
-}
-
-/** Checks whether a world vector lies in the box defined by a volume. This is
- * open by one side, the upper side in each axis. */
-template <dimension D, typename T>
-bool inside(vec<D, T> a, volume<D> vol) {
-    a -= vol.origin();
-    for (int dim = 0; dim < D; ++dim) {
-        if (a[dim] < (T)0 || a[dim] >= (T)vol[dim])
-            return false;
-    }
-    return true;
 }
 
 /** Reverse-interpolate a world vector to the

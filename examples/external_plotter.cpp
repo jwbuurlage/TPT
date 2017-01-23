@@ -5,30 +5,34 @@
 #include <cmath>
 #include <iostream>
 
+#include <glm/gtx/string_cast.hpp>
+
 #include "tomo.hpp"
 #include "util/plotter.hpp"
 
 using T = float;
 
-int main() {
+int main(int argc, char* argv[]) {
     // request a plotter scene
     auto plotter =
-        tomo::ext_plotter<3_D, T>("tcp://localhost:5555", "Test plot");
+        tomo::ext_plotter<2_D, T>("tcp://localhost:5555", "Sequential test");
 
-    //auto args = tomo::util::args(argc, argv);
+    auto opt = tomo::util::args(argc, argv);
 
-    int k = 92;
-
-    auto v = tomo::volume<3_D>(k);
+    auto v = tomo::volume<2_D>(opt.k);
     auto f = tomo::modified_shepp_logan_phantom<T>(v);
-    auto g = tomo::geometry::parallel<3_D, T>(k, k, v);
+    auto g = tomo::geometry::parallel<2_D, T>(opt.k / 2, opt.k / 2, v);
 
-    auto proj = tomo::dim::closest<3_D, T>(v);
-    auto sino = tomo::forward_projection<3_D, T>(f, g, proj);
+    auto proj = tomo::dim::linear<2_D, T>(v);
+    auto sino = tomo::forward_projection<2_D, T>(f, g, proj);
 
-    auto y = tomo::reconstruction::sirt(
-        v, g, sino, 0.5, 10,
-        {[&](tomo::image<3_D, T>& image) { plotter.plot(image); }});
+    plotter.plot(sino.as_image());
+
+    if (opt.sirt) {
+        auto y = tomo::reconstruction::sirt(
+            v, g, sino, 0.5, 10,
+            {[&](tomo::image<2_D, T>& image) { plotter.plot(image); }});
+    }
 
     return 0;
 }

@@ -41,6 +41,10 @@ class partitioned_projection_stack {
         }
     }
 
+    // TODO:
+    // We may not want to redundantly send everything to everyone,
+    // but rather sum on one of the owners, which then broadcasts
+    // to a subset
     template <typename Projector>
     void compute_overlap(Projector& proj) {
         auto cyclic = bulk::cyclic_partitioning<1, 1>(
