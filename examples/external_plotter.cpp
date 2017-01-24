@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
     auto f = tomo::modified_shepp_logan_phantom<T>(v);
     auto g = tomo::geometry::parallel<2_D, T>(opt.k, opt.k, v);
 
-    auto proj = tomo::dim::linear<2_D, T>(v);
+    auto proj = tomo::dim::joseph<2_D, T>(v);
 
     tomo::image<2_D, T> matrix(v);
     auto line = g.get_line(g.lines() / 2 + opt.k / 4);
