@@ -79,6 +79,8 @@ class base {
     virtual Iterator end_() = 0;
     virtual void reset_(math::line<D, T> line) = 0;
     virtual void clear_() = 0;
+
+    //TODO: move vector<matrix_elem> queue up here, so we dont need CRT anymore
 };
 
 } // namespace dim

@@ -48,7 +48,7 @@ class volume {
      * \param dimensions an array of which the i-th element corresponds to
      * the spanning width of the volume on the i-th axis.
      */
-    volume(math::vec<D, int> lengths) : lengths_(lengths), origin_(0) {}
+    volume(math::vec<D, int> lengths) : lengths_{lengths}, origin_{0} {}
 
     /**
      * Construct a (hyper)rectangular volume that has an offset.
