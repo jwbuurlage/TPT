@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../math.hpp"
+
 namespace tomo {
 namespace dim {
 
@@ -28,11 +30,9 @@ class joseph : public base<D, T, joseph_iterator<T>> {
         auto current_point = line.origin;
 
         // first decide which action to take
-        // the axis should correspond to the lowest delta component, for highest
-        // precision(?)
-        // (then actually largest steps, fewest interpolation points. why is
-        // this good?)
-        int axis = 0; // FIXME
+        // the axis should correspond to the largest delta component, for
+        // highest precision
+        int axis = math::max_index<D, T>(math::abs(line.delta));
 
         auto step = line.delta / math::abs(line.delta[axis]);
         // this should get us on '0.5'

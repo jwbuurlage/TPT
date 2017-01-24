@@ -21,6 +21,9 @@ using optional = std::experimental::optional<T>;
 #include <glm/gtc/constants.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 
+// this allows for `glm::to_string(vecD)`, which eases debugging
+#include <glm/gtx/string_cast.hpp>
+
 #include "common.hpp"
 #include "math/vector.hpp"
 #include "volume.hpp"
@@ -224,7 +227,7 @@ auto normalize(T obj) {
     return glm::normalize(obj);
 }
 
-/** Compute the distance between two vectors. */
+/** Return the value of the maximum component. */
 template <dimension D, typename T>
 T max_element(vec<D, T> v) {
     auto max = std::numeric_limits<T>::min();
@@ -234,6 +237,20 @@ T max_element(vec<D, T> v) {
         }
     }
     return max;
+}
+
+/** Return the index of the maximum component. */
+template <dimension D, typename T>
+int max_index(vec<D, T> x) {
+    int max_index = -1;
+    auto max = std::numeric_limits<T>::min();
+    for (int d = 0; d < D; ++d) {
+        if (x[d] > max) {
+            max = x[d];
+            max_index = d;
+        }
+    }
+    return max_index;
 }
 
 /** Compute the distance between two vectors. */
