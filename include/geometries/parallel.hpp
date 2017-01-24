@@ -23,9 +23,9 @@ namespace geometry {
  * the right dimension.
  */
 template <typename T>
-math::vec<1_D, T> detector_location(int detector, int detector_count,
+math::vec1<T> detector_location(int detector, int detector_count,
                                     T detector_step, const volume<2_D>&) {
-    return {(detector - (detector_count - 1) * (T)0.5) * detector_step};
+    return math::vec1<T>{(detector - (detector_count - 1) * (T)0.5) * detector_step};
 }
 
 /** ditto */
@@ -54,8 +54,8 @@ inline math::ray<2_D, T> compute_line(math::vec<1_D, T> current_detector,
                                       T current_angle, const volume<2_D>& vol) {
     // some performance can be gained here by *not* shifting with image
     // center, and maybe we even want to cache these results somehow
-    auto source = math::vec2<T>(-vol.x(), current_detector[0]);
-    auto detector = math::vec2<T>(vol.x(), current_detector[0]);
+    auto source = math::vec2<T>((T)-2.0 * vol.x(), current_detector[0]);
+    auto detector = math::vec2<T>((T)2.0 * vol.x(), current_detector[0]);
 
     auto c = math::cos(-current_angle);
     auto s = math::sin(-current_angle);
@@ -65,7 +65,7 @@ inline math::ray<2_D, T> compute_line(math::vec<1_D, T> current_detector,
     detector = math::vec2<T>(c * detector[0] - s * detector[1],
                              s * detector[0] + c * detector[1]);
 
-    auto image_center = math::vec2<T>(0.5 * vol.x(), 0.5 * vol.y());
+    auto image_center = math::vec2<T>(0.5 * (vol.x() + 1), 0.5 * (vol.y() + 1));
 
     source += image_center;
     detector += image_center;
@@ -81,7 +81,7 @@ inline math::ray<3_D, T> compute_line(math::vec2<T> current_detector,
     // the end
     auto volume_slice = volume<2_D>(vol.x(), vol.y());
     auto line_2d =
-        compute_line({current_detector.x}, current_angle, volume_slice);
+        compute_line(math::vec1<T>{current_detector.x}, current_angle, volume_slice);
 
     auto source = math::vec3<T>(line_2d.source.x, line_2d.source.y,
                                 current_detector.y + 0.5 * vol.z());

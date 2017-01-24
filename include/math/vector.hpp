@@ -23,7 +23,7 @@ struct vec_type {
 /** The type to use for 1-dimensional vectors. */
 template <typename T>
 struct vec_type<1_D, T> {
-    using type = std::array<T, 1>;
+    using type = glm::tvec1<T>;
 };
 
 /** The type to use for 2-dimensional vectors. */
@@ -51,6 +51,10 @@ struct vec_type<4_D, T> {
  */
 template <dimension D, typename T>
 using vec = typename vec_type<D, T>::type;
+
+/** Short-hand for 1-dimensional vectors. */
+template <typename T>
+using vec1 = vec<1_D, T>;
 
 /** Short-hand for 2-dimensional vectors. */
 template <typename T>

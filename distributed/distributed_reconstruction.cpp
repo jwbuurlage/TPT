@@ -44,7 +44,7 @@ void run(tomo::util::args opt) {
         // projectors and geometries are modified so that they are
         // intersected with volumes at proper location
         auto geom = tomo::geometry::parallel<D, T>(opt.k, opt.k, global_volume);
-        auto proj = tomo::dim::closest<D, T>(local_volume);
+        auto proj = tomo::dim::joseph<D, T>(local_volume);
 
         // the forward projection is modified so that we can perform it
         // in parallel on a distributed image, obtaining a 'distributed
@@ -88,13 +88,13 @@ void run(tomo::util::args opt) {
             rs[msg.tag] += msg.content;
         }
 
-        T beta = (T)0.5;
+        T beta = (T)1.0;
 
         // invert the sums
         for (auto& r : rs)
             r = 1.0 / r;
         for (auto& c : cs)
-            c = beta / c;
+            c = (tomo::math::abs(beta) > tomo::math::epsilon<T>) ? (beta / c) : (T)0;
 
         bench.phase("initialize sirt");
         // temporary ps

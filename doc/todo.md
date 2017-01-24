@@ -9,16 +9,19 @@ It is necessary for my experiments to have distributed 3d reconstruction of arbi
     - [x] Need to heavily optimize the 'harmonizing' (probably MPI backend of Bulk)
     - [x] We require a more general notion of a distributed sinogram (= stack of projections) that can be harmonized (simply rename)
     - [x] Add 3D partitioned phantom support
+- [ ] Make Joseph for D > 2
 - [ ] Fix center error, interpolation shenanigans. (One of) the problem(s) is that 'inside' is relative to the projector.
       This means that even though the interopolation point can be outside the volume, one of the 'hit' voxels can be inside, depending on the projector.
 - [ ] Restrict the geometry to the local volume
-- [ ] Make Joseph for D > 2
 - [ ] Real data:
     - [ ] Read data-exchange format
     - [ ] Read TIFF stack
 - [ ] Install GCC 7.0 and use C++17 to clean up code
 
 # Future:
+- [ ] Documentation for conventions (volume, voxels, origin, geometries, 1d vs multi_indices, ...)
+- [ ] Move to common projector, no longer needed as template argument
+- [ ] Move to common geometry, no longer needed as template argument (needed for 'real data')
 - [ ] Test bulk cpp backend too
 - [ ] Would be nice to add to the benchmarking a way to visualize it in slicevis
 - [ ] Optimize CPU algorithms (cache-use, limit recomputations, data-oriented, SIMD, ...)

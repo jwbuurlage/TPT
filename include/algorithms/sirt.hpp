@@ -53,9 +53,9 @@ image<D, T> sirt(const volume<D>& v, const Geometry& g,
     }
 
     for (auto& r : R)
-        r = 1.0 / r;
+        r = (math::abs(r) > math::epsilon<T>) ? ((T)1.0 / r) : (T)0.0;
     for (auto& bc : bC)
-        bc = beta / bc;
+        bc = (math::abs(bc) > math::epsilon<T>) ? ((T)beta / bc) : (T)0.0;
 
     sinogram<D, T, Geometry, Projector> s1(g);
     image<D, T> s2(v);

@@ -183,6 +183,16 @@ auto rotate(vec<3_D, T> v, vec<3_D, T> normal, T angle) {
 }
 
 /** Multiply the elements of a vector together */
+template <dimension D, typename T>
+auto product(vec<D, T> vec) {
+    auto result = (T)1;
+    for (int d = 0; d < D; ++d) {
+        result *= vec[d];
+    }
+    return result;
+}
+
+/** Multiply the elements of a vector together */
 template <dimension D>
 int reduce(vec<D, int> vec) {
     int product = 1;
@@ -363,17 +373,6 @@ aabb_intersection(vec<D, T> a, vec<D, T> b, vec<D, T> sides,
                                         {a + (b - a) * t_max}}};
 }
 
-/** Checks whether a world vector lies in the box defined by a volume. */
-template <dimension D, typename T>
-bool inside(vec<D, T> a, volume<D> vol) {
-    a -= vol.origin();
-    for (int dim = 0; dim < D; ++dim) {
-        if (a[dim] < -epsilon<T> || a[dim] > (T)vol[dim] + epsilon<T>)
-            return false;
-    }
-    return true;
-}
-
 template <dimension D, typename T>
 optional<line<D, T>> truncate_to_volume(ray<D, T> ray, volume<D> v) {
     // need line plane intersection, because the box is axis aligned (AABB) we
@@ -384,11 +383,12 @@ optional<line<D, T>> truncate_to_volume(ray<D, T> ray, volume<D> v) {
         return optional<line<D, T>>();
     }
 
-    //auto steps = (T)ceil(distance(ray.source, origin.value().first));
+    auto steps =
+        (T)ceil(distance(ray.source, origin.value().first) + epsilon<T>);
     auto delta = normalize(ray.detector - ray.source);
-    //auto start = ray.source + steps * delta;
+    auto start = ray.source + steps * delta;
 
-    return optional<line<D, T>>{line<D, T>{origin.value().first + (T)0.5 * delta, delta}};
+    return optional<line<D, T>>{line<D, T>{start + (T)0.5 * delta, delta}};
 }
 
 /**
@@ -412,6 +412,18 @@ intersect_bounds(math::ray<D, T> l, std::array<math::vec2<int>, D> bounds) {
     }
 
     return result;
+}
+
+/** Checks whether a world vector lies in the box defined by a volume. This is
+ * open by one side, the upper side in each axis. */
+template <dimension D, typename T>
+bool inside(vec<D, T> a, volume<D> vol) {
+    a -= vol.origin();
+    for (int dim = 0; dim < D; ++dim) {
+        if (a[dim] < -epsilon<T> || a[dim] > (T)vol[dim] + epsilon<T>)
+            return false;
+    }
+    return true;
 }
 
 /** Reverse-interpolate a world vector to the
@@ -451,10 +463,37 @@ void interpolate(vec<D, T> a, volume<D> vol,
         if (inside<D, T>(cell_center + tomo::math::vec<D, T>(vol.origin()),
                          vol)) {
             int index = vol.index_by_vector(cell);
-            T value = (T)1.0 - ((distance(relative, cell_center)) / sqrt<T>(D));
+            auto value = math::product<D, T>(math::vec<D, T>((T)1) -
+                                             math::abs(relative - cell_center));
             queue.push_back({index, value});
         }
     }
+}
+
+template <tomo::dimension D, typename T>
+math::vec<D - 1, T> restrict(math::vec<D, T> x, int skip) {
+    math::vec<D - 1, T> reduced_point;
+    int k = 0;
+    for (int d = 0; d < D; ++d) {
+        if (d == skip)
+            continue;
+        reduced_point[k++] = x[d];
+    }
+    return reduced_point;
+}
+
+template <tomo::dimension D, typename T>
+math::vec<D, T> extend(math::vec<D - 1, T> x, int axis, T value) {
+    math::vec<D, T> point;
+    int k = 0;
+    for (int d = 0; d < D; ++d) {
+        if (d == axis) {
+            point[d] = value;
+        } else {
+            point[d] = x[k++];
+        }
+    }
+    return point;
 }
 
 } // namespace math
