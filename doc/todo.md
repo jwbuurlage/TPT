@@ -9,9 +9,10 @@ It is necessary for my experiments to have distributed 3d reconstruction of arbi
     - [x] Need to heavily optimize the 'harmonizing' (probably MPI backend of Bulk)
     - [x] We require a more general notion of a distributed sinogram (= stack of projections) that can be harmonized (simply rename)
     - [x] Add 3D partitioned phantom support
-- [ ] Make Joseph for D > 2
+- [x] Make Joseph for D > 2
 - [ ] Fix center error, interpolation shenanigans. (One of) the problem(s) is that 'inside' is relative to the projector.
       This means that even though the interopolation point can be outside the volume, one of the 'hit' voxels can be inside, depending on the projector.
+      It is now actually at the boundary that is a problem
 - [ ] Restrict the geometry to the local volume
 - [ ] Real data:
     - [ ] Read data-exchange format
