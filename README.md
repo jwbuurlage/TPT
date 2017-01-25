@@ -88,8 +88,8 @@ There are four core components that are used for reconstruction:
 - `tomo::dim` is the namespace for the 'discrete integration methods' (also called interpolators, projectors or kernels).
     - `closest` projects any point on the ray to the closest voxel
     - `linear` does D-dimensional linear interpolation around the ray point to the surrounding voxels
-    - `joseph` does (D-1) dimensional linear interpolation by considering point on the ray that have integer coordinates in one fixed dimension.
-- `tomo::geometry` it the namespace for the various acquisition geometries
+    - `joseph` does (D-1) dimensional linear interpolation by considering points on the ray that have integer coordinates in one fixed dimension.
+- `tomo::geometry` is the namespace for the various acquisition geometries
     - `cone_beam`
     - `dual_axis_parallel`
     - `dynamic_cone_beam`
@@ -111,13 +111,13 @@ These can be used together completely independently. The reason is that we take 
 
 - A geometry acts as nothing more than a container of lines, so you can write:
 ```
-for (auto& line : geometry) {
+for (auto line : geometry) {
     // use line
 }
 ```
 - A discrete integration method takes a line, and produces a number of 'matrix elements', that contain the voxel (as an index), and the attenuation coefficient (value of the matrix element):
 ```
-for (auto& element : projector(line)) {
+for (auto element : projector(line)) {
     // element.index is the voxel
     // element.value is the coefficient
 }
