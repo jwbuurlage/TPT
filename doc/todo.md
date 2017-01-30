@@ -10,10 +10,17 @@ It is necessary for my experiments to have distributed 3d reconstruction of arbi
     - [x] We require a more general notion of a distributed sinogram (= stack of projections) that can be harmonized (simply rename)
     - [x] Add 3D partitioned phantom support
 - [x] Make Joseph for D > 2
-- [ ] Fix center error, interpolation shenanigans. (One of) the problem(s) is that 'inside' is relative to the projector.
-      This means that even though the interopolation point can be outside the volume, one of the 'hit' voxels can be inside, depending on the projector.
-      It is now actually at the boundary that is a problem
+- [x] Update partitioning algorithm for new Bulk system.
+    - [ ] Optimize the steps
+    - [ ] Perform on downsampled geometries
+    - [ ] Add voxel weight cumulative sum support
+- [ ] Make the partitioning persistent, define some YAML format
 - [ ] Restrict the geometry to the local volume
+- [ ] Fix center error, interpolation shenanigans. (One of) the problem(s) is that 'inside' is relative to the projector.
+      - This means that even though the interopolation point can be outside the volume, one of the 'hit' voxels can be inside, depending on the projector.
+      - Should see if entering/exiting happens properly
+      - For some projectors, do -1 delta and +1 delta
+      - What if line misses, but one of the points hits the subvolume
 - [ ] Real data:
     - [ ] Read data-exchange format
     - [ ] Read TIFF stack
@@ -23,7 +30,9 @@ It is necessary for my experiments to have distributed 3d reconstruction of arbi
 - [ ] Documentation for conventions (volume, voxels, origin, geometries, 1d vs multi_indices, ...)
 - [ ] Move to common projector, no longer needed as template argument
 - [ ] Move to common geometry, no longer needed as template argument (needed for 'real data')
-- [ ] Test bulk cpp backend too
+- [ ] We require realistic parameters for geometries, and test 3D sirt with them
+- [ ] General interpolation scheme for Simon
+- [ ] May want to test Bulk cpp backend too
 - [ ] Would be nice to add to the benchmarking a way to visualize it in slicevis
 - [ ] Optimize CPU algorithms (cache-use, limit recomputations, data-oriented, SIMD, ...)
 

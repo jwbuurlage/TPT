@@ -35,8 +35,15 @@ class joseph : public base<D, T, joseph_iterator<T>> {
         int axis = math::max_index<D, T>(math::abs(line.delta));
 
         auto step = line.delta / math::abs(line.delta[axis]);
-        // this should get us on '0.5'
-        current_point += ((T)0.5 - line.delta[axis]) * step;
+        // this should get us on '0.5', biasing towards a 0.5 inside the volume
+        auto nearest_column =
+            math::round(current_point[axis] - (T)0.5) + (T)0.5;
+        auto initial_step = (nearest_column - current_point[axis]) * step;
+        if (step[axis] > 0) {
+            current_point += initial_step;
+        } else {
+            current_point -= initial_step;
+        }
 
         auto slice_volume_lengths =
             math::restrict<D, int>(this->volume_.lengths(), axis);
@@ -45,13 +52,19 @@ class joseph : public base<D, T, joseph_iterator<T>> {
         auto slice_volume =
             tomo::volume<D - 1>(slice_volume_origin, slice_volume_lengths);
 
-        while (math::inside<D, T>(current_point, this->volume_)) {
+        while (
+            math::inside_margin<D, T>(current_point, this->volume_, (T)1.0)) {
             // we want to form the D-1 dimensional point, and the D-1
             // dimensional volume
             // we interpolate, and add the proper points (while knowing the
             // fixed axis coordinate)
             int current_row =
-                (int)(current_point[axis] - this->volume_.origin()[axis]);
+                math::round(current_point[axis] - this->volume_.origin()[axis] - 0.5);
+
+            if (current_row >= this->volume_[axis] || current_row < 0) {
+                current_point += step;
+                continue;
+            }
 
             auto initial_size = this->queue_.size();
             math::interpolate(math::restrict<D, T>(current_point, axis),
@@ -62,8 +75,9 @@ class joseph : public base<D, T, joseph_iterator<T>> {
             // not have to unroll here
             for (auto i = initial_size; i < this->queue_.size(); ++i) {
                 auto slice_index = slice_volume.unroll(this->queue_[i].index);
-                int voxel_index = this->volume_.index(
-                    math::extend<D, int>(slice_index, axis, current_row));
+                auto extended_slice_index =
+                    math::extend<D, int>(slice_index, axis, current_row);
+                int voxel_index = this->volume_.index(extended_slice_index);
                 this->queue_[i].index = voxel_index;
             }
 

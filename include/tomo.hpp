@@ -46,7 +46,6 @@
 #include "distributed/forward_projection.hpp"
 #include "distributed/partitioned_image.hpp"
 #include "distributed/partitioned_projection_stack.hpp"
-#include "distributed/partitionings.hpp"
 #include "distributed/recursive_bisectioning.hpp"
 
 #include "geometries/cone.hpp"
