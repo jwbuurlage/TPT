@@ -27,8 +27,10 @@ int main(int argc, char* argv[]) {
 
     tomo::image<2_D, T> matrix(v);
     auto line = g.get_line(g.lines() / 2 + opt.k / 4);
+    int k = 0;
     for (auto elem : proj(line)) {
         matrix[elem.index] += elem.value;
+        std::cout << k++ << " " << elem.index << ", " << elem.value << "\n";
     }
 
     plotter.plot(matrix);

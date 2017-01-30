@@ -30,10 +30,10 @@ void run(tomo::util::args opt) {
         // set up the partitioning
         std::array<int, D> size{};
         std::fill(size.begin(), size.end(), opt.k);
-        auto block = bulk::block_partitioning<D, 2>(world, size, {2, p / 2});
+        auto partitioning = bulk::block_partitioning<D, 2>(world, size, {2, p / 2});
 
         // construct distributed image and the associated volumes
-        auto img = td::partitioned_image<D, 2, T>(world, block);
+        auto img = td::partitioned_image<D, 2, T>(world, partitioning);
         auto global_volume = tomo::volume<D>(img.global_size());
         auto local_volume = img.local_volume();
 
@@ -44,13 +44,14 @@ void run(tomo::util::args opt) {
         // projectors and geometries are modified so that they are
         // intersected with volumes at proper location
         auto geom = tomo::geometry::parallel<D, T>(opt.k, opt.k, global_volume);
+        //auto geom = tomo::geometry::cone_beam<T>(global_volume, opt.k, 1.5, {opt.k, opt.k});
         auto proj = tomo::dim::joseph<D, T>(local_volume);
 
         // the forward projection is modified so that we can perform it
         // in parallel on a distributed image, obtaining a 'distributed
         // projection_stack'
         auto partitioned_ps =
-            td::partitioned_projection_stack<D, T, decltype(geom)>(world, block,
+            td::partitioned_projection_stack<D, T, decltype(geom)>(world, partitioning,
                                                                    geom);
 
         // we compute the overlap on the projection stack
@@ -99,12 +100,12 @@ void run(tomo::util::args opt) {
         bench.phase("initialize sirt");
         // temporary ps
         auto buffer_ps = td::partitioned_projection_stack<D, T, decltype(geom)>(
-            world, block, geom);
+            world, partitioning, geom);
         // TODO construct using already computed exchanges
         buffer_ps.compute_overlap(proj);
 
-        auto x = td::partitioned_image<D, 2, T>(world, block);
-        auto buffer_image = td::partitioned_image<D, 2, T>(world, block);
+        auto x = td::partitioned_image<D, 2, T>(world, partitioning);
+        auto buffer_image = td::partitioned_image<D, 2, T>(world, partitioning);
 
         bench.phase("iterating sirt");
         for (int iter = 0; iter < opt.iterations; ++iter) {

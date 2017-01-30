@@ -179,6 +179,12 @@ auto ceil(T obj) {
     return glm::ceil(obj);
 }
 
+/** Round an object of type T to the nearest integer. */
+template <typename T>
+auto round(T obj) {
+    return glm::round(obj);
+}
+
 /** Rotate a 3D vector */
 template <typename T>
 auto rotate(vec<3_D, T> v, vec<3_D, T> normal, T angle) {
@@ -319,6 +325,31 @@ optional<vec2<T>> intersection(vec2<T> p, vec2<T> p2, vec2<T> q, vec2<T> q2) {
     return optional<vec2<T>>();
 }
 
+/** Checks whether a world vector lies in the box defined by a volume. This is
+ * open by one side, the upper side in each axis. */
+template <dimension D, typename T>
+bool inside(vec<D, T> a, volume<D> vol) {
+    a -= vol.origin();
+    for (int dim = 0; dim < D; ++dim) {
+        if (a[dim] < -epsilon<T> || a[dim] > (T)vol[dim] + epsilon<T>)
+            return false;
+    }
+    return true;
+}
+
+/** Checks whether a world vector lies in the box defined by a volume. This is
+ * open by one side, the upper side in each axis. */
+template <dimension D, typename T>
+bool inside_margin(vec<D, T> a, volume<D> vol, T margin) {
+    a -= vol.origin();
+    for (int dim = 0; dim < D; ++dim) {
+        if (a[dim] < -(margin + epsilon<T>) ||
+            a[dim] > (T)vol[dim] + margin + epsilon<T>)
+            return false;
+    }
+    return true;
+}
+
 /* FIXME: we assume a more or less square box */
 // FIXME return optional here too?
 template <typename T>
@@ -400,12 +431,11 @@ optional<line<D, T>> truncate_to_volume(ray<D, T> ray, volume<D> v) {
         return optional<line<D, T>>();
     }
 
-    auto steps =
-        (T)ceil(distance(ray.source, origin.value().first) + epsilon<T>);
+    auto steps = round(distance(ray.source, origin.value().first));
     auto delta = normalize(ray.detector - ray.source);
     auto start = ray.source + steps * delta;
 
-    return optional<line<D, T>>{line<D, T>{start + (T)0.5 * delta, delta}};
+    return optional<line<D, T>>{line<D, T>{start, delta}};
 }
 
 /**
@@ -431,18 +461,6 @@ intersect_bounds(math::ray<D, T> l, std::array<math::vec2<int>, D> bounds) {
     return result;
 }
 
-/** Checks whether a world vector lies in the box defined by a volume. This is
- * open by one side, the upper side in each axis. */
-template <dimension D, typename T>
-bool inside(vec<D, T> a, volume<D> vol) {
-    a -= vol.origin();
-    for (int dim = 0; dim < D; ++dim) {
-        if (a[dim] < -epsilon<T> || a[dim] > (T)vol[dim] + epsilon<T>)
-            return false;
-    }
-    return true;
-}
-
 /** Reverse-interpolate a world vector to the
  * surrounding voxels. */
 template <dimension D, typename T>
@@ -450,7 +468,7 @@ void interpolate(vec<D, T> a, volume<D> vol,
                  std::vector<matrix_element<T>>& queue) {
     auto relative = a - vec<D, T>(vol.origin());
     // First we see what cell corner we are closest to
-    vec<D, int> b = floor(relative + vec<D, T>(0.5));
+    vec<D, int> b = round(relative);
 
     // the corresponding indices for each dimension
     std::array<std::array<int, 2>, D> cells_indices;
@@ -477,13 +495,23 @@ void interpolate(vec<D, T> a, volume<D> vol,
     // Next we do a general interpolation
     for (auto cell : cells) {
         vec<D, T> cell_center = vec<D, T>(cell) + vec<D, T>((T)0.5);
-        if (inside<D, T>(cell_center + tomo::math::vec<D, T>(vol.origin()),
-                         vol)) {
-            int index = vol.index_by_vector(cell);
-            auto value = math::product<D, T>(math::vec<D, T>((T)1) -
-                                             math::abs(relative - cell_center));
-            queue.push_back({index, value});
+
+        bool flag = false;
+        // if any of the coordinates are outside, we continue
+        for (int d = 0; d < D; ++d) {
+            if (cell[d] < 0 || cell[d] >= vol[d]) {
+                flag = true;
+                break;
+            }
         }
+        if (flag) {
+            continue;
+        }
+
+        int index = vol.index_by_vector(cell);
+        auto value = math::product<D, T>(math::vec<D, T>((T)1) -
+                                         math::abs(relative - cell_center));
+        queue.push_back({index, value});
     }
 }
 

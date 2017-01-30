@@ -20,7 +20,14 @@ using T = float;
 template <typename Geometry>
 void run(std::string name, Geometry g, tomo::util::report& table,
          tomo::volume<3_D> v, int procs, T epsilon) {
-    namespace td = tomo::distributed;
+    (void)name;
+    (void)g;
+    (void)table;
+    (void)v;
+    (void)procs;
+    (void)epsilon;
+    // FIXME redo this for the new system
+/*    namespace td = tomo::distributed;
     using Dim = tomo::dim::closest<3_D, T>;
 
     auto part_trivial = td::partition_trivial<Dim>(g, v, procs);
@@ -38,7 +45,7 @@ void run(std::string name, Geometry g, tomo::util::report& table,
         imp = (overlap_trivial - overlap_bisected) / (T)overlap_trivial;
 
     table.add_result(name, "max_overlap", g.lines() * (procs - 1));
-    table.add_result(name, "improvement", fmt::format("{:.1f}%", 100 * imp));
+    table.add_result(name, "improvement", fmt::format("{:.1f}%", 100 * imp)); */
 }
 
 int main(int argc, char* argv[]) {
