@@ -17,71 +17,21 @@ using optional = std::experimental::optional<T>;
 #include "../math.hpp"
 #include "../projectors/closest.hpp"
 #include "../volume.hpp"
-#include "partitionings.hpp"
 
 namespace tomo {
 namespace distributed {
 
-template <dimension D>
-class bisected_volume : public partitioned_volume<D> {
-  public:
-    struct split {
-        // dimension of the split
-        int d;
-
-        // voxel index at which the *second* subvolume begins
-        int a;
-    };
-
-    bisected_volume(tomo::volume<D> v, int processors)
-        : partitioned_volume<D>(v, processors) {}
-
-    bisected_volume(bisected_volume&& other)
-        : partitioned_volume<D>(other.v_, other.processors_),
-          splits_(std::move(other.splits_)) {}
-
-    int owner(int index) final override {
-        auto voxel = this->v_.unroll(index);
-
-        // we encode the path to the final volume as a bit pattern, that will be
-        // the processor id
-        auto node = splits_.root.get();
-        int proc = 0;
-        int depth = 0;
-        while (node) {
-            if (voxel[node->value.d] < node->value.a) {
-                node = node->left.get();
-            } else {
-                proc += 1 << depth;
-                node = node->right.get();
-            }
-            ++depth;
-        }
-        return proc;
-    }
-
-    core::binary_tree<split>& splits() { return splits_; }
-    const core::binary_tree<split>& splits() const { return splits_; }
-
-  private:
-    core::binary_tree<split> splits_;
-};
-
-namespace detail {
-// migrate helper functions here
-} // namespace detail
-
 template <dimension D, typename Geometry,
           typename T = typename Geometry::value_type>
-bisected_volume<D> partition_bisection(const Geometry& g, tomo::volume<D> v,
+bulk::binary_tree<bulk::split> partition_bisection(const Geometry& g, tomo::volume<D> v,
                                        int processors, T max_epsilon = 0.2) {
-    auto result = bisected_volume<D>(v, processors);
+    bulk::binary_tree<bulk::split> result;
 
     // assert that p is a power of two, see Hacker's Delight page 11
     assert((processors & (processors - 1)) == 0);
 
     // alias the split type of the form (d, a)
-    using split_t = typename bisected_volume<D>::split;
+    using split_t = bulk::split;
     using box_t = std::array<math::vec2<int>, D>;
 
     // compute the 'depth' of the tree (i.e. log(p))
@@ -253,8 +203,7 @@ bisected_volume<D> partition_bisection(const Geometry& g, tomo::volume<D> v,
         auto best_split = find_split(sub.lines, left, right, sub.bounds);
 
         // add the split to the tree
-        node* current_node =
-            result.splits().add(sub.parent, sub.direction, best_split);
+        node* current_node = result.add(sub.parent, sub.direction, best_split);
 
         split_stack.pop();
 
