@@ -15,19 +15,20 @@ namespace dim {
  * A discrete integration method (DIM) for the ray inside a volume. Also called
  * a 'projector'
  */
-template <dimension D, typename T, typename Iterator>
+template <dimension D, typename T>
 class base {
   public:
     using problem_dimension = std::integral_constant<dimension, D>;
+    using matrix_iterator = typename std::vector<math::matrix_element<T>>::iterator;
 
     /** Construct a projector for a scanning volume. */
     base(volume<D> vol) : volume_(vol) {}
 
     /** Obtain an iterator to the first voxel that is 'hit'. */
-    Iterator begin() { return begin_(); }
+    matrix_iterator begin() { return begin_(); }
 
     /** Obtain an iterator beyond the final voxel that is 'hit'. */
-    Iterator end() { return end_(); }
+    matrix_iterator end() { return end_(); }
 
     /**
      * A container that wraps the `begin` and `end` functions of a projector.
@@ -43,8 +44,8 @@ class base {
     class element_container {
       public:
         element_container(base& p) : p_(p) {}
-        inline Iterator begin() { return p_.begin(); }
-        inline Iterator end() { return p_.end(); }
+        inline matrix_iterator begin() { return p_.begin(); }
+        inline matrix_iterator end() { return p_.end(); }
 
       private:
         base& p_;
@@ -73,14 +74,15 @@ class base {
     volume<D> volume_;
     math::line<D, T> line_;
 
-  private:
-    /* This idiom (keeping virtual functions private) is called NVI */
-    virtual Iterator begin_() = 0;
-    virtual Iterator end_() = 0;
-    virtual void reset_(math::line<D, T> line) = 0;
-    virtual void clear_() = 0;
+    std::vector<math::matrix_element<T>> queue_;
 
-    //TODO: move vector<matrix_elem> queue up here, so we dont need CRT anymore
+  private:
+    void clear_() { this->queue_.clear(); }
+    matrix_iterator begin_() { return this->queue_.begin(); }
+    matrix_iterator end_() { return this->queue_.end(); }
+
+    /* This idiom (keeping virtual functions private) is called NVI */
+    virtual void reset_(math::line<D, T> line) = 0;
 };
 
 } // namespace dim

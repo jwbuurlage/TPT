@@ -5,26 +5,24 @@
 namespace tomo {
 namespace dim {
 
-/** The iterator used for the Joseph DIM. */
-template <typename T>
-using joseph_iterator = typename std::vector<math::matrix_element<T>>::iterator;
-
 /**
  * The Joseph DIM performs a single step along an axis, and the interpolates
  * between the other axes. A benefit of this technique is that there are no
  * 'shadowing non-zeros', i.e. non-zeros with the same indices.
  */
 template <tomo::dimension D, typename T>
-class joseph : public base<D, T, joseph_iterator<T>> {
+class joseph : public base<D, T> {
   public:
     /** Construct the DIM for a given volume. */
-    joseph(volume<D> vol) : base<D, T, joseph_iterator<T>>(vol) {
+    joseph(volume<D> vol) : base<D, T>(vol) {
         auto dims = this->volume_.dimensions();
         auto max_width = tomo::math::max_element<D, int>(dims);
-        queue_.reserve((int)(2 * max_width));
+        this->queue_.reserve((int)(2 * max_width));
     }
 
   private:
+    using matrix_iterator = typename base<D, T>::matrix_iterator;
+
     void reset_(math::line<D, T> line) override {
         // set the initial point
         auto current_point = line.origin;
@@ -91,13 +89,6 @@ class joseph : public base<D, T, joseph_iterator<T>> {
 
         this->line_ = line;
     }
-
-    void clear_() override { queue_.clear(); }
-
-    joseph_iterator<T> begin_() override { return queue_.begin(); }
-    joseph_iterator<T> end_() override { return queue_.end(); }
-
-    std::vector<math::matrix_element<T>> queue_;
 };
 
 } // namespace dim
