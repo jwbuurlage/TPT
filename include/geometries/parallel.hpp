@@ -24,8 +24,9 @@ namespace geometry {
  */
 template <typename T>
 math::vec1<T> detector_location(int detector, int detector_count,
-                                    T detector_step, const volume<2_D>&) {
-    return math::vec1<T>{(detector - (detector_count - 1) * (T)0.5) * detector_step};
+                                T detector_step, const volume<2_D>&) {
+    return math::vec1<T>{(detector - (detector_count - 1) * (T)0.5) *
+                         detector_step};
 }
 
 /** ditto */
@@ -80,8 +81,8 @@ inline math::ray<3_D, T> compute_line(math::vec2<T> current_detector,
     // strategy: only consider current detector x, and ignore y, only add it at
     // the end
     auto volume_slice = volume<2_D>(vol.x(), vol.y());
-    auto line_2d =
-        compute_line(math::vec1<T>{current_detector.x}, current_angle, volume_slice);
+    auto line_2d = compute_line(math::vec1<T>{current_detector.x},
+                                current_angle, volume_slice);
 
     auto source = math::vec3<T>(line_2d.source.x, line_2d.source.y,
                                 current_detector.y + 0.5 * vol.z());
@@ -98,7 +99,7 @@ inline math::ray<3_D, T> compute_line(math::vec2<T> current_detector,
  * \tparam T the scalar type to use
  */
 template <dimension D, typename T>
-class parallel : public base<D, T, parallel<D, T>> {
+class parallel : public base<D, T> {
   public:
     using position = math::vec<D - 1, T>;
 
@@ -111,8 +112,7 @@ class parallel : public base<D, T, parallel<D, T>> {
      * \param volume the volume being scanned
      */
     parallel(int angle_count, int detector_count, const volume<D>& volume)
-        : base<D, T, parallel<D, T>>(angle_count *
-                                     math::pow(detector_count, D - 1)),
+        : base<D, T>(angle_count * math::pow(detector_count, D - 1)),
           volume_(volume) {
         auto angle_step = math::pi<T> / angle_count;
         for (T angle = 0.0; angle < math::pi<T>; angle += angle_step) {
@@ -120,7 +120,21 @@ class parallel : public base<D, T, parallel<D, T>> {
         }
 
         int total_detector_count = math::pow(detector_count, D - 1);
-        // FIXME this is only for equilateral volume
+
+        // FIXME this is only for cubic volume
+        // we explicitely check this here, but we can extend the definition to
+        // cuboids.
+        auto is_cubic = [](tomo::volume<D> vol) -> bool {
+            int x = vol[0];
+            for (int d = 1; d < D; ++d) {
+                if (vol[d] != x) {
+                    return false;
+                }
+            }
+            return true;
+        };
+        assert(is_cubic(volume));
+
         auto detector_step = volume_.y() / (T)detector_count;
         for (int detector = 0; detector < total_detector_count; detector++) {
             detectors_.push_back(detector_location<T>(detector, detector_count,
@@ -146,7 +160,7 @@ class parallel : public base<D, T, parallel<D, T>> {
     const volume<D>& get_volume() const { return volume_; }
 
     /** Obtain the i-th line of the geometry. */
-    inline math::ray<D, T> get_line(int i) const {
+    math::ray<D, T> get_line(int i) const override final {
         return compute_line(detectors_[i % detector_count()],
                             angles_[i / detector_count()], volume_);
     }

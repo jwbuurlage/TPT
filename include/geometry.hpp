@@ -21,7 +21,7 @@ namespace geometry {
  * \tparam Derived the type of the actual geometry, used for CRT inside
  * `geomety_iterator`.
  */
-template <dimension D, typename T, typename Derived>
+template <dimension D, typename T>
 class base {
   public:
     using problem_dimension = std::integral_constant<dimension, D>;
@@ -33,7 +33,7 @@ class base {
       public:
 
         /** Construct the iterator with a line index and a geometry. */
-        geometry_iterator(int i, const Derived& geometry)
+        geometry_iterator(int i, const base& geometry)
             : i_(i), geometry_(geometry) {}
 
         /** Copy-construct an iterator. */
@@ -68,19 +68,21 @@ class base {
 
       private:
         int i_;
-        const Derived& geometry_;
+        const base& geometry_;
     };
 
     /** Construct the geometry with a given number of lines. */
     base(int line_count) : line_count_(line_count) {}
 
+    virtual ~base() = default;
+
     /** Obtain an iterator to the first element of the geometry. */
     geometry_iterator begin() const {
-        return geometry_iterator(0, *((Derived*)this));
+        return geometry_iterator(0, *this);
     }
     /** Obtain an iterator beyond the last element of the geometry. */
     geometry_iterator end() const {
-        return geometry_iterator(line_count_, *((Derived*)this));
+        return geometry_iterator(line_count_, *this);
     }
 
     /** Obtain the number of lines */
@@ -97,7 +99,7 @@ class base {
     math::vec2<int> groups() const { return dimensions_; }
 
     /* Obtain the i-th line */
-    auto get_line(int i) const { return (*static_cast<Derived*>(this)).get_line(i); }
+    virtual math::ray<D, T> get_line(int i) const;
 
   protected:
     int line_count_;
