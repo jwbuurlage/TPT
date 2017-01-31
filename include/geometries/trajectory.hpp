@@ -23,13 +23,12 @@ namespace geometry {
  * \tparam T the scalar type to use
  */
 template <dimension D, typename T>
-class trajectory : public base<D, T, trajectory<D, T>> {
+class trajectory : public base<D, T> {
   public:
     /** Construct the geometry with a given number of lines. */
     trajectory(volume<D> volume, int steps, T detector_spacing = (T)1,
                math::vec<D - 1, int> detector_size = math::vec<D - 1, int>{1})
-        : base<D, T, trajectory<D, T>>(steps *
-                                       math::reduce<D - 1>(detector_size)),
+        : base<D, T>(steps * math::reduce<D - 1>(detector_size)),
           volume_(volume), steps_(steps), detector_size_(detector_size),
           detector_spacing_(detector_spacing),
           detector_count_(math::reduce<D - 1>(detector_size)) {}
@@ -37,7 +36,7 @@ class trajectory : public base<D, T, trajectory<D, T>> {
     /**
      * Return the i-th line of this geometry.
      */
-    inline math::ray<D, T> get_line(int i) const {
+    math::ray<D, T> get_line(int i) const override final {
         int step = i / detector_count_;
         int detector = i % detector_count_;
 
