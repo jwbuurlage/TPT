@@ -30,8 +30,8 @@ It is necessary for my experiments to have distributed 3d reconstruction of arbi
 
 # Future:
 - [ ] Documentation for conventions (volume, voxels, origin, geometries, 1d vs multi_indices, ...)
+- [x] Move to common geometry, no longer needed as template argument (needed for 'real data')
 - [ ] Move to common projector, no longer needed as template argument
-- [ ] Move to common geometry, no longer needed as template argument (needed for 'real data')
 - [ ] We require realistic parameters for geometries, and test 3D sirt with them
 - [ ] General interpolation scheme for Simon
 - [ ] May want to test Bulk cpp backend too

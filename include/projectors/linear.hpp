@@ -13,41 +13,32 @@ namespace dim {
  * neighbouring voxels of a sample point.
  */
 template <dimension D, typename T>
-class linear
-    : public base<D, T,
-                  typename std::vector<math::matrix_element<T>>::iterator> {
+class linear : public base<D, T> {
   public:
-    using iterator = typename std::vector<math::matrix_element<T>>::iterator;
-
     /** Construct the DIM for a given volume. */
-    linear(volume<D> vol) : base<D, T, iterator>(vol) {
+    linear(volume<D> vol) : base<D, T>(vol) {
         auto max_width = math::max_element<D, T>(vol.dimensions());
-        queue_.reserve((int)(math::sqrt<T>(D) * math::pow(D, 2) * max_width));
+        this->queue_.reserve((int)(math::sqrt<T>(D) * math::pow(D, 2) * max_width));
     }
 
   private:
+    using matrix_iterator = typename base<D, T>::matrix_iterator;
+
     void reset_(math::line<D, T> line) override {
         auto current_point = line.origin;
 
-        while (
-            math::inside_margin<D, T>(current_point - line.delta, this->volume_, (T)1.0)) {
+        while (math::inside_margin<D, T>(current_point - line.delta,
+                                         this->volume_, (T)1.0)) {
             current_point -= line.delta;
         }
 
         while (math::inside_margin<D, T>(current_point, this->volume_, 1.0)) {
-            math::interpolate<D, T>(current_point, this->volume_, queue_);
+            math::interpolate<D, T>(current_point, this->volume_, this->queue_);
             current_point += line.delta;
         }
 
         this->line_ = line;
     }
-
-    void clear_() override { queue_.clear(); }
-
-    iterator begin_() override { return queue_.begin(); }
-    iterator end_() override { return queue_.end(); }
-
-    std::vector<math::matrix_element<T>> queue_;
 };
 
 } // namespace dim
