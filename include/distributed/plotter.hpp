@@ -31,7 +31,7 @@ class ext_plotter {
     }
 
     template <typename Geometry>
-    void plot(partitioned_projection_stack<D, T, Geometry>& ps) {
+    void plot(partitioned_projection_stack<D, T>& ps) {
         if (ps.world().processor_id() != 0)
             return;
 

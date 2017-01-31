@@ -23,12 +23,12 @@ int main(int argc, char* argv[]) {
     auto f = tomo::modified_shepp_logan_phantom<T>(v);
     auto g = tomo::geometry::parallel<2_D, T>(opt.k, opt.k, v);
 
-    auto proj = tomo::dim::linear<2_D, T>(v);
+    auto kernel = tomo::dim::linear<2_D, T>(v);
 
     tomo::image<2_D, T> matrix(v);
     auto line = g.get_line(g.lines() / 2 + opt.k / 4);
     int k = 0;
-    for (auto elem : proj(line)) {
+    for (auto elem : kernel(line)) {
         matrix[elem.index] += elem.value;
         std::cout << k++ << " " << elem.index << ", " << elem.value << "\n";
     }
@@ -36,10 +36,10 @@ int main(int argc, char* argv[]) {
     plotter.plot(matrix);
 
     if (opt.sirt) {
-       auto sino = tomo::forward_projection<2_D, T>(f, g, proj);
+       auto sino = tomo::forward_projection<2_D, T>(f, g, kernel);
        plotter.plot(sino.as_image());
         auto y = tomo::reconstruction::sirt(
-            v, g, sino, 0.5, 10,
+            v, g, kernel, sino, 0.5, 10,
             {[&](tomo::image<2_D, T>& image) { plotter.plot(image); }});
     }
     return 0;

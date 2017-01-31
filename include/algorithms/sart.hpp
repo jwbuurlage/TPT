@@ -26,12 +26,11 @@ namespace reconstruction {
  *
  * \returns An image object representing the reconstructed object.
  */
-template <dimension D, typename T, class Geometry, class Projector>
-image<D, T> sart(const volume<D>& v, const Geometry& g,
-                 const sinogram<D, T, Geometry, Projector>& p,
+template <dimension D, typename T>
+image<D, T> sart(const volume<D>& v, const tomo::geometry::base<D, T>& g,
+                 tomo::dim::base<D, T>& kernel, const sinogram<D, T>& p,
                  double beta = 0.5, int iterations = 10) {
     image<D, T> f(v);
-    Projector proj(v);
 
     // the size of a single block
     int k = g.groups()[0];
@@ -40,7 +39,7 @@ image<D, T> sart(const volume<D>& v, const Geometry& g,
     std::vector<T> w_norms(g.lines());
     int line_number = 0;
     for (auto line : g) {
-        for (auto elem : proj(line)) {
+        for (auto elem : kernel(line)) {
             w_norms[line_number] += elem.value * elem.value;
         }
         ++line_number;
@@ -65,12 +64,12 @@ image<D, T> sart(const volume<D>& v, const Geometry& g,
 
             if (w_norms[row] > math::epsilon<T>) {
                 T alpha = 0.0;
-                for (auto elem : proj(line)) {
+                for (auto elem : kernel(line)) {
                     alpha += f[elem.index] * elem.value;
                 }
 
                 auto factor = beta * ((p[row] - alpha) / w_norms[row]);
-                for (auto elem : proj(line))
+                for (auto elem : kernel(line))
                     f_next[elem.index] += factor * elem.value;
             }
 
