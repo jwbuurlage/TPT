@@ -5,7 +5,7 @@
 namespace tomo {
 namespace distributed {
 
-template <dimension D, typename T, typename Geometry>
+template <dimension D, typename T>
 class partitioned_projection_stack {
   public:
     struct exchange {
@@ -16,7 +16,7 @@ class partitioned_projection_stack {
     using value_type = T;
 
     partitioned_projection_stack(bulk::world& world, bulk::partitioning<D>& part,
-                         Geometry& geometry)
+                         tomo::geometry::base<D, T>& geometry)
         : world_(world), data_(world, geometry.lines()), part_(part),
           geometry_(geometry) {
         clear();
@@ -123,7 +123,7 @@ class partitioned_projection_stack {
     bulk::world& world_;
     bulk::coarray<T> data_;
     bulk::partitioning<D>& part_;
-    Geometry& geometry_;
+    tomo::geometry::base<D, T>& geometry_;
 
     std::vector<exchange> exchanges_;
 };

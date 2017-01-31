@@ -24,10 +24,10 @@ namespace distributed {
  * the partitioned projection stack itself, so that we can still return it from this
  * function.
  * */
-template <dimension D, dimension G, typename T, class Geometry, class Projector>
+template <dimension D, dimension G, typename T>
 void forward_project(tomo::distributed::partitioned_image<D, G, T>& f,
-                     const Geometry& g, Projector& proj,
-                     partitioned_projection_stack<D, T, Geometry>& ps) {
+                     const tomo::geometry::base<D, T>& g, tomo::dim::base<D, T>& proj,
+                     partitioned_projection_stack<D, T>& ps) {
     int line_number = 0;
     for (auto line : g) {
         for (auto elem : proj(line)) {
@@ -46,10 +46,10 @@ void forward_project(tomo::distributed::partitioned_image<D, G, T>& f,
  * the partitioned projection_stack itself, so that we can still return it from this
  * function.
  * */
-template <dimension D, dimension G, typename T, class Geometry, class Projector>
+template <dimension D, dimension G, typename T>
 void back_project(tomo::distributed::partitioned_image<D, G, T>& f,
-                  const Geometry& g, Projector& proj,
-                  partitioned_projection_stack<D, T, Geometry>& ps) {
+                  const tomo::geometry::base<D, T>& g, tomo::dim::base<D, T>& proj,
+                  partitioned_projection_stack<D, T>& ps) {
     int line_number = 0;
     for (auto line : g) {
         for (auto elem : proj(line)) {

@@ -13,12 +13,12 @@ namespace tomo {
 
 /**
  * Perform a forward-projection of a given image.
- * FIXME image should be const ref.
+ * TODO: image should be const ref.
  * */
-template <dimension D, typename T, class Geometry, class Image, class Projector>
-sinogram<D, T, Geometry, Projector>
-forward_projection(Image& f, const Geometry& g, Projector& proj) {
-    auto sino = sinogram<D, T, Geometry, Projector>(g);
+template <dimension D, typename T, class Image>
+sinogram<D, T> forward_projection(Image& f, const geometry::base<D, T>& g,
+                                  dim::base<D, T>& proj) {
+    auto sino = sinogram<D, T>(g);
 
     int line_number = 0;
     for (auto line : g) {
@@ -32,9 +32,9 @@ forward_projection(Image& f, const Geometry& g, Projector& proj) {
 }
 
 /** Perform a back-projection of a given sinogram. */
-template <dimension D, typename T, typename Geometry, class Projector>
-image<D, T> back_projection(const sinogram<D, T, Geometry, Projector>& sino,
-                                const Geometry& g, Projector& proj, volume<D> v) {
+template <dimension D, typename T>
+image<D, T> back_projection(const sinogram<D, T>& sino, const geometry::base<D, T>& g,
+                            dim::base<D, T>& proj, volume<D> v) {
     auto f = image<D, T>(v);
 
     int line_number = 0;

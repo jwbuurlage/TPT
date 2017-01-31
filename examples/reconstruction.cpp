@@ -34,28 +34,28 @@ void run(tomo::util::args opt) {
     // auto proj = tomo::dim::joseph<T>(v);
     // auto proj = tomo::dim::closest<D, T>(v);
     auto sino = tomo::forward_projection<D, T>(f, g, proj);
-    //ascii_plot(sino);
+    // ascii_plot(sino);
 
     // run an algorithm to reconstruct the image
     if (opt.art) {
-        auto x =
-            tomo::reconstruction::art(v, g, sino, opt.beta, opt.iterations);
+        auto x = tomo::reconstruction::art(v, g, proj, sino, opt.beta,
+                                           opt.iterations);
         fmt::print("ART\n");
         tomo::ascii_plot(x);
     }
 
     // run an algorithm to reconstruct the image
     if (opt.sart) {
-        auto y =
-            tomo::reconstruction::sart(v, g, sino, opt.beta, opt.iterations);
+        auto y = tomo::reconstruction::sart(v, g, proj, sino, opt.beta,
+                                            opt.iterations);
         fmt::print("SART\n");
         tomo::ascii_plot(y);
     }
 
     if (opt.sirt) {
         // run an algorithm to reconstruct the image
-        auto z =
-            tomo::reconstruction::sirt(v, g, sino, opt.beta, opt.iterations);
+        auto z = tomo::reconstruction::sirt(v, g, proj, sino, opt.beta,
+                                            opt.iterations);
         fmt::print("SIRT\n");
         tomo::ascii_plot(z);
     }

@@ -51,7 +51,7 @@ void run(tomo::util::args opt) {
         // in parallel on a distributed image, obtaining a 'distributed
         // projection_stack'
         auto partitioned_ps =
-            td::partitioned_projection_stack<D, T, decltype(geom)>(world, partitioning,
+            td::partitioned_projection_stack<D, T>(world, partitioning,
                                                                    geom);
 
         // we compute the overlap on the projection stack
@@ -99,7 +99,7 @@ void run(tomo::util::args opt) {
 
         bench.phase("initialize sirt");
         // temporary ps
-        auto buffer_ps = td::partitioned_projection_stack<D, T, decltype(geom)>(
+        auto buffer_ps = td::partitioned_projection_stack<D, T>(
             world, partitioning, geom);
         // TODO construct using already computed exchanges
         buffer_ps.compute_overlap(proj);
