@@ -15,12 +15,14 @@ It is necessary for my experiments to have distributed 3d reconstruction of arbi
     - [ ] Perform on downsampled geometries
     - [ ] Add voxel weight cumulative sum support
 - [ ] Make the partitioning persistent, define some YAML format
-- [ ] Restrict the geometry to the local volume
+- [ ] Make also a scheme for storing performance and partitioning results
+- [ ] Start optimization: Restrict the geometry to the local volume
 - [ ] Fix center error, interpolation shenanigans. (One of) the problem(s) is that 'inside' is relative to the projector.
-      - This means that even though the interopolation point can be outside the volume, one of the 'hit' voxels can be inside, depending on the projector.
-      - Should see if entering/exiting happens properly
-      - For some projectors, do -1 delta and +1 delta
-      - What if line misses, but one of the points hits the subvolume
+      [x] This means that even though the interopolation point can be outside the volume, one of the 'hit' voxels can be inside, depending on the projector.
+      [x] Should see if entering/exiting happens properly
+      [x] For some projectors, do -1 delta and +1 delta
+      [x] What if line misses, but one of the points hits the subvolume
+      [x] Fixed a number of issues, but still a slight boundary error somewhere
 - [ ] Real data:
     - [ ] Read data-exchange format
     - [ ] Read TIFF stack

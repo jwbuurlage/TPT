@@ -45,7 +45,7 @@ void run(tomo::util::args opt) {
         // intersected with volumes at proper location
         auto geom = tomo::geometry::parallel<D, T>(opt.k, opt.k, global_volume);
         //auto geom = tomo::geometry::cone_beam<T>(global_volume, opt.k, 1.5, {opt.k, opt.k});
-        auto proj = tomo::dim::joseph<D, T>(local_volume);
+        auto proj = tomo::dim::linear<D, T>(local_volume);
 
         // the forward projection is modified so that we can perform it
         // in parallel on a distributed image, obtaining a 'distributed

@@ -52,14 +52,19 @@ class joseph : public base<D, T, joseph_iterator<T>> {
         auto slice_volume =
             tomo::volume<D - 1>(slice_volume_origin, slice_volume_lengths);
 
+        while (math::inside_margin<D, T>(current_point - step, this->volume_,
+                                         (T)1.0)) {
+            current_point -= step;
+        }
+
         while (
             math::inside_margin<D, T>(current_point, this->volume_, (T)1.0)) {
             // we want to form the D-1 dimensional point, and the D-1
             // dimensional volume
             // we interpolate, and add the proper points (while knowing the
             // fixed axis coordinate)
-            int current_row =
-                math::round(current_point[axis] - this->volume_.origin()[axis] - 0.5);
+            int current_row = math::round(current_point[axis] -
+                                          this->volume_.origin()[axis] - 0.5);
 
             if (current_row >= this->volume_[axis] || current_row < 0) {
                 current_point += step;
