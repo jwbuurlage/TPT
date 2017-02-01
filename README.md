@@ -24,6 +24,7 @@ Provided as submodules
 - [Catch](https://github.com/philsquared/Catch), for unit tests
 - [fmt](https://github.com/fmtlib/fmt) as an iostream replacement
 - [bulk](https://github.com/jwbuurlage/Bulk) for distributed computing
+- [cpptoml](https://github.com/skystrife/cpptoml) for reading specification and configuration files
 - (optional) [slicevis](https://github.com/jwbuurlage/slicevis) as an visualization server
 - (optional) [pybind11](https://github.com/pybind/pybind11) to generate Python bindings
 

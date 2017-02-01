@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
 
     auto v = tomo::volume<2_D>(opt.k);
     auto f = tomo::modified_shepp_logan_phantom<T>(v);
-    auto g = tomo::geometry::parallel<2_D, T>(opt.k, opt.k, v);
+    auto g = tomo::geometry::parallel<2_D, T>(v, opt.k, opt.k);
 
     auto kernel = tomo::dim::linear<2_D, T>(v);
 
@@ -42,5 +42,6 @@ int main(int argc, char* argv[]) {
             v, g, kernel, sino, 0.5, 10,
             {[&](tomo::image<2_D, T>& image) { plotter.plot(image); }});
     }
+
     return 0;
 }

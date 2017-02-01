@@ -27,25 +27,26 @@ void run(std::string name, Geometry g, tomo::util::report& table,
     (void)procs;
     (void)epsilon;
     // FIXME redo this for the new system
-/*    namespace td = tomo::distributed;
-    using Dim = tomo::dim::closest<3_D, T>;
+    /*    namespace td = tomo::distributed;
+        using Dim = tomo::dim::closest<3_D, T>;
 
-    auto part_trivial = td::partition_trivial<Dim>(g, v, procs);
-    auto part_bisected = td::partition_bisection(g, v, procs, epsilon);
-    auto overlap_trivial = td::overlap_count<Dim>(g, part_trivial);
-    auto overlap_bisected = td::overlap_count<Dim>(g, part_bisected);
+        auto part_trivial = td::partition_trivial<Dim>(g, v, procs);
+        auto part_bisected = td::partition_bisection(g, v, procs, epsilon);
+        auto overlap_trivial = td::overlap_count<Dim>(g, part_trivial);
+        auto overlap_bisected = td::overlap_count<Dim>(g, part_bisected);
 
-    std::lock_guard<std::mutex> guard(g_result_mutex);
-    table.add_row(name);
-    table.add_result(name, "trivial", overlap_trivial);
-    table.add_result(name, "binary", overlap_bisected);
+        std::lock_guard<std::mutex> guard(g_result_mutex);
+        table.add_row(name);
+        table.add_result(name, "trivial", overlap_trivial);
+        table.add_result(name, "binary", overlap_bisected);
 
-    T imp = (T)0.0;
-    if (overlap_trivial != 0)
-        imp = (overlap_trivial - overlap_bisected) / (T)overlap_trivial;
+        T imp = (T)0.0;
+        if (overlap_trivial != 0)
+            imp = (overlap_trivial - overlap_bisected) / (T)overlap_trivial;
 
-    table.add_result(name, "max_overlap", g.lines() * (procs - 1));
-    table.add_result(name, "improvement", fmt::format("{:.1f}%", 100 * imp)); */
+        table.add_result(name, "max_overlap", g.lines() * (procs - 1));
+        table.add_result(name, "improvement", fmt::format("{:.1f}%", 100 *
+       imp)); */
 }
 
 int main(int argc, char* argv[]) {
@@ -80,7 +81,7 @@ int main(int argc, char* argv[]) {
     std::vector<std::thread> threads;
     // 'gather results'
     threads.emplace_back(run<tomo::geometry::parallel<3_D, T>>, "parallel",
-                         tomo::geometry::parallel<3_D, T>(k, k, v),
+                         tomo::geometry::parallel<3_D, T>(v, k, k),
                          std::ref(table), v, p, e);
 
     threads.emplace_back(
@@ -107,9 +108,10 @@ int main(int argc, char* argv[]) {
                              v, k, (T)1.0, {k, k}, 1.0, 1.0, k / 2, k / 2),
                          std::ref(table), v, p, e);
 
-    threads.emplace_back(run<tomo::geometry::tomosynthesis<T>>, "tomo_synthesis",
-                      tomo::geometry::tomosynthesis<T>(v, k, (T)1.0, {k, k}),
-                      std::ref(table), v, p, e);
+    threads.emplace_back(run<tomo::geometry::tomosynthesis<T>>,
+                         "tomo_synthesis",
+                         tomo::geometry::tomosynthesis<T>(v, k, (T)1.0, {k, k}),
+                         std::ref(table), v, p, e);
 
     for (auto& thread : threads)
         thread.join();

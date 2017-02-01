@@ -20,3 +20,6 @@
 [submodule "ext/cppzmq"]
 	path = ext/cppzmq
 	url = https://github.com/zeromq/cppzmq.git
+[submodule "ext/cpptoml"]
+	path = ext/cpptoml
+	url = https://github.com/skystrife/cpptoml.git

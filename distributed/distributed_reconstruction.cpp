@@ -43,7 +43,7 @@ void run(tomo::util::args opt) {
 
         // projectors and geometries are modified so that they are
         // intersected with volumes at proper location
-        auto geom = tomo::geometry::parallel<D, T>(opt.k, opt.k, global_volume);
+        auto geom = tomo::geometry::parallel<D, T>(global_volume, opt.k, opt.k);
         //auto geom = tomo::geometry::cone_beam<T>(global_volume, opt.k, 1.5, {opt.k, opt.k});
         auto proj = tomo::dim::linear<D, T>(local_volume);
 

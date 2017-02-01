@@ -27,7 +27,7 @@ void run(tomo::util::args opt) {
     tomo::ascii_plot(f);
 
     // auto g = tomo::geometry::helical_cone_beam<T>(v, k, (T)1.0, {k, k});
-    auto g = tomo::geometry::parallel<D, T>(opt.k, opt.k, v);
+    auto g = tomo::geometry::parallel<D, T>(v, opt.k, opt.k);
 
     // simulate the experiment
     auto proj = tomo::dim::closest<D, T>(v);

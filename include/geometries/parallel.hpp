@@ -111,7 +111,7 @@ class parallel : public base<D, T> {
      * \param detector_count the number of detectors
      * \param volume the volume being scanned
      */
-    parallel(int angle_count, int detector_count, const volume<D>& volume)
+    parallel(const volume<D>& volume, int angle_count, int detector_count)
         : base<D, T>(angle_count * math::pow(detector_count, D - 1)),
           volume_(volume) {
         auto angle_step = math::pi<T> / angle_count;
