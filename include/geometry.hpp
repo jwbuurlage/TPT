@@ -11,15 +11,13 @@ namespace tomo {
 namespace geometry {
 
 /**
- * A description of the experimental setup.
+ * A description of the geometry of the acquisition.
  *
  * The geometry is a glorified container, which describes all the rays that are
  * used for the object reconstruction.
  *
  * \tparam D the dimension of the volume.
  * \tparam T the scalar type to use
- * \tparam Derived the type of the actual geometry, used for CRT inside
- * `geomety_iterator`.
  */
 template <dimension D, typename T>
 class base {

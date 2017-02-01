@@ -15,9 +15,8 @@ link_directories("~/.local/lib")
 
 include_directories(
     "../include"
-    "../ext/hemi/"
     "../ext/fmt/"
-    "../ext/date/"
+    "../ext/cpptoml/include/"
     "../ext/bulk/include"
 )
 
@@ -29,7 +28,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 endif(FOR_RELEASE)
 
 # ignore warnings from external libs
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ../ext/fmt -isystem ~/.local/include -isystem ../ext/bulk/include -isystem /usr/local/cuda/include")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ../ext/fmt -isystem ../ext/cpptoml/include -isystem ~/.local/include -isystem ../ext/bulk/include -isystem /usr/local/cuda/include")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
@@ -53,6 +52,7 @@ set(
 set(
     EXAMPLE_SOURCES
     "reconstruction.cpp"
+    "read_geometry_test.cpp"
     "dose_deposition.cpp"
     "geometry_benchmark.cpp"
 )
