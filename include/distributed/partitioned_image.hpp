@@ -10,25 +10,40 @@
 namespace tomo {
 namespace distributed {
 
-template <tomo::dimension D>
-auto array_to_vec(std::array<int, D> in) {
-    tomo::math::vec<D, int> out;
+template <tomo::dimension D, typename T>
+auto array_to_vec(std::array<T, D> in) {
+    tomo::math::vec<D, T> out;
     for (int d = 0; d < D; ++d) {
         out[d] = in[d];
     }
     return out;
 }
 
+/** Partitioned image partitions the _voxels_ */
 template <tomo::dimension D, tomo::dimension G, typename T>
 class partitioned_image {
   public:
     partitioned_image(bulk::world& world,
-                      bulk::rectangular_partitioning<D, G>& part)
+                      bulk::rectangular_partitioning<D, G>& part,
+                      tomo::volume<D, T> global_vol)
         : world_(world), part_(part),
-          local_volume_(
-              array_to_vec<D>(part_.origin({world.processor_id()})),
-              array_to_vec<D>(part_.local_size(world.processor_id()))),
-          data_(world_, local_volume_.cells()) {
+          data_(world_, part.local_count(world.processor_id())),
+          local_volume_(0) {
+        auto voxels =
+            array_to_vec<D, int>(part_.local_size(world.processor_id()));
+        auto voxel_origin =
+            array_to_vec<D>(part_.origin({world.processor_id()}));
+
+        auto relative_origin = math::vec<D, T>(voxel_origin) /
+                               math::vec<D, T>(global_vol.voxels());
+        auto origin = global_vol.origin() +
+                      relative_origin * global_vol.physical_lengths();
+
+        auto lengths =
+            (math::vec<D, T>(voxels) / math::vec<D, T>(global_vol.voxels())) *
+            global_vol.physical_lengths();
+
+        local_volume_ = tomo::volume<D, T>(voxels, origin, lengths);
         clear();
     }
 
@@ -54,12 +69,13 @@ class partitioned_image {
     }
 
     tomo::image<D, T> gather() {
-        auto volume_from_array = [](std::array<int, D> xs) -> tomo::volume<D> {
+        auto volume_from_array =
+            [](std::array<int, D> xs) -> tomo::volume<D, T> {
             tomo::math::vec<D, int> lengths;
             for (int d = 0; d < D; ++d) {
                 lengths[d] = xs[d];
             }
-            return tomo::volume<D>(lengths);
+            return tomo::volume<D, T>(lengths);
         };
 
         auto v = volume_from_array(part_.global_size());
@@ -101,9 +117,9 @@ class partitioned_image {
   private:
     bulk::world& world_;
     bulk::rectangular_partitioning<D, G>& part_;
-
-    tomo::volume<D> local_volume_;
     bulk::coarray<T> data_;
+
+    tomo::volume<D, T> local_volume_;
 };
 
 template <typename Func, typename T, int D, int G>
@@ -132,16 +148,16 @@ void output_in_turn(bulk::world& world, Func func) {
 
 template <typename T, int G>
 void partitioned_phantom(partitioned_image<2_D, G, T>& img) {
-    auto global_volume = tomo::volume<2_D>(img.global_size());
+    auto global_volume = tomo::volume<2_D, T>(img.global_size());
     tomo::fill_ellipses_(img, tomo::mshl_ellipses_<T>(), img.local_volume(),
                          global_volume);
 }
 
 template <typename T, int G>
 void partitioned_phantom(partitioned_image<3_D, G, T>& img) {
-    auto global_volume = tomo::volume<3_D>(img.global_size());
+    auto global_volume = tomo::volume<3_D, T>(img.global_size());
     tomo::fill_ellipsoids_(img, tomo::mshl_ellipsoids_<T>(), img.local_volume(),
-                         global_volume);
+                           global_volume);
 }
 
 template <typename T, int G>

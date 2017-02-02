@@ -52,7 +52,7 @@ TEST_CASE("Intersection and box checking", "[math]") {
 
     SECTION("2D") {
         int k = 4;
-        tomo::volume<2_D> v(k);
+        tomo::volume<2_D, T> v(k);
         std::vector<tomo::math::vec2<T>> xs = {
             {0, 0}, {k, k}, {k / 2, k / 2}, {k / 3, k / 2},
             {0, k}, {k, 0}, {1, 1}};
@@ -74,7 +74,7 @@ TEST_CASE("Intersection and box checking", "[math]") {
 
     SECTION("3D") {
         int k = 4;
-        tomo::volume<3_D> v(k);
+        tomo::volume<3_D, T> v(k);
         std::vector<tomo::math::vec3<T>> xs = {{0, 0, 0},
                                                {k, k, 0},
                                                {k / 2, k / 2, k / 2},
@@ -123,7 +123,7 @@ TEST_CASE("Interpolation", "[math]") {
     SECTION("2D") {
         std::vector<tomo::math::matrix_element<T>> q;
 
-        tomo::volume<2_D> v(8);
+        tomo::volume<2_D, T> v(8);
         tomo::math::vec<2_D, float> a(2.3);
         tomo::math::interpolate(a, v, q);
 
@@ -133,7 +133,7 @@ TEST_CASE("Interpolation", "[math]") {
     SECTION("3D") {
         std::vector<tomo::math::matrix_element<T>> q;
 
-        tomo::volume<3_D> v(8);
+        tomo::volume<3_D, T> v(8);
         tomo::math::vec<3_D, float> a(2.3);
         tomo::math::interpolate(a, v, q);
 

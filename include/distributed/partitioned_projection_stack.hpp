@@ -100,7 +100,7 @@ class partitioned_projection_stack {
 
     // FIXME do we want this here
     auto as_image() {
-        auto v = tomo::volume<D>(geometry_.groups());
+        auto v = tomo::volume<D, T>(geometry_.groups());
         tomo::image<D, T> result(v);
 
         int i = 0;

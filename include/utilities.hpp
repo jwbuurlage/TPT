@@ -28,7 +28,7 @@ image<2_D, T> slice(const image<3_D, T>& f, int slice, int along_axis = 0) {
 
     auto large_volume = f.get_volume();
 
-    volume<2_D> v{large_volume[axes[0]], large_volume[axes[1]]};
+    volume<2_D, T> v(math::restrict<3_D, T>(large_volume.voxels(), along_axis));
     image<2_D, T> slice_image(v);
 
     math::vec<3_D, int> image_idx;
@@ -48,7 +48,7 @@ image<2_D, T> slice(const image<3_D, T>& f, int slice, int along_axis = 0) {
  * terminal. */
 template <typename T>
 image<2_D, T> downscale_(const image<2_D, T>& f, T scale) {
-    volume<2_D> new_volume{f.size(0) * scale, f.size(1) * scale};
+    volume<2_D, T> new_volume(math::vec<2_D, int>(f.size(0) * scale, f.size(1) * scale));
     image<2_D, T> g(new_volume);
 
     for (int i = 0; i < f.size(0); ++i) {
@@ -145,7 +145,7 @@ void ascii_plot_output(ImageLike& image, math::vec2<int> dimensions,
  * \param v the volume to be scanned
  */
 template <dimension D, typename T>
-auto random_list_geometry(int k, volume<D> v) {
+auto random_list_geometry(int k, volume<D, T> v) {
     // Seed with a real random value, if available
     std::random_device r;
     std::default_random_engine e(r());

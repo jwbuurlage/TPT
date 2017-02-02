@@ -14,8 +14,8 @@ template <tomo::dimension D, typename T>
 class joseph : public base<D, T> {
   public:
     /** Construct the DIM for a given volume. */
-    joseph(volume<D> vol) : base<D, T>(vol) {
-        auto dims = this->volume_.dimensions();
+    joseph(volume<D, T> vol) : base<D, T>(vol) {
+        auto dims = this->volume_.voxels();
         auto max_width = tomo::math::max_element<D, int>(dims);
         this->queue_.reserve((int)(2 * max_width));
     }
@@ -31,8 +31,8 @@ class joseph : public base<D, T> {
         // the axis should correspond to the largest delta component, for
         // highest precision
         int axis = math::max_index<D, T>(math::abs(line.delta));
-
         auto step = line.delta / math::abs(line.delta[axis]);
+
         // this should get us on '0.5', biasing towards a 0.5 inside the volume
         auto nearest_column =
             math::round(current_point[axis] - (T)0.5) + (T)0.5;
@@ -43,12 +43,9 @@ class joseph : public base<D, T> {
             current_point -= initial_step;
         }
 
-        auto slice_volume_lengths =
-            math::restrict<D, int>(this->volume_.lengths(), axis);
-        auto slice_volume_origin =
-            math::restrict<D, int>(this->volume_.origin(), axis);
-        auto slice_volume =
-            tomo::volume<D - 1>(slice_volume_origin, slice_volume_lengths);
+        auto slice_volume_voxels =
+            math::restrict<D, int>(this->volume_.voxels(), axis);
+        auto slice_volume = tomo::volume<D - 1, T>(slice_volume_voxels);
 
         while (math::inside_margin<D, T>(current_point - step, this->volume_,
                                          (T)1.0)) {
@@ -61,10 +58,10 @@ class joseph : public base<D, T> {
             // dimensional volume
             // we interpolate, and add the proper points (while knowing the
             // fixed axis coordinate)
-            int current_row = math::round(current_point[axis] -
-                                          this->volume_.origin()[axis] - 0.5);
+            int current_row = math::round(current_point[axis] - 0.5);
 
-            if (current_row >= this->volume_[axis] || current_row < 0) {
+            if (current_row >= this->volume_.voxels()[axis] ||
+                current_row < 0) {
                 current_point += step;
                 continue;
             }
@@ -86,8 +83,6 @@ class joseph : public base<D, T> {
 
             current_point += step;
         }
-
-        this->line_ = line;
     }
 };
 

@@ -32,9 +32,10 @@ void run(tomo::util::args opt) {
         std::fill(size.begin(), size.end(), opt.k);
         auto partitioning = bulk::block_partitioning<D, 2>(world, size, {2, p / 2});
 
+        auto global_volume = tomo::volume<D, T>(opt.k);
+
         // construct distributed image and the associated volumes
-        auto img = td::partitioned_image<D, 2, T>(world, partitioning);
-        auto global_volume = tomo::volume<D>(img.global_size());
+        auto img = td::partitioned_image<D, 2, T>(world, partitioning, global_volume);
         auto local_volume = img.local_volume();
 
         // we initialize a Shepp-Logan phantom inside the image
@@ -104,8 +105,8 @@ void run(tomo::util::args opt) {
         // TODO construct using already computed exchanges
         buffer_ps.compute_overlap(proj);
 
-        auto x = td::partitioned_image<D, 2, T>(world, partitioning);
-        auto buffer_image = td::partitioned_image<D, 2, T>(world, partitioning);
+        auto x = td::partitioned_image<D, 2, T>(world, partitioning, global_volume);
+        auto buffer_image = td::partitioned_image<D, 2, T>(world, partitioning, global_volume);
 
         bench.phase("iterating sirt");
         for (int iter = 0; iter < opt.iterations; ++iter) {

@@ -13,14 +13,16 @@ class invalid_geometry_config_error : public std::runtime_error {
 
 template <tomo::dimension D, typename T>
 std::unique_ptr<tomo::geometry::parallel<D, T>>
-read_parallel_geometry(std::shared_ptr<cpptoml::table> parameters, tomo::volume<D> v) {
+read_parallel_geometry(std::shared_ptr<cpptoml::table> parameters,
+                       tomo::volume<D, T> v) {
     (void)parameters;
     return std::make_unique<tomo::geometry::parallel<D, T>>(v, 10, 10);
 }
 
 template <tomo::dimension D, typename T>
 std::unique_ptr<tomo::geometry::base<D, T>>
-read_geometry(std::string kind, std::shared_ptr<cpptoml::table> parameters, tomo::volume<D> v) {
+read_geometry(std::string kind, std::shared_ptr<cpptoml::table> parameters,
+              tomo::volume<D, T> v) {
     if (kind == "parallel") {
         read_parallel_geometry<D, T>(parameters, v);
     } else {
@@ -31,7 +33,7 @@ read_geometry(std::string kind, std::shared_ptr<cpptoml::table> parameters, tomo
 }
 
 template <tomo::dimension D, typename T>
-tomo::volume<D> read_volume(std::shared_ptr<cpptoml::table> parameters) {
+tomo::volume<D, T> read_volume(std::shared_ptr<cpptoml::table> parameters) {
     // cpptoml only supports double precision and 64 bit integer parsing,
     // we cast down later
     auto origin_array = parameters->get_array_of<double>("origin");
@@ -43,11 +45,11 @@ tomo::volume<D> read_volume(std::shared_ptr<cpptoml::table> parameters) {
             "required field missing or invalid for volume, please supply "
             "appropriately sized arrays for 'origin', 'lengths' and 'voxels'");
     }
-    return tomo::volume<D>(10);
+    return tomo::volume<D, T>(10);
 }
 
 template <tomo::dimension D, typename T>
-std::pair<std::unique_ptr<tomo::geometry::base<D, T>>, tomo::volume<D>>
+std::pair<std::unique_ptr<tomo::geometry::base<D, T>>, tomo::volume<D, T>>
 read_configuration(std::string file) {
     using namespace std::string_literals;
 

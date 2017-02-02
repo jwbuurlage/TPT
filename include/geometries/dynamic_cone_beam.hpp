@@ -21,7 +21,7 @@ class dynamic_cone_beam : public trajectory<3_D, T> {
   public:
     /** Construct the geometry with a given number of lines. */
     dynamic_cone_beam(
-        volume<3_D> volume, int steps, T detector_spacing = (T)1.0,
+        volume<3_D, T> volume, int steps, T detector_spacing = (T)1.0,
         math::vec<2_D, int> detector_size = math::vec<2_D, int>{1})
         : trajectory<3_D, T>(volume, steps, detector_spacing, detector_size) {}
 
@@ -49,7 +49,7 @@ class dynamic_cone_beam : public trajectory<3_D, T> {
 
   private:
     inline T relative_source_distance_(int step) const {
-        return 2.0 - 0.5 * math::cos(math::pi<T> * (T)step / this->steps_);
+        return (T)2.0 - (T)0.5 * math::cos(math::pi<T> * (T)step / this->steps_);
     }
 
     inline T relative_detector_distance_(int step) const {
@@ -72,9 +72,9 @@ class dynamic_cone_beam : public trajectory<3_D, T> {
     }
 
     inline math::vec<3_D, T> image_center_() const {
-        math::vec<3_D, T> image_center = {this->volume_.x() * (T)0.5,
-                                          this->volume_.y() * (T)0.5,
-                                          this->volume_.z() * (T)0.5};
+        math::vec<3_D, T> image_center = {this->volume_[0] * (T)0.5,
+                                          this->volume_[1] * (T)0.5,
+                                          this->volume_[2] * (T)0.5};
 
         return image_center;
     }

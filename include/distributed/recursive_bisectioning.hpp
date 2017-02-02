@@ -23,7 +23,7 @@ namespace distributed {
 
 template <dimension D, typename Geometry,
           typename T = typename Geometry::value_type>
-bulk::binary_tree<bulk::split> partition_bisection(const Geometry& g, tomo::volume<D> v,
+bulk::binary_tree<bulk::split> partition_bisection(const Geometry& g, tomo::volume<D, T> v,
                                        int processors, T max_epsilon = 0.2) {
     bulk::binary_tree<bulk::split> result;
 

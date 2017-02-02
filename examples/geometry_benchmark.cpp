@@ -19,7 +19,7 @@ using T = float;
 
 template <typename Geometry>
 void run(std::string name, Geometry g, tomo::util::report& table,
-         tomo::volume<3_D> v, int procs, T epsilon) {
+         tomo::volume<3_D, T> v, int procs, T epsilon) {
     (void)name;
     (void)g;
     (void)table;
@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    tomo::volume<3_D> v(k);
+    tomo::volume<3_D, T> v(k);
 
     auto table = tomo::util::report(
         "Detector overlaps for geometric partitioning", "geometry");

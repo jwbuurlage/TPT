@@ -27,7 +27,7 @@ namespace reconstruction {
  * \returns An image object representing the reconstructed object.
  */
 template <dimension D, typename T>
-image<D, T> sart(const volume<D>& v, const tomo::geometry::base<D, T>& g,
+image<D, T> sart(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
                  tomo::dim::base<D, T>& kernel, const sinogram<D, T>& p,
                  double beta = 0.5, int iterations = 10) {
     image<D, T> f(v);

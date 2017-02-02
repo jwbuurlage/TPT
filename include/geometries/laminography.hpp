@@ -20,7 +20,7 @@ template <typename T>
 class laminography : public trajectory<3_D, T> {
   public:
     /** Construct the geometry with a given number of lines. */
-    laminography(volume<3_D> volume, int steps, T detector_spacing = (T)1.0,
+    laminography(volume<3_D, T> volume, int steps, T detector_spacing = (T)1.0,
                  math::vec<2_D, int> detector_size = math::vec<2_D, int>{1},
                  T relative_source_distance = (T)1.0,
                  T relative_detector_distance = (T)1.0,
@@ -32,7 +32,7 @@ class laminography : public trajectory<3_D, T> {
 
     math::vec<3_D, T> source_location(int step) const override final {
         auto pivot = image_center_() -
-                     relative_source_distance_ * this->volume_.y() *
+                     relative_source_distance_ * this->volume_[1] *
                          math::standard_basis<3_D, T>(1);
 
         return pivot +
@@ -42,7 +42,7 @@ class laminography : public trajectory<3_D, T> {
 
     math::vec<3_D, T> detector_location(int step) const override final {
         auto pivot = image_center_() +
-                     relative_detector_distance_ * this->volume_.y() *
+                     relative_detector_distance_ * this->volume_[1] *
                          math::standard_basis<3_D, T>(1);
 
         return pivot +
@@ -91,9 +91,8 @@ class laminography : public trajectory<3_D, T> {
     }
 
     inline math::vec<3_D, T> image_center_() const {
-        math::vec<3_D, T> image_center = {this->volume_.x() * (T)0.5,
-                                          this->volume_.y() * (T)0.5,
-                                          this->volume_.z() * (T)0.5};
+        math::vec<3_D, T> image_center =
+            this->volume_.origin() + (T)0.5 * this->volume_.physical_lengths();
 
         return image_center;
     }

@@ -19,18 +19,17 @@ int main(int argc, char* argv[]) {
 
     auto opt = tomo::util::args(argc, argv);
 
-    auto v = tomo::volume<2_D>(opt.k);
+    auto v = tomo::volume<2_D, T>(opt.k);
     auto f = tomo::modified_shepp_logan_phantom<T>(v);
     auto g = tomo::geometry::parallel<2_D, T>(v, opt.k, opt.k);
 
-    auto kernel = tomo::dim::linear<2_D, T>(v);
+    auto kernel = tomo::dim::joseph<2_D, T>(v);
 
     tomo::image<2_D, T> matrix(v);
     auto line = g.get_line(g.lines() / 2 + opt.k / 4);
     int k = 0;
     for (auto elem : kernel(line)) {
         matrix[elem.index] += elem.value;
-        std::cout << k++ << " " << elem.index << ", " << elem.value << "\n";
     }
 
     plotter.plot(matrix);
