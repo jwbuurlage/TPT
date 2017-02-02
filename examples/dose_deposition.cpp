@@ -4,7 +4,7 @@ using T = float;
 
 int main() {
     int k = 256;
-    auto v = tomo::volume<2_D>(k);
+    auto v = tomo::volume<2_D, T>(k);
     auto f = tomo::modified_shepp_logan_phantom<T>(v);
     auto g = tomo::geometry::parallel<2_D, T>(v, k, k);
 

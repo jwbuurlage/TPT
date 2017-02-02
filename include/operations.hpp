@@ -34,7 +34,7 @@ sinogram<D, T> forward_projection(Image& f, const geometry::base<D, T>& g,
 /** Perform a back-projection of a given sinogram. */
 template <dimension D, typename T>
 image<D, T> back_projection(const sinogram<D, T>& sino, const geometry::base<D, T>& g,
-                            dim::base<D, T>& proj, volume<D> v) {
+                            dim::base<D, T>& proj, volume<D, T> v) {
     auto f = image<D, T>(v);
 
     int line_number = 0;

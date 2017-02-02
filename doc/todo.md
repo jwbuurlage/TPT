@@ -5,7 +5,8 @@ It is necessary for my experiments to have distributed 3d reconstruction of arbi
 - [x] Add tomo::args to distributed reconstruction
 - [x] Have a version working for e.g. parallel geometry in 3d for ShLo phantom
 	- [x] Set up a benchmarking tool (maybe adaptation of the Zee one)
-    - [x] Need to plot the resulting image (per iteration), could maybe use Cinder for this - [x] Need to heavily optimize the 'harmonizing' (probably MPI backend of Bulk)
+    - [x] Need to plot the resulting image (per iteration), could maybe use Cinder for this
+    - [x] Need to heavily optimize the 'harmonizing' (probably MPI backend of Bulk)
     - [x] We require a more general notion of a distributed sinogram (= stack of projections) that can be harmonized (simply rename)
     - [x] Add 3D partitioned phantom support
 - [x] Make Joseph for D > 2
@@ -19,6 +20,10 @@ It is necessary for my experiments to have distributed 3d reconstruction of arbi
     - [ ] Define YAML format for geometries
     - [ ] A problem is: how to pass geometry parameters, it is potentially different for each geometry.
     - [!] Add 'factory' for projectors and geometry, maybe as part of tomo::args
+- [!] Support physical volume dimensions
+    - [ ] Volume should be subpixels (i.e. origin and lengths are `T` instead of `int`)
+    - [ ] All relative geometries and math functions should accomodate this change
+    - [ ] Fix DIMs working on voxels now that lengths is physical
 - [ ] Make also a scheme for storing performance and partitioning results
     - [ ] Partitioning: communication volume
     - [ ] Performance: actually running the code
@@ -38,9 +43,6 @@ It is necessary for my experiments to have distributed 3d reconstruction of arbi
 
 # Future:
 
-- [ ] Support physical volume dimensions
-    - [ ] Volume should be subpixels (i.e. origin and lengths are `T` instead of `int`)
-    - [ ] All relative geometries and math functions should accomodate this change
 - [x] Move to common geometry, no longer needed as template argument (needed for 'real data')
 - [x] Move to common projector, no longer needed as template argument
 - [ ] We require realistic parameters for geometries, and test 3D sirt with them

@@ -16,8 +16,8 @@ template <dimension D, typename T>
 class linear : public base<D, T> {
   public:
     /** Construct the DIM for a given volume. */
-    linear(volume<D> vol) : base<D, T>(vol) {
-        auto max_width = math::max_element<D, T>(vol.dimensions());
+    linear(volume<D, T> vol) : base<D, T>(vol) {
+        auto max_width = math::max_element<D, T>(vol.voxels());
         this->queue_.reserve((int)(math::sqrt<T>(D) * math::pow(D, 2) * max_width));
     }
 
@@ -36,8 +36,6 @@ class linear : public base<D, T> {
             math::interpolate<D, T>(current_point, this->volume_, this->queue_);
             current_point += line.delta;
         }
-
-        this->line_ = line;
     }
 };
 

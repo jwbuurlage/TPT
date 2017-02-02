@@ -18,14 +18,15 @@ template <typename T>
 using optional = std::experimental::optional<T>;
 
 #include <glm/glm.hpp>
-#include <glm/gtc/constants.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 
 // this allows for `glm::to_string(vecD)`, which eases debugging
 #include <glm/gtx/string_cast.hpp>
 
 #include "common.hpp"
+#include "math/constants.hpp"
 #include "math/vector.hpp"
+#include "math/vector_operations.hpp"
 #include "volume.hpp"
 
 namespace tomo {
@@ -36,18 +37,6 @@ using namespace tomo::literals;
  * This namespace contains all the mathematical operations used by Galactica.
  */
 namespace math {
-
-/** A constant representing a small value of type T. */
-template <typename T>
-constexpr T epsilon = (T)1e-5;
-
-/** A constant representing pi with the precision of type T. */
-template <typename T>
-constexpr auto pi = glm::pi<T>();
-
-/** A constant representing sqrt(2) with the precision of type T. */
-template <typename T>
-constexpr T sqrt2 = (T)1.41421356237;
 
 /**
  * An element of the (implicit) precision matrix, given by an column index and
@@ -63,25 +52,6 @@ struct matrix_element {
     /// The value of the matrix element.
     T value;
 };
-
-/** Compute the absolute value of an object of type T. */
-template <typename T>
-auto abs(T obj) {
-    return glm::abs(obj);
-}
-
-/** Check if two real-valued numbers are approximately equal. */
-template <typename T, typename V>
-bool approx_equal(T lhs, T rhs, V max_rel_diff, V max_abs_diff) {
-    return abs((lhs - rhs) / rhs) <= max_rel_diff ||
-           (max_abs_diff != 0 && abs(lhs - rhs) <= max_abs_diff);
-}
-
-/** Check if two real-valued numbers are approximately equal. */
-template <typename T>
-bool approx_equal(T lhs, T rhs) {
-    return approx_equal(lhs, rhs, (T)1e-2, epsilon<T>);
-}
 
 /**
  * A ray is a line segment from source to a detector
@@ -101,6 +71,12 @@ struct ray {
     vec<D, T> source;   //> the position of the source
     vec<D, T> detector; //> the position of the detector pixel
 };
+
+/** Rotate a 3D vector */
+template <typename T>
+auto rotate(vec<3_D, T> v, vec<3_D, T> normal, T angle) {
+    return glm::rotate(v, angle, normal);
+}
 
 /**
  * A line has an origin, and a delta -- and is used for numerical integration
@@ -143,163 +119,6 @@ vec<D, int> sign(vec<D, T> rhs) {
     return result;
 }
 
-/** Compute the cosine for an object of type T. */
-template <typename T>
-auto cos(T obj) {
-    return glm::cos(obj);
-}
-
-/** Compute the sine for an object of type T. */
-template <typename T>
-auto sin(T obj) {
-    return glm::sin(obj);
-}
-
-/** Compute the arcsine for an object of type T. */
-template <typename T>
-auto asin(T obj) {
-    return glm::asin(obj);
-}
-
-/** Compute the exponential of an object of type T. */
-template <typename T>
-auto exp(T obj) {
-    return glm::exp(obj);
-}
-
-/** Floor an object of type T. */
-template <typename T>
-auto floor(T obj) {
-    return glm::floor(obj);
-}
-
-/** Ceil an object of type T. */
-template <typename T>
-auto ceil(T obj) {
-    return glm::ceil(obj);
-}
-
-/** Round an object of type T to the nearest integer. */
-template <typename T>
-auto round(T obj) {
-    return glm::round(obj);
-}
-
-/** Rotate a 3D vector */
-template <typename T>
-auto rotate(vec<3_D, T> v, vec<3_D, T> normal, T angle) {
-    return glm::rotate(v, angle, normal);
-}
-
-/** Multiply the elements of a vector together */
-template <dimension D, typename T>
-auto product(vec<D, T> vec) {
-    auto result = (T)1;
-    for (int d = 0; d < D; ++d) {
-        result *= vec[d];
-    }
-    return result;
-}
-
-/** Multiply the elements of a vector together */
-template <dimension D>
-int reduce(vec<D, int> vec) {
-    int product = 1;
-    for (int d = 0; d < D; ++d) {
-        product *= vec[d];
-    }
-    return product;
-}
-
-/** Compute the norm of a vector of type T. */
-template <dimension D, typename T>
-T norm(vec<D, T> vec) {
-    T squared_sum = 0;
-    for (int d = 0; d < D; ++d) {
-        squared_sum += vec[d] * vec[d];
-    }
-    return sqrt(squared_sum);
-}
-
-/** Compute the square root of an object of type T. */
-template <typename T>
-constexpr auto sqrt(T obj) {
-    return glm::sqrt(obj);
-}
-
-/** Normalize an object of type T. */
-template <typename T>
-auto normalize(T obj) {
-    return glm::normalize(obj);
-}
-
-/** Return the value of the maximum component. */
-template <dimension D, typename T>
-T max_element(vec<D, T> v) {
-    auto max = std::numeric_limits<T>::min();
-    for (int d = 0; d < D; ++d) {
-        if (v[d] > max) {
-            max = v[d];
-        }
-    }
-    return max;
-}
-
-/** Return the index of the maximum component. */
-template <dimension D, typename T>
-int max_index(vec<D, T> x) {
-    int max_index = -1;
-    auto max = std::numeric_limits<T>::min();
-    for (int d = 0; d < D; ++d) {
-        if (x[d] > max) {
-            max = x[d];
-            max_index = d;
-        }
-    }
-    return max_index;
-}
-
-/** Compute the distance between two vectors. */
-template <dimension D, typename T>
-T distance(vec<D, T> a, vec<D, T> b) {
-    return glm::distance(a, b);
-}
-
-/** Compute the distance between two generic objects. */
-template <typename T>
-T distance(T a, T b) {
-    return abs(a - b);
-}
-
-/** Compute the inner-product of two vectors. */
-template <dimension D, typename T>
-T dot(vec<D, T> a, vec<D, T> b) {
-    return glm::dot(a, b);
-}
-
-/** Compute the cross-product of two vectors. */
-template <typename T>
-vec3<T> cross(vec3<T> a, vec3<T> b) {
-    return glm::cross(a, b);
-}
-
-/** Compute the 'cross-product' of two 2-dimensional vectors. */
-template <typename T>
-T cross(typename vec<2_D, T>::type a, typename vec<2_D, T>::type b) {
-    return a.x * b.y - a.y * b.x;
-}
-
-/** Compute \f$a^n\f$. */
-template <typename T>
-constexpr T pow(T a, int n) {
-    int result = a;
-    // FIXME use exponential powering
-    for (int i = 1; i < n; ++i) {
-        result *= a;
-    }
-    return result;
-}
-
 /**
  * Compute the intersection of the line \f$p \rightarrow p2\f$, with the line
  * \f$q \rightarrow q2\f$.
@@ -325,26 +144,24 @@ optional<vec2<T>> intersection(vec2<T> p, vec2<T> p2, vec2<T> q, vec2<T> q2) {
     return optional<vec2<T>>();
 }
 
-/** Checks whether a world vector lies in the box defined by a volume. This is
+/** Checks whether a *voxel-coordinate* vector lies in the box defined by a volume. This is
  * open by one side, the upper side in each axis. */
 template <dimension D, typename T>
-bool inside(vec<D, T> a, volume<D> vol) {
-    a -= vol.origin();
+bool inside(vec<D, T> a, volume<D, T> vol) {
     for (int dim = 0; dim < D; ++dim) {
-        if (a[dim] < -epsilon<T> || a[dim] > (T)vol[dim] + epsilon<T>)
+        if (a[dim] < -epsilon<T> || a[dim] > (T)vol.voxels()[dim] + epsilon<T>)
             return false;
     }
     return true;
 }
 
-/** Checks whether a world vector lies in the box defined by a volume. This is
+/** Checks whether a *voxel-coordinate vector* lies in the box defined by a volume. This is
  * open by one side, the upper side in each axis. */
 template <dimension D, typename T>
-bool inside_margin(vec<D, T> a, volume<D> vol, T margin) {
-    a -= vol.origin();
+bool inside_margin(vec<D, T> a, volume<D, T> vol, T margin) {
     for (int dim = 0; dim < D; ++dim) {
         if (a[dim] < -(margin + epsilon<T>) ||
-            a[dim] > (T)vol[dim] + margin + epsilon<T>)
+            a[dim] > (T)vol.voxels()[dim] + margin + epsilon<T>)
             return false;
     }
     return true;
@@ -422,18 +239,32 @@ aabb_intersection(vec<D, T> a, vec<D, T> b, vec<D, T> sides,
 }
 
 template <dimension D, typename T>
-optional<line<D, T>> truncate_to_volume(ray<D, T> ray, volume<D> v) {
+vec<D, T> to_voxel(vec<D, T> x, volume<D, T> v) {
+    x -= v.origin();
+    x /= v.physical_lengths();
+    x *= v.voxels();
+    return x;
+}
+
+template <dimension D, typename T>
+optional<line<D, T>> truncate_to_volume(ray<D, T> ray, volume<D, T> v) {
     // need line plane intersection, because the box is axis aligned (AABB) we
     // need to do a ray/AABB intersection.
-    auto origin = aabb_intersection<D, T>(ray.source, ray.detector, v.lengths(),
-                                          math::vec<D, T>(v.origin()));
+    auto origin =
+        aabb_intersection<D, T>(ray.source, ray.detector, v.physical_lengths(),
+                                math::vec<D, T>(v.origin()));
     if (!origin) {
         return optional<line<D, T>>();
     }
 
-    auto steps = round(distance(ray.source, origin.value().first));
-    auto delta = normalize(ray.detector - ray.source);
-    auto start = ray.source + steps * delta;
+    auto voxel_source = to_voxel<D, T>(ray.source, v);
+    auto voxel_detector = to_voxel<D, T>(ray.detector, v);
+    auto voxel_origin = to_voxel<D, T>(origin.value().first, v);
+
+    // have to do this in terms of voxel delta
+    auto steps = round(distance(voxel_source, voxel_origin));
+    auto delta = normalize(voxel_detector - voxel_source);
+    auto start = voxel_source + steps * delta;
 
     return optional<line<D, T>>{line<D, T>{start, delta}};
 }
@@ -464,11 +295,10 @@ intersect_bounds(math::ray<D, T> l, std::array<math::vec2<int>, D> bounds) {
 /** Reverse-interpolate a world vector to the
  * surrounding voxels. */
 template <dimension D, typename T>
-void interpolate(vec<D, T> a, volume<D> vol,
+void interpolate(vec<D, T> a, volume<D, T> v,
                  std::vector<matrix_element<T>>& queue) {
-    auto relative = a - vec<D, T>(vol.origin());
     // First we see what cell corner we are closest to
-    vec<D, int> b = round(relative);
+    vec<D, int> b = round(a);
 
     // the corresponding indices for each dimension
     std::array<std::array<int, 2>, D> cells_indices;
@@ -499,7 +329,7 @@ void interpolate(vec<D, T> a, volume<D> vol,
         bool flag = false;
         // if any of the coordinates are outside, we continue
         for (int d = 0; d < D; ++d) {
-            if (cell[d] < 0 || cell[d] >= vol[d]) {
+            if (cell[d] < 0 || cell[d] >= v.voxels()[d]) {
                 flag = true;
                 break;
             }
@@ -508,9 +338,9 @@ void interpolate(vec<D, T> a, volume<D> vol,
             continue;
         }
 
-        int index = vol.index_by_vector(cell);
+        int index = v.index_by_vector(cell);
         auto value = math::product<D, T>(math::vec<D, T>((T)1) -
-                                         math::abs(relative - cell_center));
+                                         math::abs(a - cell_center));
         queue.push_back({index, value});
     }
 }
@@ -539,6 +369,12 @@ math::vec<D, T> extend(math::vec<D - 1, T> x, int axis, T value) {
         }
     }
     return point;
+}
+
+/** Return the center of the volume */
+template <tomo::dimension D, typename T>
+math::vec<D, T> volume_center(tomo::volume<D, T> v) {
+    return v.origin() + (T)0.5 * v.physical_lengths();
 }
 
 } // namespace math

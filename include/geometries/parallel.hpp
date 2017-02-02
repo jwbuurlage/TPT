@@ -24,7 +24,7 @@ namespace geometry {
  */
 template <typename T>
 math::vec1<T> detector_location(int detector, int detector_count,
-                                T detector_step, const volume<2_D>&) {
+                                T detector_step, const volume<2_D, T>&) {
     return math::vec1<T>{(detector - (detector_count - 1) * (T)0.5) *
                          detector_step};
 }
@@ -32,7 +32,7 @@ math::vec1<T> detector_location(int detector, int detector_count,
 /** ditto */
 template <typename T>
 math::vec2<T> detector_location(int detector, int detector_count,
-                                T detector_step, const volume<3_D>&) {
+                                T detector_step, const volume<3_D, T>&) {
     auto detector_x = detector % detector_count;
     auto detector_y = detector / detector_count;
 
@@ -52,11 +52,12 @@ math::vec2<T> detector_location(int detector, int detector_count,
  */
 template <typename T>
 inline math::ray<2_D, T> compute_line(math::vec<1_D, T> current_detector,
-                                      T current_angle, const volume<2_D>& vol) {
+                                      T current_angle,
+                                      const volume<2_D, T>& vol) {
     // some performance can be gained here by *not* shifting with image
     // center, and maybe we even want to cache these results somehow
-    auto source = math::vec2<T>((T)-2.0 * vol.x(), current_detector[0]);
-    auto detector = math::vec2<T>((T)2.0 * vol.x(), current_detector[0]);
+    auto source = math::vec2<T>((T)-2.0 * vol[0], current_detector[0]);
+    auto detector = math::vec2<T>((T)3.0 * vol[0], current_detector[0]);
 
     auto c = math::cos(-current_angle);
     auto s = math::sin(-current_angle);
@@ -66,7 +67,7 @@ inline math::ray<2_D, T> compute_line(math::vec<1_D, T> current_detector,
     detector = math::vec2<T>(c * detector[0] - s * detector[1],
                              s * detector[0] + c * detector[1]);
 
-    auto image_center = math::vec2<T>(0.5 * (vol.x() + 1), 0.5 * (vol.y() + 1));
+    auto image_center = math::volume_center(vol);
 
     source += image_center;
     detector += image_center;
@@ -77,17 +78,21 @@ inline math::ray<2_D, T> compute_line(math::vec<1_D, T> current_detector,
 /** ditto */
 template <typename T>
 inline math::ray<3_D, T> compute_line(math::vec2<T> current_detector,
-                                      T current_angle, const volume<3_D>& vol) {
+                                      T current_angle,
+                                      const volume<3_D, T>& vol) {
     // strategy: only consider current detector x, and ignore y, only add it at
     // the end
-    auto volume_slice = volume<2_D>(vol.x(), vol.y());
+    auto volume_slice = volume<2_D, T>(math::restrict<3_D, T>(vol.voxels(), 2),
+                                       math::restrict<3_D, T>(vol.origin(), 2),
+                                       math::restrict<3_D, T>(vol.physical_lengths(), 2));
+
     auto line_2d = compute_line(math::vec1<T>{current_detector.x},
                                 current_angle, volume_slice);
 
     auto source = math::vec3<T>(line_2d.source.x, line_2d.source.y,
-                                current_detector.y + 0.5 * vol.z());
+                                current_detector.y + (T)0.5 * vol[2]);
     auto detector = math::vec3<T>(line_2d.detector.x, line_2d.detector.y,
-                                  current_detector.y + 0.5 * vol.z());
+                                  current_detector.y + (T)0.5 * vol[2]);
 
     return {source, detector};
 }
@@ -111,7 +116,7 @@ class parallel : public base<D, T> {
      * \param detector_count the number of detectors
      * \param volume the volume being scanned
      */
-    parallel(const volume<D>& volume, int angle_count, int detector_count)
+    parallel(const volume<D, T>& volume, int angle_count, int detector_count)
         : base<D, T>(angle_count * math::pow(detector_count, D - 1)),
           volume_(volume) {
         auto angle_step = math::pi<T> / angle_count;
@@ -124,7 +129,7 @@ class parallel : public base<D, T> {
         // FIXME this is only for cubic volume
         // we explicitely check this here, but we can extend the definition to
         // cuboids.
-        auto is_cubic = [](tomo::volume<D> vol) -> bool {
+        auto is_cubic = [](tomo::volume<D, T> vol) -> bool {
             int x = vol[0];
             for (int d = 1; d < D; ++d) {
                 if (vol[d] != x) {
@@ -135,7 +140,7 @@ class parallel : public base<D, T> {
         };
         assert(is_cubic(volume));
 
-        auto detector_step = volume_.y() / (T)detector_count;
+        auto detector_step = volume_[1] / (T)detector_count;
         for (int detector = 0; detector < total_detector_count; detector++) {
             detectors_.push_back(detector_location<T>(detector, detector_count,
                                                       detector_step, volume_));
@@ -157,7 +162,7 @@ class parallel : public base<D, T> {
     const std::vector<position>& detectors() const { return detectors_; }
 
     /** Obtain a reference to the scanned volume. */
-    const volume<D>& get_volume() const { return volume_; }
+    const volume<D, T>& get_volume() const { return volume_; }
 
     /** Obtain the i-th line of the geometry. */
     math::ray<D, T> get_line(int i) const override final {
@@ -168,7 +173,7 @@ class parallel : public base<D, T> {
   private:
     std::vector<T> angles_;
     std::vector<position> detectors_;
-    volume<D> volume_;
+    volume<D, T> volume_;
 };
 
 } // namespace geometry

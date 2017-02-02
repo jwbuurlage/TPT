@@ -57,7 +57,7 @@ class sinogram {
 
     image<D, T> as_image() const {
         image<2_D, T> img(
-            volume<2_D>(geometry_.groups()[0], geometry_.groups()[1]));
+            volume<2_D, T>({geometry_.groups()[0], geometry_.groups()[1]}));
         img.mutable_data() = data_;
         return img;
     }

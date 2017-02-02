@@ -19,10 +19,11 @@ template <dimension D, typename T>
 class base {
   public:
     using problem_dimension = std::integral_constant<dimension, D>;
-    using matrix_iterator = typename std::vector<math::matrix_element<T>>::iterator;
+    using matrix_iterator =
+        typename std::vector<math::matrix_element<T>>::iterator;
 
     /** Construct a projector for a scanning volume. */
-    base(volume<D> vol) : volume_(vol) {}
+    base(volume<D, T> vol) : volume_(vol) {}
 
     /** Obtain an iterator to the first voxel that is 'hit'. */
     matrix_iterator begin() { return begin_(); }
@@ -57,7 +58,10 @@ class base {
         auto truncated_line = truncate_to_volume(incoming_ray, volume_);
         this->clear_();
         if (truncated_line) {
-            this->reset_(truncated_line.value());
+            auto line = truncated_line.value();
+
+            this->reset_(line);
+            this->line_ = line;
         }
         return element_container(*this);
     }
@@ -65,13 +69,13 @@ class base {
     /** Obtain the current line of the DIM. */
     math::line<D, T> get_line() const { return line_; }
 
-    /** Obtain a reference to the scanned volume. */
-    volume<D> get_volume() const { return volume_; }
+    /** Obtain the scanned volume. */
+    volume<D, T> get_volume() const { return volume_; }
 
   protected:
     virtual ~base() = default;
 
-    volume<D> volume_;
+    volume<D, T> volume_;
     math::line<D, T> line_;
 
     std::vector<math::matrix_element<T>> queue_;

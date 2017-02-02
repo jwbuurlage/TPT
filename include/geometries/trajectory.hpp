@@ -26,7 +26,7 @@ template <dimension D, typename T>
 class trajectory : public base<D, T> {
   public:
     /** Construct the geometry with a given number of lines. */
-    trajectory(volume<D> volume, int steps, T detector_spacing = (T)1,
+    trajectory(volume<D, T> volume, int steps, T detector_spacing = (T)1,
                math::vec<D - 1, int> detector_size = math::vec<D - 1, int>{1})
         : base<D, T>(steps * math::reduce<D - 1>(detector_size)),
           volume_(volume), steps_(steps), detector_size_(detector_size),
@@ -74,7 +74,7 @@ class trajectory : public base<D, T> {
   protected:
     virtual ~trajectory() = default;
 
-    volume<D> volume_;
+    volume<D, T> volume_;
     int steps_;
 
     math::vec<D - 1, int> detector_size_;

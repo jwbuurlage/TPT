@@ -24,11 +24,8 @@ class image {
     using value_type = T;
 
     /** Construct a default-initialized image for a given volume. */
-    image(volume<D> v) : v_(v) {
-        int cells = 1;
-        for (int i = 0; i < D; ++i)
-            cells *= v[i];
-        data_.resize(cells);
+    image(volume<D, T> v) : v_(v) {
+        data_.resize(v.cells());
     }
 
     /** Obtain the index of an image voxel within the volume. */
@@ -56,17 +53,14 @@ class image {
      * Obtain the size of the image for a given dimension
      * \param i the dimension to query
      */
-    int size(int i) const { return v_[i]; }
-
-    /** Obtain an array with the dimensions of the image. */
-    math::vec<D, int> dimensions() const { return v_.dimensions(); }
+    int size(int i) const { return v_.voxels()[i]; }
 
     /** Obtain a reference to the underlying image data. */
     std::vector<T>& mutable_data() { return data_; }
     const std::vector<T>& data() const { return data_; }
 
-    /** Obtain a reference to the volume. */
-    volume<D> get_volume() const { return v_; }
+    /** Obtain the volume. */
+    volume<D, T> get_volume() const { return v_; }
 
     /** Clear the image. Fills each voxel with zero. */
     void clear() { std::fill(data_.begin(), data_.end(), 0); }
@@ -78,7 +72,7 @@ class image {
     auto end() { return data_.end(); }
 
   private:
-    volume<D> v_;
+    volume<D, T> v_;
     std::vector<T> data_;
 };
 

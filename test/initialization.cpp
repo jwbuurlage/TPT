@@ -6,20 +6,20 @@ using T = float;
 TEST_CASE("We can create reconstruction volumes", "[core]") {
     SECTION("2D") {
         int k = 16;
-        tomo::volume<2_D> v(k, k);
+        tomo::volume<2_D, T> v({k, k});
         REQUIRE(v.cells() == k * k);
     }
 
     SECTION("3D") {
         int k = 16;
-        tomo::volume<3_D> v(k, k, k);
+        tomo::volume<3_D, T> v({k, k, k});
         REQUIRE(v.cells() == k * k * k);
     }
 
     SECTION("indexing") {
         int k = 16;
-        tomo::volume<2_D> v2(k);
-        tomo::volume<3_D> v3(k);
+        tomo::volume<2_D, T> v2(k);
+        tomo::volume<3_D, T> v3(k);
 
         CHECK(v2.index(2, 3) == 2 + 3 * k);
         CHECK(v2.unroll(v2.index(2, 3))[0] == 2);
@@ -36,7 +36,7 @@ TEST_CASE("We can create reconstruction volumes", "[core]") {
 TEST_CASE("We can initialize geometry", "[core]") {
     SECTION("2D") {
         int k = 16;
-        auto v = tomo::volume<2_D>(k, k);
+        auto v = tomo::volume<2_D, T>({k, k});
         auto g = tomo::geometry::parallel<2_D, T>(v, 180, 250);
         CHECK(g.lines() == 180 * 250);
 
@@ -50,7 +50,7 @@ TEST_CASE("We can initialize geometry", "[core]") {
 
     SECTION("3D") {
         int k = 16;
-        auto v = tomo::volume<3_D>(k, k, k);
+        auto v = tomo::volume<3_D, T>({k, k, k});
         auto g = tomo::geometry::parallel<3_D, T>(v, 180, 250);
         CHECK(g.lines() == 180 * 250 * 250);
 
@@ -67,7 +67,7 @@ TEST_CASE("We can initialize geometry", "[core]") {
 TEST_CASE("Geometry lines are not empty") {
     SECTION("3D") {
         int k = 16;
-        auto v = tomo::volume<3_D>(k, k, k);
+        auto v = tomo::volume<3_D, T>({k, k, k});
         auto g = tomo::geometry::parallel<3_D, T>(v, k, k);
         auto proj = tomo::dim::closest<3_D, T>(v);
 
@@ -89,7 +89,7 @@ TEST_CASE("Geometry lines are not empty") {
 
     SECTION("random geometry") {
         int k = 16;
-        auto v = tomo::volume<3_D>(k);
+        auto v = tomo::volume<3_D, T>(k);
         auto g = tomo::random_list_geometry<3_D, T>(1000, v);
         auto proj = tomo::dim::linear<3_D, T>(v);
 

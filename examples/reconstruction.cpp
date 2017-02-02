@@ -20,7 +20,7 @@ using T = float;
 template <tomo::dimension D>
 void run(tomo::util::args opt) {
     // create a 2D volume of size k x k
-    auto v = tomo::volume<D>(opt.k);
+    auto v = tomo::volume<D, T>(opt.k);
 
     auto f = tomo::modified_shepp_logan_phantom<T>(v);
 

@@ -34,7 +34,8 @@ using ellipsoid = std::array<T, 10>;
 
 template <typename ImageLike, typename T>
 void fill_ellipses_(ImageLike& image, const std::vector<ellipse<T>>& ellipses,
-                    volume<2_D> image_volume, volume<2_D> phantom_volume) {
+                    volume<2_D, T> image_volume,
+                    volume<2_D, T> phantom_volume) {
     for (auto e : ellipses) {
         auto& intensity = e[0];
         auto aa = e[1] * e[1];
@@ -47,15 +48,26 @@ void fill_ellipses_(ImageLike& image, const std::vector<ellipse<T>>& ellipses,
         auto sin_p = sin(phi);
 
         auto origin = image_volume.origin();
-        auto phantom_origin = phantom_volume.origin();
-        for (int i = 0; i < image_volume.x(); ++i) {
-            for (int j = 0; j < image_volume.y(); ++j) {
-                auto x_normalized = ((origin[0] + (T)i + phantom_origin[0]) /
-                                     phantom_volume.x());
-                auto y_normalized = ((origin[1] + (T)j - phantom_origin[1]) /
-                                     phantom_volume.y());
-                auto x = (2.0 * x_normalized - 1) - x0;
-                auto y = (2.0 * y_normalized - 1) - y0;
+        for (int i = 0; i < image_volume.voxels()[0]; ++i) {
+            for (int j = 0; j < image_volume.voxels()[1]; ++j) {
+                // we normalize the vector so that it lies in [0,1]
+                math::vec2<T> idx{i, j};
+                // component-wise division
+                idx /= image_volume.voxels();
+
+                // we see where it lies with respect to the phantom, which
+                // depends on:
+                // image size, phantom size, image origin, phantom origin
+                math::vec2<T> v_x = (origin + idx * image_volume.physical_lengths());
+                v_x -= phantom_volume.origin();
+                v_x /= phantom_volume.physical_lengths();
+
+                // v_x is now relative in the subimage of the volume
+
+                // compute the intensity increase
+                auto x = ((T)2.0 * v_x[0] - (T)1.0) - x0;
+                auto y = ((T)2.0 * v_x[1] - (T)1.0) - y0;
+
                 auto t1 = x * cos_p + y * sin_p;
                 auto t2 = y * cos_p - x * sin_p;
                 if ((t1 * t1 / aa + t2 * t2 / bb) <= (T)1.0)
@@ -66,8 +78,10 @@ void fill_ellipses_(ImageLike& image, const std::vector<ellipse<T>>& ellipses,
 }
 
 template <typename ImageLike, typename T>
-void fill_ellipsoids_(ImageLike& image, const std::vector<ellipsoid<T>>& ellipsoids,
-                    volume<3_D> image_volume, volume<3_D> phantom_volume) {
+void fill_ellipsoids_(ImageLike& image,
+                      const std::vector<ellipsoid<T>>& ellipsoids,
+                      volume<3_D, T> image_volume,
+                      volume<3_D, T> phantom_volume) {
     // FIXME phi2 and phi3 are ignored
     for (auto e : ellipsoids) {
         auto& intensity = e[0];
@@ -77,14 +91,20 @@ void fill_ellipsoids_(ImageLike& image, const std::vector<ellipsoid<T>>& ellipso
         auto e_1 = math::standard_basis<3_D, T>(1);
 
         math::vec3<T> origin = image_volume.origin();
-        math::vec3<T> phantom_origin = phantom_volume.origin();
-        for (int i = 0; i < image_volume.x(); ++i) {
-            for (int j = 0; j < image_volume.y(); ++j) {
-                for (int k = 0; k < image_volume.z(); ++k) {
-                    // normalized vector
+        for (int i = 0; i < image_volume.voxels()[0]; ++i) {
+            for (int j = 0; j < image_volume.voxels()[1]; ++j) {
+                for (int k = 0; k < image_volume.voxels()[2]; ++k) {
+                    // we normalize the vector so that it lies in [0,1]
                     math::vec3<T> idx{i, j, k};
-                    math::vec3<T> v{phantom_volume.x(), phantom_volume.y(), phantom_volume.z()};
-                    math::vec3<T> v_x = (origin + idx - phantom_origin) / v;
+                    // component-wise division
+                    idx /= image_volume.voxels();
+
+                    // we see where it lies with respect to the phantom, which
+                    // depends on:
+                    // image size, phantom size, image origin, phantom origin
+                    math::vec3<T> v_x = (origin + idx * image_volume.physical_lengths());
+                    v_x -= phantom_volume.origin();
+                    v_x /= phantom_volume.physical_lengths();
 
                     auto x = ((T)2.0 * v_x - (T)1.0) - x_0;
                     auto t = math::rotate<T>(x, e_1, phi);
@@ -97,12 +117,11 @@ void fill_ellipsoids_(ImageLike& image, const std::vector<ellipsoid<T>>& ellipso
     }
 }
 
-
 /** A helper function that creates an image from a collection of ellipses. */
 template <typename T>
 image<2_D, T>
 construct_phantom_from_ellipses_(const std::vector<ellipse<T>>& ellipses,
-                                 const volume<2_D>& v) {
+                                 const volume<2_D, T>& v) {
     image<2_D, T> f(v);
     fill_ellipses_(f, ellipses, v, v);
     return f;
@@ -112,7 +131,7 @@ construct_phantom_from_ellipses_(const std::vector<ellipse<T>>& ellipses,
 template <typename T>
 image<3_D, T>
 construct_phantom_from_ellipsoids_(const std::vector<ellipsoid<T>>& ellipsoids,
-                                   const volume<3_D>& v) {
+                                   const volume<3_D, T>& v) {
     image<3_D, T> f(v);
     fill_ellipsoids_(f, ellipsoids, v, v);
     return f;
@@ -169,19 +188,19 @@ auto mshl_ellipsoids_() {
 }
 
 template <typename T>
-image<2_D, T> shepp_logan_phantom(const volume<2_D>& v) {
+image<2_D, T> shepp_logan_phantom(const volume<2_D, T>& v) {
     return construct_phantom_from_ellipses_<T>(shl_ellipses_<T>(), v);
 }
 
 /** Obtain a modified Shepp-Logan phantom with higher contrast. */
 template <typename T>
-image<2_D, T> modified_shepp_logan_phantom(const volume<2_D>& v) {
+image<2_D, T> modified_shepp_logan_phantom(const volume<2_D, T>& v) {
     return construct_phantom_from_ellipses_<T>(mshl_ellipses_<T>(), v);
 }
 
 /** Obtain a modified Shepp-Logan phantom with higher contrast. */
 template <typename T>
-image<3_D, T> modified_shepp_logan_phantom(const volume<3_D>& v) {
+image<3_D, T> modified_shepp_logan_phantom(const volume<3_D, T>& v) {
 
     return construct_phantom_from_ellipsoids_<T>(mshl_ellipsoids_<T>(), v);
 }

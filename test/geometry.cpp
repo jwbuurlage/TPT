@@ -27,7 +27,7 @@ TEST_CASE("Trajectory based geometry", "[geometry]") {
 
     SECTION("Basic trajectories") {
         int k = 10;
-        auto v = tomo::volume<2_D>(k);
+        auto v = tomo::volume<2_D, T>(k);
         auto g = static_trajectory_test(v, 10);
         CHECK(g.lines() == 10);
         bool static_lines_correct = true;
@@ -65,7 +65,7 @@ TEST_CASE("Trajectory based geometry", "[geometry]") {
 
     SECTION("Basic trajectories (3D)") {
         int k = 10;
-        auto v = tomo::volume<3_D>(k);
+        auto v = tomo::volume<3_D, T>(k);
         auto g = static_trajectory_test_3d(v, 10);
         CHECK(g.lines() == 10);
 
@@ -86,7 +86,7 @@ TEST_CASE("Trajectory based geometry", "[geometry]") {
 
     SECTION("Detector tilts computed correctly (3D)") {
         int k = 10;
-        auto v = tomo::volume<3_D>(k);
+        auto v = tomo::volume<3_D, T>(k);
         auto g = geometry::cone_beam<T>(v, 20);
 
         auto axes = g.detector_tilt(0);
@@ -102,7 +102,7 @@ TEST_CASE("Trajectory based geometry", "[geometry]") {
         int k = 10;
         int steps_per_axis = 10;
         int detector_width = 2;
-        auto v = tomo::volume<3_D>(k);
+        auto v = tomo::volume<3_D, T>(k);
         auto g = geometry::dual_axis_parallel<T>(
             v, steps_per_axis, (T)1, math::vec<2_D, int>{detector_width});
         CHECK(g.lines() ==
