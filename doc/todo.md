@@ -14,16 +14,16 @@ It is necessary for my experiments to have distributed 3d reconstruction of arbi
     - [ ] Optimize the steps
     - [ ] Perform on downsampled geometries
     - [ ] Add voxel weight cumulative sum support
-- [ ] Make the partitioning persistent, define some YAML format
+- [ ] Make the partitioning persistent, define some TOML format
     - [x] Integrate https://github.com/jbeder/yaml-cpp
     - [x] Alternative: TOML https://github.com/skystrife/cpptoml
-    - [ ] Define YAML format for geometries
+    - [ ] Define TOML format for geometries
     - [ ] A problem is: how to pass geometry parameters, it is potentially different for each geometry.
     - [!] Add 'factory' for projectors and geometry, maybe as part of tomo::args
-- [!] Support physical volume dimensions
-    - [ ] Volume should be subpixels (i.e. origin and lengths are `T` instead of `int`)
-    - [ ] All relative geometries and math functions should accomodate this change
-    - [ ] Fix DIMs working on voxels now that lengths is physical
+- [x] Support physical volume dimensions
+    - [x] Volume should be subpixels (i.e. origin and lengths are `T` instead of `int`)
+    - [x] All relative geometries and math functions should accomodate this change
+    - [x] Fix DIMs working on voxels now that lengths is physical
 - [ ] Make also a scheme for storing performance and partitioning results
     - [ ] Partitioning: communication volume
     - [ ] Performance: actually running the code
