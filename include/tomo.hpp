@@ -38,6 +38,7 @@
 #include "util/bench.hpp"
 #include "util/report.hpp"
 #include "util/tomo_args.hpp"
+#include "util/read_metadata.hpp"
 
 #include "algorithms/art.hpp"
 #include "algorithms/sart.hpp"

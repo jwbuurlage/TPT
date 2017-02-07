@@ -1,45 +1,74 @@
-/**
- * TODO:
- * - [ ] Arguments
- */
 #include <cmath>
 #include <iostream>
 
-#include <glm/gtx/string_cast.hpp>
+#include "fmt/format.h"
 
 #include "tomo.hpp"
 #include "util/plotter.hpp"
 
-using T = double;
+using T = float;
 
-int main(int argc, char* argv[]) {
-    // request a plotter scene
-    auto plotter =
-        tomo::ext_plotter<2_D, T>("tcp://localhost:5555", "Sequential test");
-
-    auto opt = tomo::util::args(argc, argv);
-
-    auto v = tomo::volume<2_D, T>(opt.k);
+template <tomo::dimension D>
+void run(tomo::util::args opt) {
+    // create a 2D volume of size k x k
+    auto geom_and_volume =
+        tomo::read_configuration<D, T>("data/geometries/parallel.toml");
+    auto g = std::move(geom_and_volume.first);
+    auto v = geom_and_volume.second;
     auto f = tomo::modified_shepp_logan_phantom<T>(v);
-    auto g = tomo::geometry::parallel<2_D, T>(v, opt.k, opt.k);
 
-    auto kernel = tomo::dim::joseph<2_D, T>(v);
+    tomo::ascii_plot(f);
+    auto plotter =
+        tomo::ext_plotter<D, T>("tcp://localhost:5555", "Sequential test");
+    plotter.plot(f);
 
-    tomo::image<2_D, T> matrix(v);
-    auto line = g.get_line(g.lines() / 2 + opt.k / 4);
-    int k = 0;
-    for (auto elem : kernel(line)) {
-        matrix[elem.index] += elem.value;
+    // simulate the experiment
+    auto proj = tomo::dim::closest<D, T>(v);
+    // auto proj = tomo::dim::joseph<T>(v);
+    // auto proj = tomo::dim::closest<D, T>(v);
+    auto sino = tomo::forward_projection<D, T>(f, *g, proj);
+    // ascii_plot(sino);
+
+    // run an algorithm to reconstruct the image
+    if (opt.art) {
+        auto x = tomo::reconstruction::art(v, *g, proj, sino, opt.beta,
+                                           opt.iterations);
+        fmt::print("ART\n");
+        tomo::ascii_plot(x);
     }
 
-    plotter.plot(matrix);
+    // run an algorithm to reconstruct the image
+    if (opt.sart) {
+        auto y = tomo::reconstruction::sart(v, *g, proj, sino, opt.beta,
+                                            opt.iterations);
+        fmt::print("SART\n");
+        tomo::ascii_plot(y);
+    }
 
     if (opt.sirt) {
-       auto sino = tomo::forward_projection<2_D, T>(f, g, kernel);
-       plotter.plot(sino.as_image());
-        auto y = tomo::reconstruction::sirt(
-            v, g, kernel, sino, 0.5, 10,
-            {[&](tomo::image<2_D, T>& image) { plotter.plot(image); }});
+        // run an algorithm to reconstruct the image
+        auto z = tomo::reconstruction::sirt(v, *g, proj, sino, opt.beta,
+                                            opt.iterations);
+        fmt::print("SIRT\n");
+        tomo::ascii_plot(z);
+    }
+
+    fmt::print("Parameters: size = {}x{}, iterations = {}, beta = {}\n",
+               v.voxels()[0], v.voxels()[1], opt.iterations, opt.beta);
+}
+
+int main(int argc, char* argv[]) {
+    auto opt = tomo::util::args(argc, argv);
+
+    // TODO: can we make option for which projector to use (now compile time,
+    // need different options)
+    // TODO: want micro benchmarking merged here, instead of using `time ./prog`
+
+    if (opt.two) {
+        run<2_D>(opt);
+    }
+    if (opt.three) {
+        run<3_D>(opt);
     }
 
     return 0;

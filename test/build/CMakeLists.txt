@@ -27,12 +27,8 @@ set(
     "pthread"
 )
 
-## multiple binaries:
-# foreach(source_file ${EXAMPLE_SOURCES})
-#     string(REPLACE ".cpp" "" source_name ${source_file})
-#     add_executable(${source_name} ${EXAMPLE_DIR}${source_file})
-#     target_link_libraries( ${source_name} ${LIB_NAMES} )
-# endforeach(source_file)
+# reignore warnings from cpptoml, there is probably a nicer way. TODO
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ../../ext/cpptoml/include")
 
 add_executable(${TEST_EXEC_NAME} ${TEST_SOURCES})
 target_link_libraries( ${TEST_EXEC_NAME} ${LIB_NAMES} )
