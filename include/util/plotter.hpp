@@ -115,7 +115,7 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D> {
 
     void plot(tomo::image<3_D, T> f) {
         for (int axis = 0; axis < 3; ++axis) {
-            auto slice = tomo::slice(f, f.get_volume()[axis] / 2, axis);
+            auto slice = tomo::slice(f, f.get_volume().voxels()[axis] / 2, axis);
 
             std::vector<int> image_size(2_D);
             for (int d = 0; d < 2_D; ++d) {

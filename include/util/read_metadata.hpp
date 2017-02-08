@@ -7,9 +7,9 @@
 
 #include <cpptoml.h>
 
+#include "geometries/parallel.hpp"
 #include "geometry.hpp"
 #include "volume.hpp"
-#include "geometries/parallel.hpp"
 
 namespace tomo {
 
@@ -112,6 +112,8 @@ read_configuration(std::string file) {
 
     auto kind = config->get_as<std::string>("type");
     auto g = read_geometry<D, T>(*kind, config->get_table("parameters"), v);
+
+    assert(g->lines() > 0);
 
     return std::make_pair(std::move(g), v);
 }

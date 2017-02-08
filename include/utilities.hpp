@@ -33,9 +33,9 @@ image<2_D, T> slice(const image<3_D, T>& f, int slice, int along_axis = 0) {
 
     math::vec<3_D, int> image_idx;
     image_idx[along_axis] = slice;
-    for (int i = 0; i < large_volume[axes[0]]; ++i) {
+    for (int i = 0; i < large_volume.voxels()[axes[0]]; ++i) {
         image_idx[axes[0]] = i;
-        for (int j = 0; j < large_volume[axes[1]]; ++j) {
+        for (int j = 0; j < large_volume.voxels()[axes[1]]; ++j) {
             image_idx[axes[1]] = j;
             slice_image({i, j}) = f(image_idx);
         }
@@ -54,8 +54,8 @@ image<2_D, T> downscale_(const image<2_D, T>& f, T scale) {
     for (int i = 0; i < f.size(0); ++i) {
         for (int j = 0; j < f.size(1); ++j) {
             // contributes to cell:
-            auto cell_x = (int)(((double)i / f.size(0)) * new_volume[0]);
-            auto cell_y = (int)(((double)j / f.size(1)) * new_volume[1]);
+            auto cell_x = (int)(((double)i / f.size(0)) * new_volume.voxels()[0]);
+            auto cell_y = (int)(((double)j / f.size(1)) * new_volume.voxels()[1]);
             g({cell_x, cell_y}) += f({i, j}) * scale;
         }
     }
@@ -88,7 +88,7 @@ void ascii_plot(const image<3_D, T>& f, int slices = 4, int axis = 0) {
             max = f[k];
 
     for (int i = 0; i < slices; ++i) {
-        auto delta = (T)f.get_volume()[axis] / (slices + 1);
+        auto delta = (T)f.get_volume().voxels()[axis] / (slices + 1);
         auto slice_idx = (int)(delta * (i + 1));
         auto g = slice(f, slice_idx, axis);
         std::cout << "Slice @ x_" << axis << " = " << slice_idx << "\n";
