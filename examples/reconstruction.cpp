@@ -12,22 +12,21 @@ void run(tomo::util::args opt) {
     // create a 2D volume of size k x k
     auto geom_and_volume =
         tomo::read_configuration<D, T>("data/geometries/parallel.toml");
-    auto g = std::move(geom_and_volume.first);
+    //auto g = std::move(geom_and_volume.first);
     auto v = geom_and_volume.second;
+    auto& g = *geom_and_volume.first;
     auto f = tomo::modified_shepp_logan_phantom<T>(v);
 
     tomo::ascii_plot(f);
 
     // simulate the experiment
-    auto proj = tomo::dim::closest<D, T>(v);
-    // auto proj = tomo::dim::joseph<T>(v);
-    // auto proj = tomo::dim::closest<D, T>(v);
-    auto sino = tomo::forward_projection<D, T>(f, *g, proj);
+    auto proj = tomo::dim::joseph<D, T>(v);
+    auto sino = tomo::forward_projection<D, T>(f, g, proj);
     // ascii_plot(sino);
 
     // run an algorithm to reconstruct the image
     if (opt.art) {
-        auto x = tomo::reconstruction::art(v, *g, proj, sino, opt.beta,
+        auto x = tomo::reconstruction::art(v, g, proj, sino, opt.beta,
                                            opt.iterations);
         fmt::print("ART\n");
         tomo::ascii_plot(x);
@@ -35,7 +34,7 @@ void run(tomo::util::args opt) {
 
     // run an algorithm to reconstruct the image
     if (opt.sart) {
-        auto y = tomo::reconstruction::sart(v, *g, proj, sino, opt.beta,
+        auto y = tomo::reconstruction::sart(v, g, proj, sino, opt.beta,
                                             opt.iterations);
         fmt::print("SART\n");
         tomo::ascii_plot(y);
@@ -43,7 +42,7 @@ void run(tomo::util::args opt) {
 
     if (opt.sirt) {
         // run an algorithm to reconstruct the image
-        auto z = tomo::reconstruction::sirt(v, *g, proj, sino, opt.beta,
+        auto z = tomo::reconstruction::sirt(v, g, proj, sino, opt.beta,
                                             opt.iterations);
         fmt::print("SIRT\n");
         tomo::ascii_plot(z);

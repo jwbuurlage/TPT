@@ -58,7 +58,8 @@ void fill_ellipses_(ImageLike& image, const std::vector<ellipse<T>>& ellipses,
                 // we see where it lies with respect to the phantom, which
                 // depends on:
                 // image size, phantom size, image origin, phantom origin
-                math::vec2<T> v_x = (origin + idx * image_volume.physical_lengths());
+                math::vec2<T> v_x =
+                    (origin + idx * image_volume.physical_lengths());
                 v_x -= phantom_volume.origin();
                 v_x /= phantom_volume.physical_lengths();
 
@@ -102,11 +103,13 @@ void fill_ellipsoids_(ImageLike& image,
                     // we see where it lies with respect to the phantom, which
                     // depends on:
                     // image size, phantom size, image origin, phantom origin
-                    math::vec3<T> v_x = (origin + idx * image_volume.physical_lengths());
+                    math::vec3<T> v_x =
+                        (origin + idx * image_volume.physical_lengths());
                     v_x -= phantom_volume.origin();
                     v_x /= phantom_volume.physical_lengths();
 
-                    auto x = ((T)2.0 * v_x - (T)1.0) - x_0;
+                    // v_x is now relative in the subimage of the volume
+                    auto x = ((T)2.0 * v_x - math::vec3<T>((T)1.0)) - x_0;
                     auto t = math::rotate<T>(x, e_1, phi);
                     if (math::norm<3_D, T>(t / a) <= (T)1.0) {
                         image({i, j, k}) += intensity;
