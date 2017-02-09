@@ -9,12 +9,8 @@ using T = float;
 
 template <tomo::dimension D>
 void run(tomo::util::args opt) {
-    // create a 2D volume of size k x k
-    auto geom_and_volume =
-        tomo::read_configuration<D, T>("data/geometries/parallel.toml");
-    //auto g = std::move(geom_and_volume.first);
-    auto v = geom_and_volume.second;
-    auto& g = *geom_and_volume.first;
+    auto v = tomo::volume<D, T>(opt.k);
+    auto g = tomo::geometry::parallel<D, T>(v, opt.k, opt.k);
     auto f = tomo::modified_shepp_logan_phantom<T>(v);
 
     tomo::ascii_plot(f);

@@ -53,6 +53,7 @@ set(
     EXAMPLE_SOURCES
     "reconstruction.cpp"
     "read_geometry_test.cpp"
+    "read_tiff.cpp"
     "dose_deposition.cpp"
     "geometry_benchmark.cpp"
 )
@@ -62,6 +63,9 @@ set(
     "pthread"
     "tomos"
     "boost_program_options"
+    "opencv_core"
+    "opencv_highgui"
+    "opencv_imgcodecs"
 )
 
 foreach(source_file ${EXAMPLE_SOURCES})

@@ -1,14 +1,23 @@
 #include "tomo.hpp"
 
-int main() {
+using T = float;
+constexpr tomo::dimension D = 3_D;
+
+int main(int argc, char* argv[]) {
+    auto opt = tomo::util::args(argc, argv);
+
     try {
         auto geom_and_volume =
-            tomo::read_configuration<3_D, float>("data/geometries/parallel.toml");
-        auto v = geom_and_volume.second;
-        std::cout << "origin: " << glm::to_string(v.origin()) << "\n";
-        std::cout << "lengths: " << glm::to_string(v.physical_lengths())
-                  << "\n";
-        std::cout << "voxels: " << glm::to_string(v.voxels()) << "\n";
+            tomo::read_configuration<D, T>("data/geometries/parallel.toml");
+
+        auto vol = geom_and_volume.second;
+        auto& geom = *geom_and_volume.first;
+
+        auto phantom = tomo::modified_shepp_logan_phantom<T>(vol);
+        auto proj = tomo::dim::joseph<D, T>(vol);
+        auto sino = tomo::forward_projection<D, T>(phantom, geom, proj);
+
+        tomo::ascii_plot(phantom, 3, 1);
     } catch (const std::exception& e) {
         std::cout << "Reading configuration failed: " << e.what() << "\n";
     }
