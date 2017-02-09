@@ -14,12 +14,16 @@ It is necessary for my experiments to have distributed 3d reconstruction of arbi
     - [ ] Optimize the steps
     - [ ] Perform on downsampled geometries
     - [ ] Add voxel weight cumulative sum support
-- [ ] Make the partitioning persistent, define some TOML format
+- [ ] Add geometry information to data, define some TOML format
     - [x] Integrate https://github.com/jbeder/yaml-cpp
     - [x] Alternative: TOML https://github.com/skystrife/cpptoml
     - [ ] Define TOML format for geometries
-    - [ ] A problem is: how to pass geometry parameters, it is potentially different for each geometry.
-    - [!] Add 'factory' for projectors and geometry, maybe as part of tomo::args
+        - [!] Add 'factory' for projectors and geometry, maybe as part of tomo::args
+        - [ ] Extend parallel beam definition, extend support in Tomos
+        - [ ] Define cone beam definition, extend support in Tomos
+        - [x] Implement OpenCV TIFF reader
+        - [ ] Get a number of 'real' data sets, add ability to load projection stack from TIFF files
+        - [ ] Make a nice API that takes such a data set, and reconstructs it either distributed or parallel
 - [x] Support physical volume dimensions
     - [x] Volume should be subpixels (i.e. origin and lengths are `T` instead of `int`)
     - [x] All relative geometries and math functions should accomodate this change

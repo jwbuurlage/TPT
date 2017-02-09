@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
@@ -19,6 +21,8 @@ class args {
     bool sart = false;
     bool sirt = false;
 
+    std::string data = "";
+
     bool help = false;
 
     args(int argc, char* argv[]) { read_options_(argc, argv); }
@@ -31,6 +35,8 @@ class args {
             "size of the phantom")(
             "iterations,i", po::value<int>(&iterations)->default_value(10),
             "number of iterations")(
+            "data", po::value<std::string>()->default_value(""),
+            "file contianing metadata")(
             "beta,b", po::value<float>(&beta)->default_value(0.5f),
             "value for update relaxation")("art", "reconstruct using ART")(
             "sart", "reconstruct using SART")("sirt", "reconstruct using SIRT")(
@@ -43,6 +49,10 @@ class args {
         art = vm.count("art");
         sart = vm.count("sart");
         sirt = vm.count("sirt");
+
+        if (vm.count("data") > 0) {
+            data = vm["data"].as<std::string>();
+        }
 
         two = vm.count("two");
         three = vm.count("three");
