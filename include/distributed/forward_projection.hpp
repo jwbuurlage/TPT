@@ -9,7 +9,7 @@
 #include "partitioned_image.hpp"
 #include "projector.hpp"
 #include "projectors/linear.hpp"
-#include "sinogram.hpp"
+#include "projections.hpp"
 #include "volume.hpp"
 
 #include "bulk/bulk.hpp"

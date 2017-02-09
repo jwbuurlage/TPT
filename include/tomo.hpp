@@ -31,7 +31,7 @@
 #include "operations.hpp"
 #include "phantoms.hpp"
 #include "projector.hpp"
-#include "sinogram.hpp"
+#include "projections.hpp"
 #include "utilities.hpp"
 #include "volume.hpp"
 
