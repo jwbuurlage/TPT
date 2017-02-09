@@ -12,7 +12,7 @@
 #include "common.hpp"
 #include "geometries/list.hpp"
 #include "image.hpp"
-#include "sinogram.hpp"
+#include "projections.hpp"
 
 namespace tomo {
 
@@ -96,9 +96,9 @@ void ascii_plot(const image<3_D, T>& f, int slices = 4, int axis = 0) {
     }
 }
 
-/** Print the sinogram as ascii art to stdout. */
+/** Print the projections as ascii art to stdout. */
 template <dimension D, typename T>
-void ascii_plot(const sinogram<D, T>& sino) {
+void ascii_plot(const projections<D, T>& sino) {
     ascii_plot_output(sino, sino.geometry().groups());
 }
 

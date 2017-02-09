@@ -22,7 +22,7 @@ It is necessary for my experiments to have distributed 3d reconstruction of arbi
         - [ ] Extend parallel beam definition, extend support in Tomos
         - [ ] Define cone beam definition, extend support in Tomos
         - [x] Implement OpenCV TIFF reader
-        - [ ] Get a number of 'real' data sets, add ability to load projection stack from TIFF files
+        - [ ] Add ability to load projection stack from TIFF files to act as sinogram
         - [ ] Make a nice API that takes such a data set, and reconstructs it either distributed or parallel
 - [x] Support physical volume dimensions
     - [x] Volume should be subpixels (i.e. origin and lengths are `T` instead of `int`)

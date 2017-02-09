@@ -7,29 +7,19 @@
 namespace tomo {
 
 /**
- * FIXME
- * - I want to redo this.
- * - [ ] Definition of a sinogram
- * - [ ] Stack of projections
- * - [ ] What about 2d vs 3d vs Dd?
- */
-
-/**
  * An object that represents the measurements for a given geometry (and
  * projector).
  *
  * \tparam D the dimension of the volume (and thus the reconstruction problem).
  * \tparam T the scalar type to use
- * compare the sinogram using the appropriate ray-integration method.
  */
 template <dimension D, typename T>
-class sinogram {
+class projections {
   public:
-    /** The type of the projector used for this sinogram. */
     using value_type = T;
 
-    /** Construct a default-initialized sinogram for a geometry. */
-    sinogram(const geometry::base<D, T>& geometry) : geometry_(geometry) {
+    /** Construct default-initialized projections for a geometry. */
+    projections(const geometry::base<D, T>& geometry) : geometry_(geometry) {
         data_.resize(geometry_.lines());
     }
 
@@ -42,7 +32,7 @@ class sinogram {
     const T& operator[](int i) const { return data_[i]; }
 
     /**
-     * Obtain a reference to the underlying sinogram data.
+     * Obtain a reference to the underlying projection data.
      */
     const std::vector<T>& data() const { return data_; }
     std::vector<T>& mutable_data() { return data_; }
@@ -50,7 +40,7 @@ class sinogram {
     /** Obtain a reference to the geometry. */
     const geometry::base<D, T>& geometry() const { return geometry_; }
 
-    /** Clear the sinogram. Sets each measurement to zero. */
+    /** Clear the projection stack. Sets each measurement to zero. */
     void clear() { std::fill(data_.begin(), data_.end(), 0); }
 
     auto get_volume() const { return geometry().get_volume(); }

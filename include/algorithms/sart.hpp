@@ -20,7 +20,7 @@ namespace reconstruction {
  *
  * \param v the volume of the imaged object
  * \param g the geometry of the problem
- * \param p the measurements (sinogram)
+ * \param p the measurements (projections)
  * \param beta (optional) a relaxation parameter
  * \param iterations (optional) the number of iterations to perform
  *
@@ -28,7 +28,7 @@ namespace reconstruction {
  */
 template <dimension D, typename T>
 image<D, T> sart(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
-                 tomo::dim::base<D, T>& kernel, const sinogram<D, T>& p,
+                 tomo::dim::base<D, T>& kernel, const projections<D, T>& p,
                  double beta = 0.5, int iterations = 10) {
     image<D, T> f(v);
 
