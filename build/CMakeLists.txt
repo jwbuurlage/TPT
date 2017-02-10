@@ -52,7 +52,6 @@ set(
 set(
     EXAMPLE_SOURCES
     "reconstruction.cpp"
-    "read_geometry_test.cpp"
     "read_tiff.cpp"
     "dose_deposition.cpp"
     "geometry_benchmark.cpp"
@@ -84,6 +83,9 @@ if(WITH_ZMQ)
     set(LIB_NAMES ${LIB_NAMES} "zmq")
     add_executable("external_plotter" "../examples/external_plotter.cpp")
     target_link_libraries("external_plotter" ${LIB_NAMES})
+
+    add_executable("read_geometry_test" "../examples/read_geometry_test.cpp")
+    target_link_libraries("read_geometry_test" ${LIB_NAMES})
 endif(WITH_ZMQ)
 
 #find_package(CUDA 7.5 QUIET)

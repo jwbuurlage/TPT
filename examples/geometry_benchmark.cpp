@@ -50,7 +50,9 @@ void run(std::string name, Geometry g, tomo::util::report& table,
 }
 
 int main(int argc, char* argv[]) {
-    int k = 64;
+    (void)argc;
+    (void)argv;
+    /* int k = 64;
     int p = 4;
     T e = (T)0.1;
 
@@ -119,5 +121,5 @@ int main(int argc, char* argv[]) {
     // 'print result table'
     table.print();
 
-    return 0;
+    return 0; */
 }

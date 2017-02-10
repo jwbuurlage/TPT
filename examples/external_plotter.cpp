@@ -20,24 +20,20 @@ int main(int argc, char* argv[]) {
 
     auto opt = tomo::util::args(argc, argv);
 
-    auto geom_and_volume =
-        tomo::read_configuration<D, T>("data/geometries/parallel.toml");
-    auto geom = std::move(geom_and_volume.first);
-    auto v = geom_and_volume.second;
+    auto v = tomo::volume<D, T>(opt.k);
+    auto g = tomo::geometry::parallel<D, T>(v, opt.k, opt.k);
     auto f = tomo::modified_shepp_logan_phantom<T>(v);
-
-    auto& g = *geom;
 
     std::cout << glm::to_string(v.origin()) << "\n";
     std::cout << glm::to_string(v.voxels()) << "\n";
 
     auto kernel = tomo::dim::joseph<D, T>(v);
 
-//    tomo::image<D, T> matrix(v);
-//    auto line = g.get_line(g.lines() / 2 + opt.k / 4);
-//    for (auto elem : kernel(line)) {
-//        matrix[elem.index] += elem.value;
-//    }
+    //    tomo::image<D, T> matrix(v);
+    //    auto line = g.get_line(g.lines() / 2 + opt.k / 4);
+    //    for (auto elem : kernel(line)) {
+    //        matrix[elem.index] += elem.value;
+    //    }
 
     plotter.plot(f);
     tomo::ascii_plot(f);
