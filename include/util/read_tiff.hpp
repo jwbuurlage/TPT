@@ -20,7 +20,7 @@ template <dimension D, typename T = default_scalar_type>
 tomo::image<D, T> tiff_to_image(std::string file) {
     cv::Mat image = cv::imread(file, CV_LOAD_IMAGE_ANYDEPTH);
 
-    if(!image.data )
+    if (!image.data)
         throw invalid_tiff_file("Could not open or find the image");
 
     int w = image.cols;
@@ -34,6 +34,16 @@ tomo::image<D, T> tiff_to_image(std::string file) {
         }
     }
 
+    return result;
+}
+
+template <dimension D, typename T = default_scalar_type>
+tomo::projections<D, T> tiff_stack_to_projections(const tomo::geometry::base<D, T>& g,
+                                                  std::string file_pattern,
+                                                  int count) {
+    tomo::projections<D, T> result(g);
+    // for each file, load as tomo image
+    // set the appropriate value in result
     return result;
 }
 

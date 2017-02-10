@@ -7,15 +7,31 @@
 
 #include <cpptoml.h>
 
+#include "geometries/cone.hpp"
 #include "geometries/parallel.hpp"
 #include "geometry.hpp"
+#include "projections.hpp"
 #include "volume.hpp"
 
+// FIXME remove
+#include "projector.hpp"
+#include "projectors/joseph.hpp"
+
 namespace tomo {
+
+template <tomo::dimension D, typename T>
+struct reconstruction_problem {
+    std::unique_ptr<tomo::geometry::base<D, T>> acquisition_geometry;
+    tomo::volume<D, T> object_volume;
+    tomo::projections<D, T> projection_stack;
+};
 
 class invalid_geometry_config_error : public std::runtime_error {
     using runtime_error::runtime_error;
 };
+
+// ---------------------------------
+// HELPER FUNCTIONS FOR READING VECS
 
 template <tomo::dimension D, typename T, typename S>
 tomo::math::vec<D, T> stdvec_to_tomovec(std::vector<S> in) {
@@ -27,6 +43,87 @@ tomo::math::vec<D, T> stdvec_to_tomovec(std::vector<S> in) {
     }
 
     return out;
+}
+
+template <tomo::dimension D, typename T, typename R>
+tomo::math::vec<D, T> read_vec_as_(std::shared_ptr<cpptoml::table> parameters,
+                                   std::string name) {
+    return stdvec_to_tomovec<D, T>(*parameters->get_array_of<R>(name));
+}
+
+template <tomo::dimension D, typename T>
+tomo::math::vec<D, T> read_vec_(std::shared_ptr<cpptoml::table> parameters,
+                                std::string name, std::true_type) {
+    return read_vec_as_<D, T, int64_t>(parameters, name);
+}
+
+template <tomo::dimension D, typename T>
+tomo::math::vec<D, T> read_vec_(std::shared_ptr<cpptoml::table> parameters,
+                                std::string name, std::false_type) {
+    return read_vec_as_<D, T, double>(parameters, name);
+}
+
+template <tomo::dimension D, typename T>
+tomo::math::vec<D, T> read_vec(std::shared_ptr<cpptoml::table> parameters,
+                               std::string name) {
+    return read_vec_<D, T>(parameters, name, std::is_integral<T>());
+}
+
+template <tomo::dimension D, typename T, typename R>
+std::vector<tomo::math::vec<D, T>>
+read_vecs_as_(std::shared_ptr<cpptoml::table> parameters, std::string name) {
+    std::vector<tomo::math::vec<D, T>> result;
+    auto entries = parameters->get_array_of<cpptoml::array>(name);
+    for (auto entry : *entries) {
+        result.push_back(stdvec_to_tomovec<D, T>(*entry->get_array_of<R>()));
+    }
+    return result;
+}
+
+template <tomo::dimension D, typename T>
+std::vector<tomo::math::vec<D, T>>
+read_vecs_(std::shared_ptr<cpptoml::table> parameters, std::string name,
+           std::true_type) {
+    return read_vecs_as_<D, T, int64_t>(parameters, name);
+}
+
+template <tomo::dimension D, typename T>
+std::vector<tomo::math::vec<D, T>>
+read_vecs_(std::shared_ptr<cpptoml::table> parameters, std::string name,
+           std::false_type) {
+    return read_vecs_as_<D, T, double>(parameters, name);
+}
+
+template <tomo::dimension D, typename T>
+std::vector<tomo::math::vec<D, T>>
+read_vecs(std::shared_ptr<cpptoml::table> parameters, std::string name) {
+    return read_vecs_<D, T>(parameters, name, std::is_integral<T>());
+}
+
+// ---------------------------------
+
+template <typename T>
+std::unique_ptr<tomo::geometry::cone_beam<T>>
+read_circular_cone_beam_geometry(std::shared_ptr<cpptoml::table> parameters,
+                                 tomo::volume<3_D, T> v) {
+    auto projection_count =
+        (int)(*parameters->get_as<int64_t>("projection-count"));
+
+    auto detector_size = read_vec<2_D, T>(parameters, "detector-size");
+    auto detector_shape = read_vec<2_D, int>(parameters, "detector-shape");
+    auto source_position = read_vec<3_D, T>(parameters, "source-position");
+    auto detector_position = read_vec<3_D, T>(parameters, "detector-position");
+
+    auto detector_tilt_vec = read_vecs<3_D, T>(parameters, "detector-tilt");
+    if (detector_tilt_vec.size() != 2) {
+        throw invalid_geometry_config_error(
+            "detector tilt does not consist of two vectors");
+    }
+
+    return std::make_unique<tomo::geometry::cone_beam<T>>(
+        v, projection_count, detector_size, detector_shape, source_position,
+        detector_position, std::array<tomo::math::vec<3_D, T>, 2>{
+                               detector_tilt_vec[0], detector_tilt_vec[1]});
 }
 
 template <tomo::dimension D, typename T>
@@ -51,10 +148,19 @@ std::unique_ptr<tomo::geometry::base<D, T>>
 read_geometry(std::string kind, std::shared_ptr<cpptoml::table> parameters,
               tomo::volume<D, T> v) {
     if (kind == "parallel") {
+        std::cout << "Loading parallel geometry...\n";
         return read_parallel_geometry<D, T>(parameters, v);
+    }
+    else if (kind == "circular-cone-beam") {
+        if (D != 3_D) {
+            throw invalid_geometry_config_error(
+                "Circular cone beam geometry is only valid in 3D");
+        }
+        std::cout << "Loading circular cone beam geometry...\n";
+        return read_circular_cone_beam_geometry<T>(parameters, v);
     } else {
         throw invalid_geometry_config_error(
-            "invalid or unsupported 'type' supplied for geometry");
+            "Invalid or unsupported 'type' supplied for geometry");
     }
     return nullptr;
 }
@@ -83,8 +189,7 @@ tomo::volume<D, T> read_volume(std::shared_ptr<cpptoml::table> parameters,
 }
 
 template <tomo::dimension D, typename T>
-std::pair<std::unique_ptr<tomo::geometry::base<D, T>>, tomo::volume<D, T>>
-read_configuration(std::string file) {
+reconstruction_problem<D, T> read_configuration(std::string file) {
     using namespace std::string_literals;
 
     auto config = cpptoml::parse_file(file);
@@ -115,7 +220,11 @@ read_configuration(std::string file) {
 
     assert(g->lines() > 0);
 
-    return std::make_pair(std::move(g), v);
+    auto f = tomo::modified_shepp_logan_phantom<T>(v);
+    auto proj = tomo::dim::joseph<D, T>(v);
+    auto projs = tomo::forward_projection<D, T>(f, *g, proj);
+
+    return reconstruction_problem<D, T>{std::move(g), v, std::move(projs)};
 }
 
 } // namespace tomo

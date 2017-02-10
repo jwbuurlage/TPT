@@ -19,11 +19,17 @@ It is necessary for my experiments to have distributed 3d reconstruction of arbi
     - [x] Alternative: TOML https://github.com/skystrife/cpptoml
     - [ ] Define TOML format for geometries
         - [!] Add 'factory' for projectors and geometry, maybe as part of tomo::args
-        - [ ] Extend parallel beam definition, extend support in Tomos
-        - [ ] Define cone beam definition, extend support in Tomos
+        - [x] Define cone beam definition, extend support in Tomos
+            - [x] Redo trajectory geometry parameters
+            - [ ] Update all trajectories to new parent conventions
         - [x] Implement OpenCV TIFF reader
-        - [ ] Add ability to load projection stack from TIFF files to act as sinogram
-        - [ ] Make a nice API that takes such a data set, and reconstructs it either distributed or parallel
+        - [ ] Add support for loading projection stack from TIFF files to act as projections
+            - [ ] Make a 'reconstruction problem' struct, and a 'policy-based solver'
+        - [ ] Run for (downsampled) medipix data, see if reconstruction works
+            - [ ] Add support for 'downsampling a reconstruction problem'
+            - [ ] Add support for downsampling geometries and projections relative to the geometries
+        - [ ] Make a nice API that takes such a data set, and reconstructs it in parallel
+        - [ ] Extend parallel beam definition, extend support in Tomos
 - [x] Support physical volume dimensions
     - [x] Volume should be subpixels (i.e. origin and lengths are `T` instead of `int`)
     - [x] All relative geometries and math functions should accomodate this change
@@ -50,7 +56,7 @@ It is necessary for my experiments to have distributed 3d reconstruction of arbi
 - [x] Move to common geometry, no longer needed as template argument (needed for 'real data')
 - [x] Move to common projector, no longer needed as template argument
 - [ ] We require realistic parameters for geometries, and test 3D sirt with them
-- [ ] Documentation for conventions (volume, voxels, origin, geometries, 1d vs multi_indices, ...)
+- [ ] Documentation for internal representation conventions (volume, voxels, origin, geometries, 1d vs multi_indices, ...)
 - [ ] General interpolation scheme for Simon
 - [ ] May want to test Bulk cpp backend too
 - [ ] Would be nice to add to the benchmarking a way to visualize it in slicevis

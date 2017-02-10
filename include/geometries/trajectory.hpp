@@ -13,7 +13,7 @@ namespace geometry {
 /**
  * A geometry defined by trajectories of the source and the detector (array)
  *
- * The detector and the source move in steps along some trajectory, which is
+ * The detector and the source move in projections along some trajectory, which is
  * described by concrete subclasses.
  *
  * FIXME: maybe it is better to call this a 'focused geometry' (cone-beam
@@ -26,75 +26,74 @@ template <dimension D, typename T>
 class trajectory : public base<D, T> {
   public:
     /** Construct the geometry with a given number of lines. */
-    trajectory(volume<D, T> volume, int steps, T detector_spacing = (T)1,
-               math::vec<D - 1, int> detector_size = math::vec<D - 1, int>{1})
-        : base<D, T>(steps * math::reduce<D - 1>(detector_size)),
-          volume_(volume), steps_(steps), detector_size_(detector_size),
-          detector_spacing_(detector_spacing),
-          detector_count_(math::reduce<D - 1>(detector_size)) {}
+    trajectory(volume<3_D, T> volume, int projection_count,
+               math::vec<2_D, T> detector_size,
+               math::vec<2_D, int> detector_shape)
+        : base<D, T>(projection_count * math::reduce<D - 1>(detector_shape)),
+          volume_(volume), projection_count_(projection_count),
+          detector_size_(detector_size), detector_shape_(detector_shape),
+          detector_pixel_count_(math::reduce<D - 1>(detector_shape)) {}
 
     /**
      * Return the i-th line of this geometry.
      */
     math::ray<D, T> get_line(int i) const override final {
-        int step = i / detector_count_;
-        int detector = i % detector_count_;
+        int projection = i / detector_pixel_count_;
+        int pixel = i % detector_pixel_count_;
 
-        auto source = source_location(step);
-        auto target = detector_pixel_location(step, detector);
+        auto source = source_location(projection);
+        auto target = detector_pixel_location(projection, pixel);
 
         return math::ray<D, T>(source, target);
     }
 
-    /** The location of the source in step `step`. */
-    virtual math::vec<D, T> source_location(int step) const = 0;
+    /** The location of the source in projection `projection`. */
+    virtual math::vec<D, T> source_location(int projection) const = 0;
 
-    /** The location of the detector in step `step`. */
-    virtual math::vec<D, T> detector_location(int step) const = 0;
+    /** The location of the detector in projection `projection`. */
+    virtual math::vec<D, T> detector_location(int projection) const = 0;
 
-    math::vec<D, T> detector_pixel_location(int step, int detector) const {
-        return detector_location(step) +
-               detector_offset_(step, detector, detector_size_);
+    math::vec<D, T> detector_pixel_location(int projection, int pixel) const {
+        return detector_location(projection) + detector_offset_(projection, pixel);
     }
 
     /**
-     * The tilt of the detector in step `step`. The tilt is given as the
+     * The tilt of the detector in projection `projection`. The tilt is given as the
      * principal axes of the hyperplane, i.e. by (D - 1) D-dimensional
      * vectors.
      */
     virtual std::array<math::vec<D, T>, D - 1>
-    detector_tilt(int step) const = 0;
+    detector_tilt(int projection) const = 0;
 
-    int steps() const { return steps_; }
-    int& steps() { return steps_; }
+    int projection_count() const { return projection_count_; }
 
-    int detector_count() const { return detector_count_; }
+    int detector_pixel_count() const { return detector_pixel_count_; }
     auto detector_size() const { return detector_size_; }
 
   protected:
     virtual ~trajectory() = default;
 
     volume<D, T> volume_;
-    int steps_;
+    int projection_count_;
 
-    math::vec<D - 1, int> detector_size_;
-    T detector_spacing_;
-    int detector_count_;
+    math::vec<2_D, T> detector_size_;
+    math::vec<D - 1, int> detector_shape_;
+    int detector_pixel_count_;
 
     // compute detector location in space
-    inline math::vec<D, T>
-    detector_offset_(int step, int detector,
-                     math::vec<D - 1, int> detector_size) const {
+    inline math::vec<D, T> detector_offset_(int projection, int pixel) const {
         math::vec<D, T> offset;
+        // TODO we now recompute every pixel this location, should just have one
+        // offset and loop over this projection, inefficient!
+        auto axes = detector_tilt(projection);
 
-        auto axes = detector_tilt(step);
-        auto size_had = 1;
-        for (int d = 0; d < D - 1; ++d) {
-            auto detector_d = (detector / size_had) % detector_size[d];
-            offset += (detector_d - (detector_size[d] - 1) * (T)0.5) *
-                      detector_spacing_ * axes[d];
-            size_had *= detector_size[d];
-        }
+        auto relative = math::vec<D - 1, T>(
+            (T)(pixel % detector_shape_[0]) / detector_shape_[0],
+            (T)(pixel / detector_shape_[0]) / detector_shape_[1]);
+
+        offset += (relative[0] - (T)0.5) * detector_size_[0] * axes[0];
+        offset += (relative[1] - (T)0.5) * detector_size_[1] * axes[1];
+
         return offset;
     }
 };
