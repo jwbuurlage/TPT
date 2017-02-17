@@ -19,8 +19,11 @@ class projections {
     using value_type = T;
 
     /** Construct default-initialized projections for a geometry. */
-    projections(const geometry::base<D, T>& geometry) : geometry_(geometry) {
-        data_.resize(geometry_.lines());
+    projections(const geometry::base<D, T>& geometry)
+        : projection_count_(geometry.projection_count()),
+          shape_(geometry.detector_shape()),
+          projection_pixels_(geometry.detector_pixel_count()) {
+        data_.resize(geometry.lines());
     }
 
     /**
@@ -37,23 +40,29 @@ class projections {
     const std::vector<T>& data() const { return data_; }
     std::vector<T>& mutable_data() { return data_; }
 
-    /** Obtain a reference to the geometry. */
-    const geometry::base<D, T>& geometry() const { return geometry_; }
-
     /** Clear the projection stack. Sets each measurement to zero. */
     void clear() { std::fill(data_.begin(), data_.end(), 0); }
 
-    auto get_volume() const { return geometry().get_volume(); }
-
-    image<D, T> as_image() const {
-        image<2_D, T> img(
-            volume<2_D, T>({geometry_.groups()[0], geometry_.groups()[1]}));
-        img.mutable_data() = data_;
+    /** Get a projection as an image */
+    image<D - 1, T> get_projection(int projection) const {
+        auto img = image<D - 1, T>(volume<D - 1, T>(shape_));
+        for (int i = 0; i < projection_pixels_; ++i) {
+            img[i] = data_[projection_pixels_ * projection + i];
+        }
         return img;
     }
 
+    /** Set a projection using an image */
+    void set_projection(int projection, const image<D - 1, T>& img) {
+        for (int i = 0; i < projection_pixels_; ++i) {
+            data_[projection_pixels_ * projection + i] = img[i];
+        }
+    }
+
   private:
-    const geometry::base<D, T>& geometry_;
+    int projection_count_;
+    math::vec<D - 1, int> shape_;
+    int projection_pixels_;
     std::vector<T> data_;
 };
 

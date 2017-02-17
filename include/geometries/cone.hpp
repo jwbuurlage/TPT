@@ -55,6 +55,18 @@ class cone_beam : public trajectory<3_D, T> {
                 apply_rotation_(detector_tilt_[1], projection)};
     }
 
+    void reduce_projections(int scaled_projection_count) override {
+        auto step = (T)(this->projection_count_) / scaled_projection_count;
+        for (int i = 0; i < scaled_projection_count; ++i) {
+            int j = (int)(i * step);
+            angles_[i] = angles_[j];
+        }
+        angles_.resize(scaled_projection_count);
+        this->projection_count_ = scaled_projection_count;
+        this->line_count_ =
+            this->projection_count_ * this->detector_pixel_count_;
+    }
+
   private:
     math::vec<3_D, T> source_position_;
     math::vec<3_D, T> detector_position_;

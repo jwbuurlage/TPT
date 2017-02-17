@@ -88,7 +88,7 @@ TEST_CASE("Geometry lines are not empty") {
     }
 
     SECTION("random geometry") {
-        int k = 16;
+        /* int k = 16;
         auto v = tomo::volume<3_D, T>(k);
         auto g = tomo::random_list_geometry<3_D, T>(1000, v);
         auto proj = tomo::dim::linear<3_D, T>(v);
@@ -106,7 +106,7 @@ TEST_CASE("Geometry lines are not empty") {
             }
         }
 
-        CHECK(!a_line_is_empty);
+        CHECK(!a_line_is_empty); */
     }
 }
 

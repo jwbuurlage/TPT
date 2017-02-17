@@ -1,5 +1,6 @@
 #include "tomo.hpp"
 #include "util/plotter.hpp"
+#include "util/rescale.hpp"
 
 #include "fmt/format.h"
 
@@ -10,13 +11,13 @@ int main(int argc, char* argv[]) {
     auto opt = tomo::util::args(argc, argv);
 
     try {
+        auto proj_plotter =
+            tomo::ext_plotter<D - 1, T>("tcp://localhost:5555", "Sinogram");
+
         auto plotter =
             tomo::ext_plotter<D, T>("tcp://localhost:5555", "Geometry spec");
 
         auto problem = tomo::read_configuration<D, T>(opt.data);
-
-        auto proj = tomo::dim::joseph<D, T>(problem.object_volume);
-
 
         /*
          * We want to solve a reconstruction problem, the following things are
@@ -34,11 +35,20 @@ int main(int argc, char* argv[]) {
          * construct a method that lets you choose these final 'policies'.
          */
 
-        auto z = tomo::reconstruction::sirt(problem.object_volume,
-                                            *problem.acquisition_geometry, proj,
-                                            problem.projection_stack, opt.beta, opt.iterations);
+        // std::cout << "done loading, now should downscale\n";
+        proj_plotter.plot(problem.projection_stack.get_projection(0));
+        auto scaled_problem =
+            tomo::rescale<D, T>(problem, {64, 64}, {64, 64, 64}, 64);
+
+        auto proj = tomo::dim::joseph<D, T>(scaled_problem.object_volume);
+
+        fmt::print("STARTING SIRT\n");
+        auto z = tomo::reconstruction::sirt(
+            scaled_problem.object_volume, *scaled_problem.acquisition_geometry,
+            proj, scaled_problem.projection_stack, opt.beta, opt.iterations, {[&](tomo::image<D, T>& image) { plotter.plot(image); }});
         fmt::print("SIRT\n");
         tomo::ascii_plot(z);
+        proj_plotter.plot(scaled_problem.projection_stack.get_projection(0));
         plotter.plot(z);
     } catch (const std::exception& e) {
         std::cout << "Reading configuration failed: " << e.what() << "\n";

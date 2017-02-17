@@ -117,7 +117,7 @@ class parallel : public base<D, T> {
      * \param volume the volume being scanned
      */
     parallel(const volume<D, T>& volume, int angle_count, int detector_count)
-        : base<D, T>(angle_count * math::pow(detector_count, D - 1)),
+        : base<D, T>(angle_count, math::vec<D - 1, int>{detector_count}),
           volume_(volume) {
         auto angle_step = math::pi<T> / angle_count;
         for (T angle = 0.0; angle < math::pi<T>; angle += angle_step) {
@@ -145,8 +145,6 @@ class parallel : public base<D, T> {
             detectors_.push_back(detector_location<T>(detector, detector_count,
                                                       detector_step, volume_));
         }
-
-        this->dimensions_ = {detector_count, angle_count};
     }
 
     /** Obtain the number of detectors. */

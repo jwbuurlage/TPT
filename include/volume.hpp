@@ -143,6 +143,8 @@ class volume {
         return cell;
     }
 
+    void set_voxels(math::vec<D, int> new_voxels) { voxels_ = new_voxels; }
+
   private:
     template <typename S, typename... Ss>
     int index_(int current, int offset, S x, Ss... xs) const {
