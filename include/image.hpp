@@ -54,6 +54,7 @@ class image {
      * \param i the dimension to query
      */
     int size(int i) const { return v_.voxels()[i]; }
+    auto size() const { return data_.size(); }
 
     /** Obtain a reference to the underlying image data. */
     std::vector<T>& mutable_data() { return data_; }

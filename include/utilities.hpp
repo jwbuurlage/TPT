@@ -47,15 +47,17 @@ image<2_D, T> slice(const image<3_D, T>& f, int slice, int along_axis = 0) {
 /** A helper function that downscales the image for plotting in the
  * terminal. */
 template <typename T>
-image<2_D, T> downscale_(const image<2_D, T>& f, T scale) {
-    volume<2_D, T> new_volume(math::vec<2_D, int>(f.size(0) * scale, f.size(1) * scale));
+image<2_D, T> downscale_(const image<2_D, T>& f, math::vec<2_D, int> new_size) {
+    volume<2_D, T> new_volume(new_size);
     image<2_D, T> g(new_volume);
+    // TODO: This should be the area of the one in the other..
+    auto scale = ((T)new_size[0]) / f.get_volume().voxels()[0];
 
     for (int i = 0; i < f.size(0); ++i) {
         for (int j = 0; j < f.size(1); ++j) {
             // contributes to cell:
-            auto cell_x = (int)(((double)i / f.size(0)) * new_volume.voxels()[0]);
-            auto cell_y = (int)(((double)j / f.size(1)) * new_volume.voxels()[1]);
+            auto cell_x = (int)(((T)i / f.size(0)) * new_volume.voxels()[0]);
+            auto cell_y = (int)(((T)j / f.size(1)) * new_volume.voxels()[1]);
             g({cell_x, cell_y}) += f({i, j}) * scale;
         }
     }
@@ -71,7 +73,7 @@ void ascii_plot(const image<2_D, T>& f, T max = -1) {
 
     if (max_size > limit) {
         T scale = (T)limit / (T)max_size;
-        auto downscaled_img = downscale_(f, scale);
+        auto downscaled_img = downscale_(f, {f.size(0) * scale, f.size(1) * scale});
         ascii_plot_output(downscaled_img,
                           {f.size(0) * scale, f.size(1) * scale}, max);
     } else {

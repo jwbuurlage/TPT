@@ -66,6 +66,12 @@ auto ceil(T obj) {
     return glm::ceil(obj);
 }
 
+/** Take the logarithm of an object of type T. */
+template <typename T>
+auto log(T obj) {
+    return glm::log(obj);
+}
+
 /** Round an object of type T to the nearest integer. */
 template <typename T>
 auto round(T obj) {
@@ -78,6 +84,16 @@ auto product(vec<D, T> vec) {
     auto result = (T)1;
     for (int d = 0; d < D; ++d) {
         result *= vec[d];
+    }
+    return result;
+}
+
+/** Sum the elements of a vector together */
+template <dimension D, typename T>
+auto sum(vec<D, T> vec) {
+    auto result = (T)0;
+    for (int d = 0; d < D; ++d) {
+        result += vec[d];
     }
     return result;
 }

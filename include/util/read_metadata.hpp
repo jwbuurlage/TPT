@@ -5,26 +5,25 @@
 #include <stdexcept>
 #include <string>
 
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+
 #include <cpptoml.h>
 
-#include "geometries/cone.hpp"
-#include "geometries/parallel.hpp"
-#include "geometry.hpp"
-#include "projections.hpp"
-#include "volume.hpp"
+#include "../common.hpp"
+#include "../geometries/cone.hpp"
+#include "../geometries/parallel.hpp"
+#include "../geometry.hpp"
+#include "../projections.hpp"
+#include "../volume.hpp"
+#include "read_tiff.hpp"
+#include "reconstruction_problem.hpp"
 
-// FIXME remove
+// FIXME remove when no longer falling back on ShLo
 #include "projector.hpp"
 #include "projectors/joseph.hpp"
 
 namespace tomo {
-
-template <tomo::dimension D, typename T>
-struct reconstruction_problem {
-    std::unique_ptr<tomo::geometry::base<D, T>> acquisition_geometry;
-    tomo::volume<D, T> object_volume;
-    tomo::projections<D, T> projection_stack;
-};
 
 class invalid_geometry_config_error : public std::runtime_error {
     using runtime_error::runtime_error;
@@ -150,8 +149,7 @@ read_geometry(std::string kind, std::shared_ptr<cpptoml::table> parameters,
     if (kind == "parallel") {
         std::cout << "Loading parallel geometry...\n";
         return read_parallel_geometry<D, T>(parameters, v);
-    }
-    else if (kind == "circular-cone-beam") {
+    } else if (kind == "circular-cone-beam") {
         if (D != 3_D) {
             throw invalid_geometry_config_error(
                 "Circular cone beam geometry is only valid in 3D");
@@ -168,7 +166,6 @@ read_geometry(std::string kind, std::shared_ptr<cpptoml::table> parameters,
 template <tomo::dimension D, typename T>
 tomo::volume<D, T> read_volume(std::shared_ptr<cpptoml::table> parameters,
                                tomo::math::vec<D - 1, int> detector_size) {
-
     auto voxels =
         tomo::math::extend<D, int>(detector_size, D - 1, detector_size[0]);
 
@@ -189,10 +186,37 @@ tomo::volume<D, T> read_volume(std::shared_ptr<cpptoml::table> parameters,
 }
 
 template <tomo::dimension D, typename T>
+tomo::projections<D, T>
+read_projection_stack(std::shared_ptr<cpptoml::table> parameters,
+                      tomo::volume<D, T> v, tomo::geometry::base<D, T>& g,
+                      fs::path root_directory) {
+
+    try {
+        auto proj_count = *parameters->get_qualified_as<int64_t>(
+            "parameters.projection-count");
+        std::cout << "Projection count: " << proj_count << "\n";
+        auto filename_pattern =
+            *parameters->get_as<std::string>("projection-filename-pattern");
+        return tomo::tiff_stack_to_projections<D, T>(
+            g, filename_pattern, proj_count, root_directory);
+    } catch (const std::exception& e) {
+        std::cout << "Reading projection stack failed: " << e.what()
+                  << "\nFalling back on ShLo..\n";
+
+        auto f = tomo::modified_shepp_logan_phantom<T>(v);
+        auto proj = tomo::dim::joseph<D, T>(v);
+        auto projs = tomo::forward_projection<D, T>(f, g, proj);
+        return projs;
+    }
+}
+
+template <tomo::dimension D, typename T>
 reconstruction_problem<D, T> read_configuration(std::string file) {
     using namespace std::string_literals;
 
     auto config = cpptoml::parse_file(file);
+
+    auto root_directory = fs::path(file).remove_filename();
 
     auto specifies = config->get_as<std::string>("specifies");
     if (*specifies != "geometry"s) {
@@ -220,9 +244,7 @@ reconstruction_problem<D, T> read_configuration(std::string file) {
 
     assert(g->lines() > 0);
 
-    auto f = tomo::modified_shepp_logan_phantom<T>(v);
-    auto proj = tomo::dim::joseph<D, T>(v);
-    auto projs = tomo::forward_projection<D, T>(f, *g, proj);
+    auto projs = read_projection_stack<D, T>(config, v, *g, root_directory);
 
     return reconstruction_problem<D, T>{std::move(g), v, std::move(projs)};
 }

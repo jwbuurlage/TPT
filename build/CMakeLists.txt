@@ -65,6 +65,7 @@ set(
     "opencv_core"
     "opencv_highgui"
     "opencv_imgcodecs"
+    "stdc++fs"
 )
 
 foreach(source_file ${EXAMPLE_SOURCES})
@@ -86,6 +87,9 @@ if(WITH_ZMQ)
 
     add_executable("read_geometry_test" "../examples/read_geometry_test.cpp")
     target_link_libraries("read_geometry_test" ${LIB_NAMES})
+
+    add_executable("read_legoscan_test" "../examples/read_legoscan_test.cpp")
+    target_link_libraries("read_legoscan_test" ${LIB_NAMES})
 endif(WITH_ZMQ)
 
 #find_package(CUDA 7.5 QUIET)

@@ -65,7 +65,7 @@
 #include "projectors/joseph.hpp"
 #include "projectors/linear.hpp"
 
-/** The overarching namespace for the galactica library. */
+/** The overarching namespace for the tomos library. */
 namespace tomo {
 
 /** Reconstruction algorithms and methods. */

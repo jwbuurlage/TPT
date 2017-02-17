@@ -13,7 +13,8 @@ namespace geometry {
 /**
  * A geometry defined by trajectories of the source and the detector (array)
  *
- * The detector and the source move in projections along some trajectory, which is
+ * The detector and the source move in projections along some trajectory, which
+ * is
  * described by concrete subclasses.
  *
  * FIXME: maybe it is better to call this a 'focused geometry' (cone-beam
@@ -29,17 +30,15 @@ class trajectory : public base<D, T> {
     trajectory(volume<3_D, T> volume, int projection_count,
                math::vec<2_D, T> detector_size,
                math::vec<2_D, int> detector_shape)
-        : base<D, T>(projection_count * math::reduce<D - 1>(detector_shape)),
-          volume_(volume), projection_count_(projection_count),
-          detector_size_(detector_size), detector_shape_(detector_shape),
-          detector_pixel_count_(math::reduce<D - 1>(detector_shape)) {}
+        : base<D, T>(projection_count, detector_shape), volume_(volume),
+          detector_size_(detector_size) {}
 
     /**
      * Return the i-th line of this geometry.
      */
     math::ray<D, T> get_line(int i) const override final {
-        int projection = i / detector_pixel_count_;
-        int pixel = i % detector_pixel_count_;
+        int projection = i / this->detector_pixel_count_;
+        int pixel = i % this->detector_pixel_count_;
 
         auto source = source_location(projection);
         auto target = detector_pixel_location(projection, pixel);
@@ -54,31 +53,27 @@ class trajectory : public base<D, T> {
     virtual math::vec<D, T> detector_location(int projection) const = 0;
 
     math::vec<D, T> detector_pixel_location(int projection, int pixel) const {
-        return detector_location(projection) + detector_offset_(projection, pixel);
+        return detector_location(projection) +
+               detector_offset_(projection, pixel);
     }
 
     /**
-     * The tilt of the detector in projection `projection`. The tilt is given as the
+     * The tilt of the detector in projection `projection`. The tilt is given as
+     * the
      * principal axes of the hyperplane, i.e. by (D - 1) D-dimensional
      * vectors.
      */
     virtual std::array<math::vec<D, T>, D - 1>
     detector_tilt(int projection) const = 0;
 
-    int projection_count() const { return projection_count_; }
-
-    int detector_pixel_count() const { return detector_pixel_count_; }
     auto detector_size() const { return detector_size_; }
 
   protected:
     virtual ~trajectory() = default;
 
     volume<D, T> volume_;
-    int projection_count_;
 
     math::vec<2_D, T> detector_size_;
-    math::vec<D - 1, int> detector_shape_;
-    int detector_pixel_count_;
 
     // compute detector location in space
     inline math::vec<D, T> detector_offset_(int projection, int pixel) const {
@@ -88,8 +83,8 @@ class trajectory : public base<D, T> {
         auto axes = detector_tilt(projection);
 
         auto relative = math::vec<D - 1, T>(
-            (T)(pixel % detector_shape_[0]) / detector_shape_[0],
-            (T)(pixel / detector_shape_[0]) / detector_shape_[1]);
+            (T)(pixel % this->detector_shape_[0]) / this->detector_shape_[0],
+            (T)(pixel / this->detector_shape_[0]) / this->detector_shape_[1]);
 
         offset += (relative[0] - (T)0.5) * detector_size_[0] * axes[0];
         offset += (relative[1] - (T)0.5) * detector_size_[1] * axes[1];

@@ -2,8 +2,8 @@
 
 #include <array>
 #include <cassert>
-#include <vector>
 #include <type_traits>
+#include <vector>
 
 #include "math.hpp"
 
@@ -22,14 +22,10 @@ namespace geometry {
 template <dimension D, typename T>
 class base {
   public:
-    using problem_dimension = std::integral_constant<dimension, D>;
-    using value_type = T;
-
     /** An iterator to a line of the geometry. */
     class geometry_iterator
         : public std::iterator<std::forward_iterator_tag, math::ray<D, T>> {
       public:
-
         /** Construct the iterator with a line index and a geometry. */
         geometry_iterator(int i, const base& geometry)
             : i_(i), geometry_(geometry) {}
@@ -69,15 +65,20 @@ class base {
         const base& geometry_;
     };
 
+    using problem_dimension = std::integral_constant<dimension, D>;
+    using value_type = T;
+
     /** Construct the geometry with a given number of lines. */
-    base(int line_count) : line_count_(line_count) {}
+    base(int projection_count, math::vec<D - 1, int> detector_shape)
+        : projection_count_(projection_count), detector_shape_(detector_shape),
+          line_count_(projection_count * math::reduce<D - 1>(detector_shape)),
+          detector_pixel_count_(math::product<D - 1, int>(detector_shape)) {}
 
     virtual ~base() = default;
 
     /** Obtain an iterator to the first element of the geometry. */
-    geometry_iterator begin() const {
-        return geometry_iterator(0, *this);
-    }
+    geometry_iterator begin() const { return geometry_iterator(0, *this); }
+
     /** Obtain an iterator beyond the last element of the geometry. */
     geometry_iterator end() const {
         return geometry_iterator(line_count_, *this);
@@ -94,14 +95,30 @@ class base {
      * used by algorithms, or make for easier visualization of the measurement
      * data.
      */
-    math::vec2<int> groups() const { return dimensions_; }
+    math::vec<D - 1, int> detector_shape() const { return detector_shape_; }
+    void set_detector_shape(math::vec<D - 1, int> detector_shape) {
+        detector_shape_ = detector_shape;
+        detector_pixel_count_ = math::product<D - 1, int>(detector_shape);
+        this->line_count_ =
+            this->projection_count_ * this->detector_pixel_count_;
+    }
 
     /* Obtain the i-th line */
-    virtual math::ray<D, T> get_line(int i) const;
+    virtual math::ray<D, T> get_line(int i) const = 0;
+
+    int projection_count() const { return projection_count_; }
+    int detector_pixel_count() const { return detector_pixel_count_; }
+
+    virtual void reduce_projections(int scaled_projection_count) {
+        (void)scaled_projection_count;
+        std::cout << "`reduce_projections` called but not implemented.\n";
+    }
 
   protected:
+    int projection_count_;
+    math::vec<D - 1, int> detector_shape_;
     int line_count_;
-    math::vec2<int> dimensions_;
+    int detector_pixel_count_;
 };
 
 } // namespace geometry

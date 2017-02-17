@@ -10,10 +10,23 @@ It is necessary for my experiments to have distributed 3d reconstruction of arbi
     - [x] We require a more general notion of a distributed sinogram (= stack of projections) that can be harmonized (simply rename)
     - [x] Add 3D partitioned phantom support
 - [x] Make Joseph for D > 2
-- [x] Update partitioning algorithm for new Bulk system.
-    - [ ] Optimize the steps
-    - [ ] Perform on downsampled geometries
-    - [ ] Add voxel weight cumulative sum support
+- [x] Fix center error, interpolation shenanigans. (One of) the problem(s) is that 'inside' is relative to the projector.
+      [x] This means that even though the interopolation point can be outside the volume, one of the 'hit' voxels can be inside, depending on the projector.
+      [x] Should see if entering/exiting happens properly
+      [x] For some projectors, do -1 delta and +1 delta
+      [x] What if line misses, but one of the points hits the subvolume
+      [x] Fixed a number of issues, but still a slight boundary error somewhere
+- [x] Real data:
+    - [x] Read TIFF stack
+- [x] Support physical volume dimensions
+    - [x] Volume should be subpixels (i.e. origin and lengths are `T` instead of `int`)
+    - [x] All relative geometries and math functions should accomodate this change
+    - [x] Fix DIMs working on voxels now that lengths is physical
+- [x] Run for (downsampled) medipix data, see if reconstruction works
+    - [x] Add support for 'downsampling a reconstruction problem'
+        - [x] Add changing voxels of a volume
+        - [x] Add support for downsampling geometries, changing the detector pixels
+        - [x] Downscale the projections to the new detector pixels
 - [ ] Add geometry information to data, define some TOML format
     - [x] Integrate https://github.com/jbeder/yaml-cpp
     - [x] Alternative: TOML https://github.com/skystrife/cpptoml
@@ -23,36 +36,26 @@ It is necessary for my experiments to have distributed 3d reconstruction of arbi
             - [x] Redo trajectory geometry parameters
             - [ ] Update all trajectories to new parent conventions
         - [x] Implement OpenCV TIFF reader
-        - [ ] Add support for loading projection stack from TIFF files to act as projections
-            - [ ] Make a 'reconstruction problem' struct, and a 'policy-based solver'
-        - [ ] Run for (downsampled) medipix data, see if reconstruction works
-            - [ ] Add support for 'downsampling a reconstruction problem'
-            - [ ] Add support for downsampling geometries and projections relative to the geometries
-        - [ ] Make a nice API that takes such a data set, and reconstructs it in parallel
-        - [ ] Extend parallel beam definition, extend support in Tomos
-- [x] Support physical volume dimensions
-    - [x] Volume should be subpixels (i.e. origin and lengths are `T` instead of `int`)
-    - [x] All relative geometries and math functions should accomodate this change
-    - [x] Fix DIMs working on voxels now that lengths is physical
+        - [x] Add support for loading projection stack from TIFF files to act as projections
+            - [x] Make a 'reconstruction problem' struct
+            - [ ] Make a 'policy-based solver'
+    - [ ] Make a nice API that takes a data set, and reconstructs it in parallel
+    - [ ] Extend parallel beam definition, extend support in Tomos
+- [x] Update partitioning algorithm for new Bulk system.
+    - [ ] Optimize the steps
+    - [ ] Perform on downsampled geometries
+    - [ ] Add voxel weight cumulative sum support
+- [ ] Start optimization: Restrict the geometry to the local volume
 - [ ] Make also a scheme for storing performance and partitioning results
     - [ ] Partitioning: communication volume
     - [ ] Performance: actually running the code
         - [ ] Version number software
         - [ ] Identifier cluster
-- [ ] Start optimization: Restrict the geometry to the local volume
-- [ ] Fix center error, interpolation shenanigans. (One of) the problem(s) is that 'inside' is relative to the projector.
-      [x] This means that even though the interopolation point can be outside the volume, one of the 'hit' voxels can be inside, depending on the projector.
-      [x] Should see if entering/exiting happens properly
-      [x] For some projectors, do -1 delta and +1 delta
-      [x] What if line misses, but one of the points hits the subvolume
-      [x] Fixed a number of issues, but still a slight boundary error somewhere
-- [ ] Real data:
-    - [ ] Read e.g. data-exchange format
-    - [ ] Read TIFF stack
 - [ ] Install GCC 7.0 and use C++17 to clean up code
 
 # Future:
 
+- [ ] Bug: 3d plotter axis seem off (for lego?)
 - [x] Move to common geometry, no longer needed as template argument (needed for 'real data')
 - [x] Move to common projector, no longer needed as template argument
 - [ ] We require realistic parameters for geometries, and test 3D sirt with them
