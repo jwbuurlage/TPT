@@ -20,41 +20,43 @@ template <typename T>
 class laminography : public trajectory<3_D, T> {
   public:
     /** Construct the geometry with a given number of lines. */
-    laminography(volume<3_D, T> volume, int steps, T detector_spacing = (T)1.0,
-                 math::vec<2_D, int> detector_size = math::vec<2_D, int>{1},
-                 T relative_source_distance = (T)1.0,
-                 T relative_detector_distance = (T)1.0,
-                 T source_radius = (T)1.0, T detector_radius = (T)1.0)
-        : trajectory<3_D, T>(volume, steps, detector_spacing, detector_size),
+    laminography(volume<3_D, T> volume, int projection_count,
+               math::vec<2_D, T> detector_size,
+               math::vec<2_D, int> detector_shape,
+               T relative_source_distance = (T)1.0,
+               T relative_detector_distance = (T)1.0, T source_radius = (T)1.0,
+               T detector_radius = (T)1.0)
+        : trajectory<3_D, T>(volume, projection_count, detector_size,
+                             detector_shape),
           relative_source_distance_(relative_source_distance),
           relative_detector_distance_(relative_detector_distance),
           source_radius_(source_radius), detector_radius_(detector_radius) {}
 
-    math::vec<3_D, T> source_location(int step) const override final {
+    math::vec<3_D, T> source_location(int projection) const override final {
         auto pivot = image_center_() -
                      relative_source_distance_ * this->volume_[1] *
                          math::standard_basis<3_D, T>(1);
 
         return pivot +
                apply_rotation_(source_radius_ * math::standard_basis<3_D, T>(0),
-                               step);
+                               projection);
     }
 
-    math::vec<3_D, T> detector_location(int step) const override final {
+    math::vec<3_D, T> detector_location(int projection) const override final {
         auto pivot = image_center_() +
                      relative_detector_distance_ * this->volume_[1] *
                          math::standard_basis<3_D, T>(1);
 
-        return pivot +
-               apply_rotation_(
-                   -detector_radius_ * math::standard_basis<3_D, T>(0), step);
+        return pivot + apply_rotation_(-detector_radius_ *
+                                           math::standard_basis<3_D, T>(0),
+                                       projection);
     }
 
     std::array<math::vec<3_D, T>, 2>
-    detector_tilt(int step) const override final {
+    detector_tilt(int projection) const override final {
         auto a = math::standard_basis<3_D, T>(1);
-        auto b =
-            math::normalize(detector_location(step) - source_location(step));
+        auto b = math::normalize(detector_location(projection) -
+                                 source_location(projection));
         auto n = math::cross<T>(a, b);
         auto n_norm = math::norm<3_D, T>(n);
         auto theta = math::asin<T>(n_norm);
@@ -76,18 +78,18 @@ class laminography : public trajectory<3_D, T> {
     T detector_radius_;
 
     inline math::vec<3_D, T> transform_location_(math::vec<3_D, T> location,
-                                                 int step) const {
-        return apply_rotation_(location - image_center_(), step) +
+                                                 int projection) const {
+        return apply_rotation_(location - image_center_(), projection) +
                image_center_();
     }
 
     inline math::vec<3_D, T> apply_rotation_(math::vec<3_D, T> location,
-                                             int step) const {
+                                             int projection) const {
         static auto axis = math::standard_basis<3_D, T>(1);
 
-        T angle_step = (T)2.0 * math::pi<T> / this->steps_;
+        T angle_projection = (T)2.0 * math::pi<T> / this->projection_count_;
 
-        return math::rotate(location, axis, angle_step * step);
+        return math::rotate(location, axis, angle_projection * projection);
     }
 
     inline math::vec<3_D, T> image_center_() const {

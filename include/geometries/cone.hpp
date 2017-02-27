@@ -41,6 +41,19 @@ class cone_beam : public trajectory<3_D, T> {
         assert((int)angles_.size() == projection_count);
     }
 
+    /** Construct a cone-beam geometry using many defaults. */
+    cone_beam(volume<3_D, T> volume, int projection_count,
+              math::vec<2_D, T> detector_size,
+              math::vec<2_D, int> detector_shape, T source_to_center,
+              T detector_to_center)
+        : cone_beam(
+              volume, projection_count, detector_size, detector_shape,
+              math::volume_center(volume) -
+                  source_to_center * math::standard_basis<3_D, T>(0),
+              math::volume_center(volume) +
+                  detector_to_center * math::standard_basis<3_D, T>(0),
+              {math::standard_basis<3_D, T>(1), math::standard_basis<3_D, T>(2)}) {}
+
     math::vec<3_D, T> source_location(int projection) const override final {
         return transform_location_(source_position_, projection);
     }

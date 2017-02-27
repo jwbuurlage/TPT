@@ -23,12 +23,16 @@ namespace distributed {
 
 template <dimension D, typename Geometry,
           typename T = typename Geometry::value_type>
-bulk::binary_tree<bulk::split> partition_bisection(const Geometry& g, tomo::volume<D, T> v,
-                                       int processors, T max_epsilon = 0.2) {
+bulk::binary_tree<bulk::split>
+partition_bisection(const Geometry& g, tomo::volume<D, T> object_volume, int processors,
+                    T max_epsilon = 0.2) {
     bulk::binary_tree<bulk::split> result;
 
-    // assert that p is a power of two, see Hacker's Delight page 11
-    assert((processors & (processors - 1)) == 0);
+    // FIXME the new coordinate system is non-voxel based, so we need to adjust here
+
+    // assert that the number of processors is a power of two
+    // TODO: support for non-2^k-way partitionings
+    assert(math::is_power_of_two(processors));
 
     // alias the split type of the form (d, a)
     using split_t = bulk::split;
@@ -105,6 +109,7 @@ bulk::binary_tree<bulk::split> partition_bisection(const Geometry& g, tomo::volu
 
                     // FIXME we dont get here *after* the final crossing
                     auto epsilon = imbalance(half_split);
+                    std::cout << "d: eps, v " << epsilon << " / " << max_epsilon << " + " << overlap << "\n";
                     if ((overlap < best_overlap && epsilon < max_epsilon) ||
                         (overlap == best_overlap && epsilon < best_imbalance)) {
                         best_overlap = overlap;
@@ -117,6 +122,8 @@ bulk::binary_tree<bulk::split> partition_bisection(const Geometry& g, tomo::volu
                 overlap += crossing.direction[d];
             }
         }
+
+        assert(best_d >= 0);
 
         auto best_compare = [best_d](crossing_event& lhs, crossing_event& rhs) {
             return lhs.point[best_d] < rhs.point[best_d];
@@ -164,10 +171,10 @@ bulk::binary_tree<bulk::split> partition_bisection(const Geometry& g, tomo::volu
     }
 
     // we store the splits as a binary tree
-    core::binary_tree<split_t> splits;
+    bulk::binary_tree<split_t> splits;
 
-    using node = typename core::binary_tree<split_t>::node;
-    using dir = typename core::binary_tree<split_t>::dir;
+    using node = typename bulk::binary_tree<split_t>::node;
+    using dir = typename bulk::binary_tree<split_t>::dir;
 
     // all the information we need to split a subvolume and save it
     struct subvolume {
@@ -183,7 +190,7 @@ bulk::binary_tree<bulk::split> partition_bisection(const Geometry& g, tomo::volu
 
     box_t bounds;
     for (int d = 0; d < D; ++d) {
-        bounds[d][1] = v[d];
+        bounds[d][1] = object_volume.voxels()[d];
     }
 
     auto complete_volume = subvolume{bounds, nullptr, dir::left, all_lines, 0};

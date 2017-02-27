@@ -19,68 +19,69 @@ namespace geometry {
 template <typename T>
 class dual_axis_parallel : public trajectory<3_D, T> {
   public:
-    dual_axis_parallel(
-        volume<3_D, T> volume, int steps, T detector_spacing = (T)1,
-        math::vec<2_D, int> detector_size = math::vec<2_D, int>{1})
-        : trajectory<3_D, T>(volume,
-                             2 * steps * math::reduce<2_D>(detector_size),
-                             detector_spacing, math::vec<2_D, int>{1}),
+    dual_axis_parallel(volume<3_D, T> volume, int projection_count_per_axis,
+                       math::vec<2_D, T> detector_size,
+                       math::vec<2_D, int> detector_shape)
+        : trajectory<3_D, T>(volume, 2 * projection_count_per_axis,
+                             detector_size, detector_shape),
           actual_detector_size_(detector_size) {
-        detector_count_copy_ = math::reduce<2_D>(detector_size);
-        actual_steps_ = steps;
-
-        assert(detector_count_copy_ > 0);
-        assert(actual_steps_ > 0);
+        static_assert(false, "(dual-axis) parallel support should be "
+                             "implemented with a 'parallel trajectory' base");
+        projection_count_per_axis_ = math::reduce<2_D>(detector_size);
+        assert(projection_count_per_axis_ > 0);
     }
 
-    math::vec<3_D, T> source_location(int step) const override final {
+    math::vec<3_D, T> source_location(int projection) const override final {
         return transform_location_(
-                   math::volume_center(this->volume_) -
-                       ((T) this->volume_[0] * math::standard_basis<3_D, T>(0)),
-                   step_actual_(step)) +
-               this->detector_offset_(step, step % detector_count_copy_,
-                                      actual_detector_size_);
+            math::volume_center(this->volume_) -
+                ((T) this->volume_[0] * math::standard_basis<3_D, T>(0)),
+            projection_actual_(projection));
     }
 
-    math::vec<3_D, T> detector_location(int step) const override final {
+    math::vec<3_D, T> detector_location(int projection) const override final {
         return transform_location_(
                    math::volume_center(this->volume_) +
                        ((T) this->volume_[0] * math::standard_basis<3_D, T>(0)),
-                   step_actual_(step)) +
-               this->detector_offset_(step, step % detector_count_copy_,
+                   projection_actual_(projection)) +
+               this->detector_offset_(projection,
+                                      projection % projection_count_per_axis_,
                                       actual_detector_size_);
     }
 
     std::array<math::vec<3_D, T>, 2>
-    detector_tilt(int step) const override final {
+    detector_tilt(int projection) const override final {
         return {apply_rotation_(math::standard_basis<3_D, T>(1),
-                                step_actual_(step)),
+                                projection_actual_(projection)),
                 apply_rotation_(math::standard_basis<3_D, T>(2),
-                                step_actual_(step))};
+                                projection_actual_(projection))};
     }
 
   private:
     inline math::vec<3_D, T> transform_location_(math::vec<3_D, T> location,
-                                                 int step) const {
-        return apply_rotation_(location - math::volume_center(this->volume_), step) +
-                math::volume_center(this->volume_);
+                                                 int projection) const {
+        return apply_rotation_(location - math::volume_center(this->volume_),
+                               projection) +
+               math::volume_center(this->volume_);
     }
 
     inline math::vec<3_D, T> apply_rotation_(math::vec<3_D, T> location,
-                                             int step) const {
+                                             int projection) const {
         static auto axes = std::array<math::vec<3_D, T>, 2>{
             math::standard_basis<3_D, T>(1), math::standard_basis<3_D, T>(2)};
-        auto axis = axes[step / actual_steps_];
+        auto axis = axes[projection / projection_count_per_axis_];
 
-        T angle_step = math::pi<T> / actual_steps_;
+        T angle_projection = math::pi<T> / projection_count_per_axis_;
 
-        return math::rotate(location, axis, angle_step * (step % actual_steps_));
+        return math::rotate(location, axis,
+                            angle_projection *
+                                (projection % projection_count_per_axis_));
     }
 
-    int step_actual_(int step) const { return step / detector_count_copy_; }
+    int projection_actual_(int projection) const {
+        return projection / projection_count_per_axis_;
+    }
 
-    int detector_count_copy_;
-    int actual_steps_;
+    int projection_count_per_axis_;
     math::vec<2_D, int> actual_detector_size_;
 };
 

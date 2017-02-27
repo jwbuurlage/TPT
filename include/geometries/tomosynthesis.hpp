@@ -20,25 +20,26 @@ template <typename T>
 class tomosynthesis : public trajectory<3_D, T> {
   public:
     /** Construct the geometry with a given number of lines. */
-    tomosynthesis(volume<3_D, T> volume, int steps, T detector_spacing = (T)1.0,
-                  math::vec<2_D, int> detector_size = math::vec<2_D, int>{1},
+    tomosynthesis(volume<3_D, T> volume, int projection_count,
+                  math::vec<2_D, T> detector_size,
+                  math::vec<2_D, int> detector_shape,
                   T relative_source_distance = (T)1.0,
                   T relative_detector_distance = (T)1.0,
                   T source_arc = (T)0.5 * math::pi<T>)
-        : trajectory<3_D, T>(volume, steps, detector_spacing, detector_size),
+        : trajectory<3_D, T>(volume, projection_count, detector_size, detector_shape),
           relative_source_distance_(relative_source_distance),
           relative_detector_distance_(relative_detector_distance),
           source_arc_(source_arc) {}
 
-    math::vec<3_D, T> source_location(int step) const override final {
+    math::vec<3_D, T> source_location(int projection) const override final {
         auto pivot = image_center_() +
                      relative_source_distance_ * this->volume_[1] *
                          math::standard_basis<3_D, T>(1);
 
-        return apply_rotation_(pivot, step);
+        return apply_rotation_(pivot, projection);
     }
 
-    math::vec<3_D, T> detector_location(int /* step */) const override final {
+    math::vec<3_D, T> detector_location(int /* projection */) const override final {
         auto pivot = image_center_() -
                      relative_detector_distance_ * this->volume_[1] *
                          math::standard_basis<3_D, T>(1);
@@ -47,7 +48,7 @@ class tomosynthesis : public trajectory<3_D, T> {
     }
 
     std::array<math::vec<3_D, T>, 2>
-    detector_tilt(int /* step */) const override final {
+    detector_tilt(int /* projection */) const override final {
         return {math::standard_basis<3_D, T>(0),
                 math::standard_basis<3_D, T>(2)};
     }
@@ -62,11 +63,11 @@ class tomosynthesis : public trajectory<3_D, T> {
     T source_arc_;
 
     inline math::vec<3_D, T> apply_rotation_(math::vec<3_D, T> location,
-                                             int step) const {
+                                             int projection) const {
         static auto axis = math::standard_basis<3_D, T>(0);
-        T angle_step = source_arc_ / this->steps_;
+        T angle_projection = source_arc_ / this->projection_count_;
         return math::rotate(location - image_center_(), axis,
-                            -source_arc_ * (T)0.5 + angle_step * step) +
+                            -source_arc_ * (T)0.5 + angle_projection * projection) +
                image_center_();
     }
 

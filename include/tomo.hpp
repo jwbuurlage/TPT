@@ -49,9 +49,11 @@
 #include "distributed/partitioned_image.hpp"
 #include "distributed/partitioned_projection_stack.hpp"
 #include "distributed/recursive_bisectioning.hpp"
+#include "distributed/trivial_partitioning.hpp"
+#include "distributed/partitioning_statistics.hpp"
 
 #include "geometries/cone.hpp"
-#include "geometries/dual_axis_parallel.hpp"
+//#include "geometries/dual_axis_parallel.hpp"
 #include "geometries/dynamic_cone_beam.hpp"
 #include "geometries/fan.hpp"
 #include "geometries/helical_cone_beam.hpp"

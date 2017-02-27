@@ -186,15 +186,22 @@ T cross(typename vec<2_D, T>::type a, typename vec<2_D, T>::type b) {
     return a.x * b.y - a.y * b.x;
 }
 
-/** Compute \f$a^n\f$. */
-template <typename T>
-constexpr T pow(T a, int n) {
-    int result = a;
-    // FIXME use exponential powering
-    for (int i = 1; i < n; ++i) {
-        result *= a;
+template <tomo::dimension D, typename T>
+auto array_to_vec(std::array<T, D> in) {
+    tomo::math::vec<D, T> out;
+    for (int d = 0; d < D; ++d) {
+        out[d] = in[d];
     }
-    return result;
+    return out;
+}
+
+template <tomo::dimension D, typename T>
+auto vec_to_array(tomo::math::vec<D, T> in) {
+    std::array<T, D> out;
+    for (int d = 0; d < D; ++d) {
+        out[d] = in[d];
+    }
+    return out;
 }
 
 } // namespace math

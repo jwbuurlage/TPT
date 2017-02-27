@@ -10,14 +10,6 @@
 namespace tomo {
 namespace distributed {
 
-template <tomo::dimension D, typename T>
-auto array_to_vec(std::array<T, D> in) {
-    tomo::math::vec<D, T> out;
-    for (int d = 0; d < D; ++d) {
-        out[d] = in[d];
-    }
-    return out;
-}
 
 /** Partitioned image partitions the _voxels_ */
 template <tomo::dimension D, tomo::dimension G, typename T>
@@ -30,9 +22,9 @@ class partitioned_image {
           data_(world_, part.local_count(world.processor_id())),
           local_volume_(0) {
         auto voxels =
-            array_to_vec<D, int>(part_.local_size(world.processor_id()));
+            math::array_to_vec<D, int>(part_.local_size(world.processor_id()));
         auto voxel_origin =
-            array_to_vec<D>(part_.origin({world.processor_id()}));
+            math::array_to_vec<D>(part_.origin({world.processor_id()}));
 
         auto relative_origin = math::vec<D, T>(voxel_origin) /
                                math::vec<D, T>(global_vol.voxels());
@@ -52,10 +44,10 @@ class partitioned_image {
     auto& world() const { return world_; }
 
     tomo::math::vec<D, int> local_size() const {
-        return array_to_vec<D>(part_.local_size(world_.processor_id()));
+        return math::array_to_vec<D>(part_.local_size(world_.processor_id()));
     }
 
-    auto global_size() const { return array_to_vec<D>(part_.global_size()); }
+    auto global_size() const { return math::array_to_vec<D>(part_.global_size()); }
     auto local_volume() const { return local_volume_; }
 
     // get the element with _local index_ idx

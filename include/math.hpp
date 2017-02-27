@@ -27,6 +27,7 @@ using optional = std::experimental::optional<T>;
 #include "math/constants.hpp"
 #include "math/vector.hpp"
 #include "math/vector_operations.hpp"
+#include "math/basic_operations.hpp"
 #include "volume.hpp"
 
 namespace tomo {
@@ -119,6 +120,14 @@ vec<D, int> sign(vec<D, T> rhs) {
     return result;
 }
 
+/** Check whether an integral value is a power of two. */
+template <typename T,
+          typename = typename std::enable_if<std::is_integral<T>::value>::type>
+bool is_power_of_two(T x) {
+    // See Hacker's delight page 11
+    return (x & (x - 1)) == 0;
+}
+
 /**
  * Compute the intersection of the line \f$p \rightarrow p2\f$, with the line
  * \f$q \rightarrow q2\f$.
@@ -144,7 +153,8 @@ optional<vec2<T>> intersection(vec2<T> p, vec2<T> p2, vec2<T> q, vec2<T> q2) {
     return optional<vec2<T>>();
 }
 
-/** Checks whether a *voxel-coordinate* vector lies in the box defined by a volume. This is
+/** Checks whether a *voxel-coordinate* vector lies in the box defined by a
+ * volume. This is
  * open by one side, the upper side in each axis. */
 template <dimension D, typename T>
 bool inside(vec<D, T> a, volume<D, T> vol) {
@@ -155,7 +165,8 @@ bool inside(vec<D, T> a, volume<D, T> vol) {
     return true;
 }
 
-/** Checks whether a *voxel-coordinate vector* lies in the box defined by a volume. This is
+/** Checks whether a *voxel-coordinate vector* lies in the box defined by a
+ * volume. This is
  * open by one side, the upper side in each axis. */
 template <dimension D, typename T>
 bool inside_margin(vec<D, T> a, volume<D, T> vol, T margin) {
