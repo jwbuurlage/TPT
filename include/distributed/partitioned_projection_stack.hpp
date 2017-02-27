@@ -15,8 +15,9 @@ class partitioned_projection_stack {
 
     using value_type = T;
 
-    partitioned_projection_stack(bulk::world& world, bulk::partitioning<D>& part,
-                         tomo::geometry::base<D, T>& geometry)
+    partitioned_projection_stack(bulk::world& world,
+                                 bulk::partitioning<D>& part,
+                                 tomo::geometry::base<D, T>& geometry)
         : world_(world), data_(world, geometry.lines()), part_(part),
           geometry_(geometry) {
         clear();
@@ -48,7 +49,7 @@ class partitioned_projection_stack {
     template <typename Projector>
     void compute_overlap(Projector& proj) {
         auto cyclic = bulk::cyclic_partitioning<1, 1>(
-            world_, {geometry_.lines()}, {world_.active_processors()});
+            {geometry_.lines()}, {world_.active_processors()});
 
         auto q = bulk::queue<int, int>(world_);
         int idx = 0;

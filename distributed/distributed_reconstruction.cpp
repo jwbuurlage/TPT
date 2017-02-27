@@ -30,7 +30,7 @@ void run(tomo::util::args opt) {
         // set up the partitioning
         std::array<int, D> size{};
         std::fill(size.begin(), size.end(), opt.k);
-        auto partitioning = bulk::block_partitioning<D, 2>(world, size, {2, p / 2});
+        auto partitioning = bulk::block_partitioning<D, 2>(size, {2, p / 2});
 
         auto global_volume = tomo::volume<D, T>(opt.k);
 

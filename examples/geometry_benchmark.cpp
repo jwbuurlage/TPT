@@ -16,45 +16,39 @@ namespace po = boost::program_options;
 std::mutex g_result_mutex;
 
 using T = float;
+constexpr tomo::dimension D = 3_D;
 
-template <typename Geometry>
-void run(std::string name, Geometry g, tomo::util::report& table,
-         tomo::volume<3_D, T> v, int procs, T epsilon) {
-    (void)name;
-    (void)g;
-    (void)table;
-    (void)v;
-    (void)procs;
-    (void)epsilon;
-    // FIXME redo this for the new system
-    /*    namespace td = tomo::distributed;
-        using Dim = tomo::dim::closest<3_D, T>;
+template <tomo::dimension D, typename T>
+void partition_test(std::string name, const tomo::geometry::base<D, T>& g,
+                    tomo::util::report& table, tomo::volume<3_D, T> v,
+                    int procs, T epsilon) {
+    namespace td = tomo::distributed;
 
-        auto part_trivial = td::partition_trivial<Dim>(g, v, procs);
-        auto part_bisected = td::partition_bisection(g, v, procs, epsilon);
-        auto overlap_trivial = td::overlap_count<Dim>(g, part_trivial);
-        auto overlap_bisected = td::overlap_count<Dim>(g, part_bisected);
+    auto part_trivial = td::partition_trivial(g, v, procs);
+    auto part_bisected = bulk::tree_partitioning<D>(
+        tomo::math::vec_to_array<D, int>(v.voxels()), procs,
+        td::partition_bisection(g, v, procs, epsilon));
 
-        std::lock_guard<std::mutex> guard(g_result_mutex);
-        table.add_row(name);
-        table.add_result(name, "trivial", overlap_trivial);
-        table.add_result(name, "binary", overlap_bisected);
+    auto overlap_trivial = td::communication_volume<D, T>(g, v, part_trivial);
+    auto overlap_bisected = td::communication_volume<D, T>(g, v, part_bisected);
 
-        T imp = (T)0.0;
-        if (overlap_trivial != 0)
-            imp = (overlap_trivial - overlap_bisected) / (T)overlap_trivial;
+    std::lock_guard<std::mutex> guard(g_result_mutex);
+    table.add_row(name);
+    table.add_result(name, "trivial", overlap_trivial);
+    table.add_result(name, "binary", overlap_bisected);
 
-        table.add_result(name, "max_overlap", g.lines() * (procs - 1));
-        table.add_result(name, "improvement", fmt::format("{:.1f}%", 100 *
-       imp)); */
+    T imp = (T)0.0;
+    if (overlap_trivial != 0)
+        imp = (overlap_trivial - overlap_bisected) / (T)overlap_trivial;
+
+    table.add_result(name, "max_overlap", g.lines() * (procs - 1));
+    table.add_result(name, "improvement", fmt::format("{:.1f}%", 100 * imp));
 }
 
 int main(int argc, char* argv[]) {
-    (void)argc;
-    (void)argv;
-    /* int k = 64;
+    int k = 64;
     int p = 4;
-    T e = (T)0.1;
+    T e = (T)0.2;
 
     po::options_description desc("Allowed arguments");
     desc.add_options()("help,h", "show help message")(
@@ -80,46 +74,49 @@ int main(int argc, char* argv[]) {
     table.add_column("max_overlap");
     table.add_column("improvement");
 
-    std::vector<std::thread> threads;
+    partition_test<D, T>("parallel", tomo::geometry::parallel<3_D, T>(v, k, k),
+                         table, v, p, e);
+
+    /* std::vector<std::thread> threads;
     // 'gather results'
-    threads.emplace_back(run<tomo::geometry::parallel<3_D, T>>, "parallel",
+    threads.emplace_back(partition_test<D, T>, "parallel",
                          tomo::geometry::parallel<3_D, T>(v, k, k),
                          std::ref(table), v, p, e);
 
+    // threads.emplace_back(
+    //     partition_test<D, T>, "dual_parallel",
+    //     tomo::geometry::dual_axis_parallel<T>(v, k, {1, 1}, {k, k}),
+    //     std::ref(table), v, p, e);
+
     threads.emplace_back(
-        run<tomo::geometry::dual_axis_parallel<T>>, "dual_parallel",
-        tomo::geometry::dual_axis_parallel<T>(v, k * 2, (T)1.0, {k, k}),
+        partition_test<D, T>, "dynamic_cone",
+        tomo::geometry::dynamic_cone_beam<T>(v, k, {1, 1}, {k, k}),
         std::ref(table), v, p, e);
 
     threads.emplace_back(
-        run<tomo::geometry::dynamic_cone_beam<T>>, "dynamic_cone",
-        tomo::geometry::dynamic_cone_beam<T>(v, k, (T)1.0, {k, k}),
+        partition_test<D, T>, "helical_cone",
+        tomo::geometry::helical_cone_beam<T>(v, k, {1, 1}, {k, k}, (T)2.0),
         std::ref(table), v, p, e);
 
     threads.emplace_back(
-        run<tomo::geometry::helical_cone_beam<T>>, "helical_cone",
-        tomo::geometry::helical_cone_beam<T>(v, k, (T)1.0, {k, k}),
+        partition_test<D, T>, "cone",
+        tomo::geometry::cone_beam<T>(v, k, {1, 1}, {k, k}, 2.0, 2.0),
         std::ref(table), v, p, e);
 
-    threads.emplace_back(run<tomo::geometry::cone_beam<T>>, "cone",
-                         tomo::geometry::cone_beam<T>(v, k, (T)1.0, {k, k}),
-                         std::ref(table), v, p, e);
-
-    threads.emplace_back(run<tomo::geometry::laminography<T>>, "laminography",
+    threads.emplace_back(partition_test<D, T>, "laminography",
                          tomo::geometry::laminography<T>(
-                             v, k, (T)1.0, {k, k}, 1.0, 1.0, k / 2, k / 2),
+                             v, k, {1, 1}, {k, k}, 1.0, 1.0, k / 2, k / 2),
                          std::ref(table), v, p, e);
 
-    threads.emplace_back(run<tomo::geometry::tomosynthesis<T>>,
-                         "tomo_synthesis",
-                         tomo::geometry::tomosynthesis<T>(v, k, (T)1.0, {k, k}),
+    threads.emplace_back(partition_test<D, T>, "tomo_synthesis",
+                         tomo::geometry::tomosynthesis<T>(v, k, {1, 1}, {k, k}),
                          std::ref(table), v, p, e);
 
     for (auto& thread : threads)
-        thread.join();
+        thread.join(); */
 
     // 'print result table'
     table.print();
 
-    return 0; */
+    return 0;
 }
