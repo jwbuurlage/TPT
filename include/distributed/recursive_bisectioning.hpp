@@ -24,11 +24,13 @@ namespace distributed {
 template <dimension D, typename Geometry,
           typename T = typename Geometry::value_type>
 bulk::binary_tree<bulk::split>
-partition_bisection(const Geometry& g, tomo::volume<D, T> object_volume, int processors,
-                    T max_epsilon = 0.2) {
+partition_bisection(const Geometry& geometry, tomo::volume<D, T> object_volume,
+                    int processors, T max_epsilon = 0.2) {
     bulk::binary_tree<bulk::split> result;
 
-    // FIXME the new coordinate system is non-voxel based, so we need to adjust here
+    // FIXME the new coordinate system is non-voxel based, so we need to adjust
+    // here
+    // Go to voxel-based system?
 
     // assert that the number of processors is a power of two
     // TODO: support for non-2^k-way partitionings
@@ -42,9 +44,9 @@ partition_bisection(const Geometry& g, tomo::volume<D, T> object_volume, int pro
     auto depth = (int)log2(processors);
     assert(1 << depth == processors);
 
-    auto find_split = [&](const std::vector<math::ray<D, T>>& lines,
-                          std::vector<math::ray<D, T>>& lines_left,
-                          std::vector<math::ray<D, T>>& lines_right,
+    auto find_split = [&](const std::vector<math::line<D, T>>& lines,
+                          std::vector<math::line<D, T>>& lines_left,
+                          std::vector<math::line<D, T>>& lines_right,
                           box_t bounds) -> split_t {
         struct crossing_event {
             math::vec<D, T> point;
@@ -109,7 +111,6 @@ partition_bisection(const Geometry& g, tomo::volume<D, T> object_volume, int pro
 
                     // FIXME we dont get here *after* the final crossing
                     auto epsilon = imbalance(half_split);
-                    std::cout << "d: eps, v " << epsilon << " / " << max_epsilon << " + " << overlap << "\n";
                     if ((overlap < best_overlap && epsilon < max_epsilon) ||
                         (overlap == best_overlap && epsilon < best_imbalance)) {
                         best_overlap = overlap;
@@ -123,7 +124,18 @@ partition_bisection(const Geometry& g, tomo::volume<D, T> object_volume, int pro
             }
         }
 
-        assert(best_d >= 0);
+        if (best_d < 0) {
+            // FIXME output debug info
+            // using box_t = std::array<math::vec2<int>, D>;
+            std::cout << "Can't find split for bounds: "
+                << "[" << bounds[0][0] << ", " << bounds[0][1] <<  "], "
+                << "[" << bounds[1][0] << ", " << bounds[1][1] <<  "], "
+                << "[" << bounds[2][0] << ", " << bounds[2][1] <<  "] "
+                << "crossings.size(): " << crossings.size() << ", "
+                << "lines.size(): " << lines.size() << ", "
+                j< "\n";
+            assert(best_d >= 0);
+        }
 
         auto best_compare = [best_d](crossing_event& lhs, crossing_event& rhs) {
             return lhs.point[best_d] < rhs.point[best_d];
@@ -165,13 +177,13 @@ partition_bisection(const Geometry& g, tomo::volume<D, T> object_volume, int pro
 
     // containers for the current left and right lines
     // TODO: needed here?
-    std::vector<math::ray<D, T>> all_lines;
-    for (auto l : g) {
-        all_lines.emplace_back(l);
+    std::vector<math::line<D, T>> all_lines;
+    for (auto l : geometry) {
+        auto line = math::truncate_to_volume(l, object_volume);
+        if (line) {
+            all_lines.push_back(line.value());
+        }
     }
-
-    // we store the splits as a binary tree
-    bulk::binary_tree<split_t> splits;
 
     using node = typename bulk::binary_tree<split_t>::node;
     using dir = typename bulk::binary_tree<split_t>::dir;
@@ -181,7 +193,7 @@ partition_bisection(const Geometry& g, tomo::volume<D, T> object_volume, int pro
         box_t bounds;
         node* parent;
         dir direction;
-        std::vector<math::ray<D, T>> lines;
+        std::vector<math::line<D, T>> lines;
         int depth;
     };
 
@@ -203,8 +215,8 @@ partition_bisection(const Geometry& g, tomo::volume<D, T> object_volume, int pro
         auto sub_bounds = sub.bounds;
 
         // containers to hold the left and right lines
-        std::vector<math::ray<D, T>> left;
-        std::vector<math::ray<D, T>> right;
+        std::vector<math::line<D, T>> left;
+        std::vector<math::line<D, T>> right;
 
         // we now have the subvolume, and want to find the best split
         auto best_split = find_split(sub.lines, left, right, sub.bounds);
