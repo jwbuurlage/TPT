@@ -101,19 +101,19 @@ TEST_CASE("Intersection and box checking", "[math]") {
     SECTION("Bounds intersection") {
             //using vec = tomo::math::vec3<T>;
         using veci = tomo::math::vec2<int>;
-        using lin = tomo::math::ray<3_D, T>;
+        using lin = tomo::math::line<3_D, T>;
 
         std::array<veci, 3> bounds = {veci{1, 3}, veci{1, 3}, veci{1, 3}};
 
         SECTION("Normal crossing line") {
             auto result = tomo::math::intersect_bounds<3_D, T>(
-                lin({0.0f, 2.0f, 2.0f}, {4.0f, 0.0f, 0.0f}), bounds);
+                lin({0.0f, 2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}), bounds);
             REQUIRE(result);
         }
 
         SECTION("Parallel line") {
             auto result = tomo::math::intersect_bounds<3_D, T>(
-                lin({0.0f, 0.0f, 0.0f}, {0.0f, 4.0f, 0.0f}), bounds);
+                lin({0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}), bounds);
             REQUIRE(!result);
         }
     }

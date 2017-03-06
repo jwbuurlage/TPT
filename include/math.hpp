@@ -24,10 +24,10 @@ using optional = std::experimental::optional<T>;
 #include <glm/gtx/string_cast.hpp>
 
 #include "common.hpp"
+#include "math/basic_operations.hpp"
 #include "math/constants.hpp"
 #include "math/vector.hpp"
 #include "math/vector_operations.hpp"
-#include "math/basic_operations.hpp"
 #include "volume.hpp"
 
 namespace tomo {
@@ -286,14 +286,16 @@ optional<line<D, T>> truncate_to_volume(ray<D, T> ray, volume<D, T> v) {
  */
 template <dimension D, typename T>
 optional<std::pair<vec<D, T>, vec<D, T>>>
-intersect_bounds(math::ray<D, T> l, std::array<math::vec2<int>, D> bounds) {
+intersect_bounds(math::line<D, T> l, std::array<math::vec2<int>, D> bounds) {
     vec<D, T> bounds_origin{bounds[0][0], bounds[1][0], bounds[2][0]};
 
     vec<D, T> bounds_sides =
         vec<D, T>{bounds[0][1], bounds[1][1], bounds[2][1]} - bounds_origin;
 
-    auto result = math::aabb_intersection<D, T>(l.source, l.detector,
-                                                bounds_sides, bounds_origin);
+    auto for_sure_far_enough = math::product<D, T>(bounds_sides);
+
+    auto result = math::aabb_intersection<D, T>(
+        l.origin, for_sure_far_enough * l.delta, bounds_sides, bounds_origin);
 
     if (result) {
         return std::pair<vec<D, T>, vec<D, T>>{result.value().first,
