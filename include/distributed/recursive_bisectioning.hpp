@@ -133,7 +133,7 @@ partition_bisection(const Geometry& geometry, tomo::volume<D, T> object_volume,
                 << "[" << bounds[2][0] << ", " << bounds[2][1] <<  "] "
                 << "crossings.size(): " << crossings.size() << ", "
                 << "lines.size(): " << lines.size() << ", "
-                j< "\n";
+                << "\n";
             assert(best_d >= 0);
         }
 
