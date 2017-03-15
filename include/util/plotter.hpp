@@ -55,8 +55,6 @@ std::vector<unsigned char> pack_image(image<3_D, T>& f,
                                 voxels[1] / (T)volume_size[1],
                                 voxels[2] / (T)volume_size[2]};
 
-    std::cout << stride[0] << " " << stride[1] << " " << stride[2] << "\n";
-
     int idx = 0;
     for (int k = 0; k < volume_size[2]; ++k) {
         for (int j = 0; j < volume_size[1]; ++j) {
@@ -67,16 +65,10 @@ std::vector<unsigned char> pack_image(image<3_D, T>& f,
                                                          (int)(k)*stride[2]}),
                                                       (T)0) /
                                     max);
-                std::cout << idx << " " << (int)grayscale_image[idx] << " "
-                          << f({(int)(i * stride[0]), (int)(j * stride[1]),
-                                (int)(k)*stride[2]})
-                          << "\n";
             }
         }
     }
 
-    std::cout << "10 = " << (int)grayscale_image[10] << " / max = " << max
-              << "\n";
     return grayscale_image;
 }
 
@@ -189,6 +181,15 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D> {
         zmq::message_t reply;
         socket_.recv(&reply);
     }
+
+    // FIXME virtual void subscribe();
+    // FIXME virtual void serve();
+
+  private:
+    // FIXME slices
+    // - add slices struct
+    // - add subscribe and serve scheme
+    // - add a 'reconstructor', which can be a dummy, that can produce a slice reconstruction
 };
 
 } // namespace tomo

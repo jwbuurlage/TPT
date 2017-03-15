@@ -14,11 +14,11 @@ using T = double;
 constexpr tomo::dimension D = 3_D;
 
 int main(int argc, char* argv[]) {
+    auto opt = tomo::util::args(argc, argv);
+
     // request a plotter scene
     auto plotter =
         tomo::ext_plotter<D, T>("tcp://localhost:5555", "Sequential test");
-
-    auto opt = tomo::util::args(argc, argv);
 
     auto v = tomo::volume<D, T>(opt.k);
     auto g = tomo::geometry::parallel<D, T>(v, opt.k, opt.k);
@@ -29,12 +29,6 @@ int main(int argc, char* argv[]) {
 
     auto kernel = tomo::dim::joseph<D, T>(v);
 
-    //    tomo::image<D, T> matrix(v);
-    //    auto line = g.get_line(g.lines() / 2 + opt.k / 4);
-    //    for (auto elem : kernel(line)) {
-    //        matrix[elem.index] += elem.value;
-    //    }
-
     plotter.plot(f);
     tomo::ascii_plot(f);
 
@@ -44,6 +38,7 @@ int main(int argc, char* argv[]) {
             v, g, kernel, sino, 0.5, 10,
             {[&](tomo::image<D, T>& image) { plotter.plot(image); }});
     }
+
 
     return 0;
 }
