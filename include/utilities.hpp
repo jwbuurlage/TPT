@@ -46,6 +46,47 @@ image<2_D, T> slice(const image<3_D, T>& f, int slice, int along_axis = 0) {
 
 /** A helper function that downscales the image for plotting in the
  * terminal. */
+template <dimension D, typename T>
+image<D, T> downscale(const image<D, T>& f, math::vec<D, int> new_size) {
+    volume<D, T> new_volume(new_size);
+    image<D, T> g(new_volume);
+
+    auto voxels = f.get_volume().voxels();
+    auto stride = math::vec3<T>(voxels) / math::vec3<T>(new_size);
+
+    for (int i = 0; i < new_volume.cells(); ++i) {
+        g[i] = f(math::vec3<T>(new_volume.unroll(i)) * stride);
+    }
+
+    return g;
+}
+
+/** A helper function that gets the data for a given 2D slice of a 3D volume */
+template <typename T>
+image<2_D, T> slice_of_image(const image<3_D, T>& f, math::slice<T> s) {
+    volume<2_D, T> new_volume(f.get_volume().voxels()[0]);
+    image<2_D, T> g(new_volume);
+
+    // s.base_point;
+    for (int i = 0; i < new_volume.voxels()[0]; ++i) {
+        for (int j = 0; j < new_volume.voxels()[1]; ++j) {
+            // get voxel index of the following vector (in [-1, 1]^3 space)
+            auto point = s.base + ((T)i / new_volume.voxels()[0]) * s.b_x +
+                         ((T)j / new_volume.voxels()[1]) * s.b_y;
+            auto normalized_point = (T)0.5 * (point + math::vec3<T>(1));
+            auto voxel_coordinate = math::vec3<int>(
+                normalized_point * math::vec3<T>(f.get_volume().voxels()));
+            if (math::inside(voxel_coordinate, f.get_volume())) {
+                g({i, j}) = f(voxel_coordinate);
+            }
+        }
+    }
+
+    return g;
+}
+
+/** A helper function that downscales the image for plotting in the
+ * terminal. */
 template <typename T>
 image<2_D, T> downscale_(const image<2_D, T>& f, math::vec<2_D, int> new_size) {
     volume<2_D, T> new_volume(new_size);
@@ -73,7 +114,8 @@ void ascii_plot(const image<2_D, T>& f, T max = -1) {
 
     if (max_size > limit) {
         T scale = (T)limit / (T)max_size;
-        auto downscaled_img = downscale_(f, {f.size(0) * scale, f.size(1) * scale});
+        auto downscaled_img =
+            downscale_(f, {f.size(0) * scale, f.size(1) * scale});
         ascii_plot_output(downscaled_img,
                           {f.size(0) * scale, f.size(1) * scale}, max);
     } else {

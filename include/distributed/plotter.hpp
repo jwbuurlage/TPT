@@ -39,7 +39,7 @@ class ext_plotter {
     }
 
   private:
-    tomo::ext_plotter<D, T> plotter_;
+    tomo::util::ext_plotter<D, T> plotter_;
 };
 
 } // namespace distributed

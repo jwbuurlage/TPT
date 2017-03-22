@@ -20,7 +20,8 @@ namespace fs = std::experimental::filesystem;
 using T = float;
 constexpr tomo::dimension D = 3_D;
 
-void show(std::string tag, const tomo::image<D - 1, T>& img, tomo::ext_plotter<D - 1, T>& plotter) {
+void show(std::string tag, const tomo::image<D - 1, T>& img,
+          tomo::util::ext_plotter<D - 1, T>& plotter) {
     std::cout << tag << ":\n";
     std::this_thread::sleep_for(1s);
     plotter.plot(img);
@@ -30,10 +31,8 @@ int main(int argc, char* argv[]) {
     auto opt = tomo::util::args(argc, argv);
 
     try {
-        auto plotter =
-            tomo::ext_plotter<D, T>("tcp://localhost:5555", "Geometry spec");
-        auto proj_plotter =
-            tomo::ext_plotter<D - 1, T>("tcp://localhost:5555", "Sinogram");
+        tomo::util::ext_plotter<D, T> plotter("tcp://localhost:5555", "Geometry spec");
+        tomo::util::ext_plotter<D - 1, T> proj_plotter("tcp://localhost:5555", "Sinogram");
 
         auto problem = tomo::read_configuration<D, T>(opt.data);
 

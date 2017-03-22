@@ -73,6 +73,40 @@ struct ray {
     vec<D, T> detector; //> the position of the detector pixel
 };
 
+/** A slice is 2D section of a 3D volume, given by an orientation. */
+template <typename T>
+struct slice {
+    /** Construct the axis-aligned slice along the d-th axis. */
+    slice(int d) {
+        base = math::vec3<T>(-1.0f);
+        base[d] = 0.0f;
+
+        b_x = (d == 0) ? math::vec3<T>(0.0f, 2.0f, 0.0f)
+                       : math::vec3<T>(2.0f, 0.0f, 0.0f);
+
+        b_y = (d == 2) ? math::vec3<T>(0.0f, 2.0f, 0.0f)
+                       : math::vec3<T>(0.0f, 0.0f, 2.0f);
+    }
+
+    slice(std::array<float, 9> orientation) {
+        b_x.x = orientation[0];
+        b_x.y = orientation[1];
+        b_x.z = orientation[2];
+
+        b_y.x = orientation[3];
+        b_y.y = orientation[4];
+        b_y.z = orientation[5];
+
+        base.x = orientation[6];
+        base.y = orientation[7];
+        base.z = orientation[8];
+    }
+
+    math::vec<3_D, T> base; // base point of the sice
+    math::vec<3_D, T> b_x;  // 'basis vector' first direction
+    math::vec<3_D, T> b_y;  // 'basis vector' second direction
+};
+
 /** Rotate a 3D vector */
 template <typename T>
 auto rotate(vec<3_D, T> v, vec<3_D, T> normal, T angle) {
