@@ -11,11 +11,8 @@ int main(int argc, char* argv[]) {
     auto opt = tomo::util::args(argc, argv);
 
     try {
-        auto proj_plotter =
-            tomo::ext_plotter<D - 1, T>("tcp://localhost:5555", "Sinogram");
-
-        auto plotter =
-            tomo::ext_plotter<D, T>("tcp://localhost:5555", "Geometry spec");
+        tomo::util::ext_plotter<D - 1, T> proj_plotter("tcp://localhost:5555", "Sinogram");
+        tomo::util::ext_plotter<D, T> plotter ("tcp://localhost:5555", "Geometry spec");
 
         auto problem = tomo::read_configuration<D, T>(opt.data);
 

@@ -3,6 +3,9 @@
 #include <functional>
 #include <vector>
 
+#include "../projector.hpp"
+#include "../geometry.hpp"
+
 namespace tomo {
 namespace reconstruction {
 

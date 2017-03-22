@@ -2,6 +2,8 @@
 
 #include <functional>
 #include <iostream>
+#include <thread>
+#include <vector>
 
 #include <zmq.hpp>
 
@@ -10,14 +12,16 @@
 #include "../common.hpp"
 #include "../image.hpp"
 #include "../utilities.hpp"
+#include "reconstructor.hpp"
 
 namespace tomo {
+namespace util {
 
 template <dimension D, typename T>
 class ext_plotter;
 
-template <typename T>
-std::vector<unsigned char> pack_image(image<2_D, T> f) {
+template <dimension D, typename T>
+std::vector<unsigned char> pack_image(image<D, T> f) {
     std::vector<unsigned char> grayscale_image(f.get_volume().cells());
 
     T max = (T)0;
@@ -36,8 +40,8 @@ std::vector<unsigned char> pack_image(image<2_D, T> f) {
 }
 
 template <typename T>
-std::vector<unsigned char> pack_image(image<3_D, T>& f,
-                                      std::vector<int> volume_size) {
+std::vector<unsigned char> downsample_pack_image(image<3_D, T>& f,
+                                                 std::vector<int> volume_size) {
     assert(volume_size.size() == 3);
 
     std::vector<unsigned char> grayscale_image(volume_size[0] * volume_size[1] *
@@ -80,12 +84,11 @@ class ext_plotter_base {
     void connect(std::string address, std::string name) {
         using namespace std::chrono_literals;
 
-        // FIXME merge this and 3d
         // set socket timeout to 200 ms
         socket_.setsockopt(ZMQ_LINGER, 200);
         socket_.connect(address);
 
-        // fixme see if plotter is up
+        // FIXME see if plotter is up
         auto packet = tomovis::MakeScenePacket(name, D);
 
         packet.send(socket_);
@@ -109,7 +112,7 @@ class ext_plotter_base {
   protected:
     zmq::context_t context_;
     zmq::socket_t socket_;
-    int scene_id_;
+    int scene_id_ = -1;
 };
 
 template <typename T>
@@ -141,14 +144,22 @@ class ext_plotter<2_D, T> : public ext_plotter_base<2_D> {
 };
 
 template <typename T>
-class ext_plotter<3_D, T> : public ext_plotter_base<3_D> {
+class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
+                            public data_update_observer<T> {
   public:
-    ext_plotter() = default;
+    ext_plotter()
+        : ext_plotter_base<3_D>(), subscribe_socket_(context_, ZMQ_SUB) {
+        slices_.push_back(std::make_pair(0, math::slice<T>(0)));
+        slices_.push_back(std::make_pair(1, math::slice<T>(1)));
+        slices_.push_back(std::make_pair(2, math::slice<T>(2)));
+    }
 
     ext_plotter(std::string address, std::string name = "Anonymous")
-        : ext_plotter_base<3_D>() {
+        : ext_plotter() {
         connect(address, name);
     }
+
+    virtual ~ext_plotter() { serve_thread_.join(); }
 
     void plot(tomo::image<3_D, T> f) {
         for (int axis = 0; axis < 3; ++axis) {
@@ -174,7 +185,8 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D> {
         std::vector<int> volume_size(3, downsample_size);
 
         auto vol_packet = tomovis::VolumeDataPacket(
-            scene_id_, volume_size, std::move(pack_image(f, volume_size)));
+            scene_id_, volume_size,
+            std::move(downsample_pack_image(f, volume_size)));
 
         vol_packet.send(socket_);
 
@@ -182,14 +194,138 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D> {
         socket_.recv(&reply);
     }
 
-    // FIXME virtual void subscribe();
-    // FIXME virtual void serve();
+    void set_reconstructor(std::shared_ptr<on_demand_reconstructor<T>> recon) {
+        reconstructor_ = recon;
+        recon->add_observer(this);
+    }
+
+    void new_data_available(on_demand_reconstructor<T>&) override {
+        std::cout << "new data available\n";
+        this->send_slices_();
+        this->send_volume_();
+    }
+
+    void subscribe(std::string subscribe_host) {
+        if (scene_id_ < 0) {
+            std::cout << "subscribing before having a scene id... returning\n";
+            return;
+        }
+
+        // set socket timeout to 200 ms
+        socket_.setsockopt(ZMQ_LINGER, 200);
+
+        //  Socket to talk to server
+        subscribe_socket_.connect(subscribe_host);
+
+        int filter[] = {(std::underlying_type<tomovis::packet_desc>::type)
+                            tomovis::packet_desc::set_slice,
+                        scene_id_};
+        subscribe_socket_.setsockopt(ZMQ_SUBSCRIBE, filter,
+                                     sizeof(decltype(filter)));
+    }
+
+    void serve() {
+        serve_thread_ = std::thread([&]() {
+            while (true) {
+                zmq::message_t update;
+                subscribe_socket_.recv(&update);
+
+                auto desc = ((tomovis::packet_desc*)update.data())[0];
+                auto buffer =
+                    tomovis::memory_buffer(update.size(), (char*)update.data());
+
+
+                switch (desc) {
+                case tomovis::packet_desc::set_slice: {
+                    auto packet = std::make_unique<tomovis::SetSlicePacket>();
+                    packet->deserialize(std::move(buffer));
+
+                    int update_slice_index = -1;
+                    int i = 0;
+                    for (auto& id_and_slice : slices_) {
+                        if (id_and_slice.first == packet->slice_id) {
+                            update_slice_index = i;
+                            break;
+                        }
+                        ++i;
+                    }
+
+                    // FIXME mutex for slices_
+                    auto new_slice = math::slice<T>(packet->orientation);
+                    if (update_slice_index >= 0) {
+                        slices_[update_slice_index] =
+                            std::make_pair(packet->slice_id, new_slice);
+                    } else {
+                        slices_.push_back(
+                            std::make_pair(packet->slice_id, new_slice));
+                    }
+
+                    send_slices_();
+
+                    break;
+                }
+                default:
+                    break;
+                }
+
+                // FIXME update the slice
+            }
+        });
+    }
 
   private:
-    // FIXME slices
-    // - add slices struct
-    // - add subscribe and serve scheme
-    // - add a 'reconstructor', which can be a dummy, that can produce a slice reconstruction
+    void send_slices_() {
+        if (!reconstructor_) {
+            std::cout << "ERROR: Can not send slices without reconstructor.\n";
+            return;
+        }
+
+        for (auto id_slice : slices_) {
+            auto the_id = id_slice.first;
+            auto the_slice = id_slice.second;
+
+            auto image_data = reconstructor_->get_slice_data(the_slice);
+
+            std::vector<int> image_size(2_D);
+            for (int d = 0; d < 2_D; ++d) {
+                image_size[d] = image_data.size(d);
+            }
+
+            auto upd_packet =
+                tomovis::SliceDataPacket(scene_id_, the_id, image_size,
+                                         std::move(pack_image(image_data)));
+
+            upd_packet.send(socket_);
+
+            zmq::message_t reply;
+            socket_.recv(&reply);
+        }
+    }
+
+    void send_volume_() {
+        if (!reconstructor_) {
+            std::cout << "ERROR: Can not send volume without reconstructor.\n";
+            return;
+        }
+
+        int downsample_size = 32;
+        auto vol_image = reconstructor_->get_volume_data(downsample_size);
+        std::vector<int> volume_size(3, downsample_size);
+        auto vol_packet = tomovis::VolumeDataPacket(
+            scene_id_, volume_size, std::move(pack_image(vol_image)));
+
+        vol_packet.send(socket_);
+
+        zmq::message_t reply;
+        socket_.recv(&reply);
+    }
+
+    std::shared_ptr<on_demand_reconstructor<T>> reconstructor_;
+    std::vector<std::pair<int, math::slice<T>>> slices_;
+
+    std::thread serve_thread_;
+    zmq::socket_t subscribe_socket_;
 };
 
+} // namespace util
 } // namespace tomo

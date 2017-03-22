@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../projector.hpp"
 #include "../math.hpp"
 
 namespace tomo {
