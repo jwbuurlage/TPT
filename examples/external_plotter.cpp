@@ -7,24 +7,34 @@
 #include "tomo.hpp"
 #include "util/plotter.hpp"
 
-using T = double;
+using T = float;
 constexpr tomo::dimension D = 3_D;
 
 int main(int argc, char* argv[]) {
     auto opt = tomo::util::args(argc, argv);
 
+    int size = opt.k;
     auto v = tomo::volume<D, T>(opt.k);
-    auto recon = std::make_shared<tomo::util::dummy_reconstructor<T>>(v);
+    auto g = tomo::geometry::cone_beam<T>(v, size, {(T)1.5, (T)1.5},
+                                          {size, size}, (T)4.0, (T)4.0);
+    auto f = tomo::modified_shepp_logan_phantom<T>(v);
+    auto kernel = tomo::dim::joseph<3_D, T>(v);
+    auto ps = tomo::forward_projection<3_D, T>(f, g, kernel);
+
+    auto recon = std::make_shared<tomo::util::dummy_reconstructor<T>>(v, kernel,
+                                                                      g, f, ps);
 
     // request a plotter scene
     tomo::util::ext_plotter<D, T> plotter("tcp://localhost:5555",
                                           "Sequential serve-and-plot");
 
-	plotter.subscribe("tcp://localhost:5556");
-	plotter.serve();
+    plotter.send_projection_data(g, ps);
+
+    plotter.subscribe("tcp://localhost:5556");
+    plotter.serve();
 
     plotter.set_reconstructor(recon);
-    recon->reconstruct(opt.k);
+    recon->reconstruct();
 
     return 0;
 }

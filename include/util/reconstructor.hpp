@@ -6,11 +6,13 @@
 #include <zmq.hpp>
 
 #include "../algorithms/sirt.hpp"
-#include "../geometries/parallel.hpp"
+#include "../geometry.hpp"
+#include "../image.hpp"
 #include "../math.hpp"
 #include "../operations.hpp"
 #include "../phantoms.hpp"
-#include "../projectors/joseph.hpp"
+#include "../projections.hpp"
+#include "../projector.hpp"
 
 namespace tomo {
 namespace util {
@@ -66,21 +68,20 @@ class on_demand_reconstructor {
 template <typename T>
 class dummy_reconstructor : public on_demand_reconstructor<T> {
   public:
-    dummy_reconstructor(tomo::volume<3_D, T> volume)
-        : volume_(volume), current_image_(volume) {}
+    dummy_reconstructor(tomo::volume<3_D, T> volume, dim::base<3_D, T>& kernel,
+                        geometry::base<3_D, T>& geometry,
+                        image<3_D, T>& phantom_image,
+                        projections<3_D, T> projection_stack)
+        : volume_(volume), current_image_(volume), kernel_(kernel),
+          geometry_(geometry), phantom_image_(phantom_image),
+          projection_stack_(projection_stack) {}
 
-    void reconstruct(int size) {
-        auto v = volume_;
-        auto g = tomo::geometry::parallel<3_D, T>(v, size, size);
-        auto f = tomo::modified_shepp_logan_phantom<T>(v);
-
-        auto kernel = tomo::dim::joseph<3_D, T>(v);
-
+    void reconstruct() {
+        current_image_ = phantom_image_;
         this->notify();
 
-        auto sino = tomo::forward_projection<3_D, T>(f, g, kernel);
         auto image = tomo::reconstruction::sirt(
-            v, g, kernel, sino, 0.5, 10,
+            volume_, geometry_, kernel_, projection_stack_, 0.5, 10,
             {[&](tomo::image<3_D, T>& iteration_result) {
                 {
                     std::lock_guard<std::mutex> guard(image_mutex_);
@@ -100,7 +101,8 @@ class dummy_reconstructor : public on_demand_reconstructor<T> {
 
     tomo::image<3_D, T> get_volume_data(int resolution) override {
         std::lock_guard<std::mutex> guard(image_mutex_);
-        return downscale<3_D, T>(current_image_, math::vec3<int>{resolution});;
+        return downscale<3_D, T>(current_image_, math::vec3<int>{resolution});
+        ;
     }
 
   private:
@@ -109,6 +111,11 @@ class dummy_reconstructor : public on_demand_reconstructor<T> {
     image<3_D, T> current_image_;
     /* Note: we will have to return the images by value. */
     std::mutex image_mutex_; // protects current_image_
+
+    dim::base<3_D, T>& kernel_;
+    geometry::base<3_D, T>& geometry_;
+    image<3_D, T>& phantom_image_;
+    projections<3_D, T> projection_stack_;
 };
 
 } // namespace util

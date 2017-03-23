@@ -12,6 +12,7 @@
 #include "../common.hpp"
 #include "../image.hpp"
 #include "../utilities.hpp"
+#include "geometries/trajectory.hpp"
 #include "reconstructor.hpp"
 
 namespace tomo {
@@ -234,7 +235,6 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
                 auto buffer =
                     tomovis::memory_buffer(update.size(), (char*)update.data());
 
-
                 switch (desc) {
                 case tomovis::packet_desc::set_slice: {
                     auto packet = std::make_unique<tomovis::SetSlicePacket>();
@@ -271,6 +271,58 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
                 // FIXME update the slice
             }
         });
+    }
+
+    void send_projection_data(
+        const geometry::trajectory<3_D, T>& acquisition_geometry,
+        const projections<3_D, T>& proj_stack) {
+        // send geometry specification and wait for reply
+        auto geo_spec_packet = tomovis::GeometrySpecificationPacket(
+            scene_id_, false, acquisition_geometry.projection_count());
+
+        geo_spec_packet.send(socket_);
+
+        zmq::message_t reply;
+        socket_.recv(&reply);
+
+        // send the projections
+        for (int i = 0; i < acquisition_geometry.projection_count(); ++i) {
+            int projection_id = i;
+            std::array<float, 3> source_position =
+                math::vec_to_array<3_D, float>(
+                    acquisition_geometry.source_location(i));
+
+            std::array<float, 9> detector_orientation;
+
+            // detector_tilt
+            auto detector_tilt = acquisition_geometry.detector_tilt(i);
+            detector_orientation[0] = detector_tilt[0][0];
+            detector_orientation[1] = detector_tilt[0][1];
+            detector_orientation[2] = detector_tilt[0][2];
+            detector_orientation[3] = detector_tilt[1][0];
+            detector_orientation[4] = detector_tilt[1][1];
+            detector_orientation[5] = detector_tilt[1][2];
+
+            // detector_location
+            std::array<float, 3> detector_position =
+                math::vec_to_array<3_D, float>(
+                    acquisition_geometry.detector_location(i));
+            detector_orientation[6] = detector_position[0];
+            detector_orientation[7] = detector_position[1];
+            detector_orientation[8] = detector_position[2];
+
+            std::array<int, 2> detector_shape = math::vec_to_array<2_D, int>(
+                acquisition_geometry.detector_shape());
+            std::vector<unsigned char> data =
+                pack_image(proj_stack.get_projection(i));
+
+            auto projection_packet = tomovis::ProjectionDataPacket(
+                scene_id_, projection_id, source_position, detector_orientation,
+                detector_shape, data);
+            projection_packet.send(socket_);
+            zmq::message_t proj_reply;
+            socket_.recv(&proj_reply);
+        }
     }
 
   private:
