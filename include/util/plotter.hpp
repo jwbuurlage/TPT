@@ -12,6 +12,7 @@
 #include "../common.hpp"
 #include "../image.hpp"
 #include "../utilities.hpp"
+#include "../volume.hpp"
 #include "geometries/trajectory.hpp"
 #include "reconstructor.hpp"
 
@@ -223,6 +224,14 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
                         scene_id_};
         subscribe_socket_.setsockopt(ZMQ_SUBSCRIBE, filter,
                                      sizeof(decltype(filter)));
+
+        int remove_filter[] = {
+            (std::underlying_type<tomovis::packet_desc>::type)
+                tomovis::packet_desc::remove_slice,
+            scene_id_};
+
+        subscribe_socket_.setsockopt(ZMQ_SUBSCRIBE, remove_filter,
+                                     sizeof(decltype(remove_filter)));
     }
 
     void serve() {
@@ -264,22 +273,34 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
 
                     break;
                 }
+                case tomovis::packet_desc::remove_slice: {
+                    auto packet =
+                        std::make_unique<tomovis::RemoveSlicePacket>();
+                    packet->deserialize(std::move(buffer));
+
+                    auto to_erase =
+                        std::find_if(slices_.begin(), slices_.end(),
+                                  [&](auto x) { return x.first == packet->slice_id; });
+                    slices_.erase(to_erase);
+                    break;
+                }
                 default:
                     break;
                 }
-
-                // FIXME update the slice
             }
         });
     }
 
     void send_projection_data(
         const geometry::trajectory<3_D, T>& acquisition_geometry,
-        const projections<3_D, T>& proj_stack) {
+        const projections<3_D, T>& proj_stack, volume<3_D, T> volume) {
         // send geometry specification and wait for reply
         auto geo_spec_packet = tomovis::GeometrySpecificationPacket(
             scene_id_, false, acquisition_geometry.projection_count());
-
+        geo_spec_packet.volume_min_point =
+            math::vec_to_array<3_D, float>(volume.origin());
+        geo_spec_packet.volume_max_point = math::vec_to_array<3_D, float>(
+            volume.origin() + volume.physical_lengths());
         geo_spec_packet.send(socket_);
 
         zmq::message_t reply;

@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
 
     int size = opt.k;
     auto v = tomo::volume<D, T>(opt.k);
-    auto g = tomo::geometry::cone_beam<T>(v, size, {(T)1.5, (T)1.5},
+    auto g = tomo::geometry::cone_beam<T>(v, size, {(T)2.0, (T)2.0},
                                           {size, size}, (T)4.0, (T)4.0);
     auto f = tomo::modified_shepp_logan_phantom<T>(v);
     auto kernel = tomo::dim::joseph<3_D, T>(v);
@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
     tomo::util::ext_plotter<D, T> plotter("tcp://localhost:5555",
                                           "Sequential serve-and-plot");
 
-    plotter.send_projection_data(g, ps);
+    plotter.send_projection_data(g, ps, v);
 
     plotter.subscribe("tcp://localhost:5556");
     plotter.serve();
