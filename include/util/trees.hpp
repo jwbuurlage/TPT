@@ -214,4 +214,20 @@ void print_neutral_tree(tree_node<T>& node) {
     print_neutral_node_(&node);
 }
 
+template <typename T>
+std::unique_ptr<bulk::tree_partitioning<3_D>>
+load_partitioning(std::string filename, tomo::volume<3_D, T> v) {
+    auto reloaded = tomo::deserialize_tree<T>(filename);
+    if (!reloaded) {
+        std::cout << "Could not deserialize: " << filename << "\n";
+        return nullptr;
+    }
+
+    auto large_voxel = tomo::from_neutral_tree<T>(*reloaded, v);
+
+    return std::make_unique<bulk::tree_partitioning<3_D>>(
+        math::vec_to_array<3_D, int>(v.voxels()), large_voxel.size() + 1,
+        std::move(large_voxel));
+}
+
 } // namespace tomo

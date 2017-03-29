@@ -1,5 +1,6 @@
 #include "distributed/plotter.hpp"
 #include "tomo.hpp"
+#include "util/trees.hpp"
 
 #include <algorithm>
 #include <array>
@@ -13,6 +14,7 @@
 namespace td = tomo::distributed;
 
 using T = float;
+constexpr tomo::dimension G = 1;
 
 template <tomo::dimension D>
 void run(tomo::util::args opt) {
@@ -20,31 +22,34 @@ void run(tomo::util::args opt) {
     env.spawn(env.available_processors(), [=](auto& world, int s, int p) {
         td::ext_plotter<D, T> plotter("tcp://localhost:5555",
                                       "Distributed reconstruction", world);
-
         auto bench = tomo::benchmark("reconstruction");
         if (s != 0)
             bench.silence();
 
         bench.phase("initialize");
 
+        auto global_volume = tomo::volume<D, T>(opt.k);
+
+        // projectors and geometries are modified so that they are
+        // intersected with volumes at proper location
+        auto geom = tomo::geometry::parallel<D, T>(global_volume, opt.k, opt.k);
+
         // set up the partitioning
         std::array<int, D> size{};
         std::fill(size.begin(), size.end(), opt.k);
-        auto partitioning = bulk::block_partitioning<D, 2>(size, {2, p / 2});
-
-        auto global_volume = tomo::volume<D, T>(opt.k);
+        // auto partitioning = td::partition_trivial(geom, global_volume, p);
+        // auto partitioning = bulk::block_partitioning<D, G>(size, {p}, {2});
+        auto partitioning_ptr = tomo::load_partitioning<T>("data/partitionings/cone_test.toml", global_volume);
+        auto& partitioning = *partitioning_ptr;
 
         // construct distributed image and the associated volumes
-        auto img = td::partitioned_image<D, 2, T>(world, partitioning, global_volume);
+        auto img = td::partitioned_image<D, G, T>(world, partitioning, global_volume);
         auto local_volume = img.local_volume();
 
         // we initialize a Shepp-Logan phantom inside the image
         td::partitioned_phantom(img);
         plotter.plot(img);
 
-        // projectors and geometries are modified so that they are
-        // intersected with volumes at proper location
-        auto geom = tomo::geometry::parallel<D, T>(global_volume, opt.k, opt.k);
         //auto geom = tomo::geometry::cone_beam<T>(global_volume, opt.k, 1.5, {opt.k, opt.k});
         auto proj = tomo::dim::linear<D, T>(local_volume);
 
@@ -105,8 +110,8 @@ void run(tomo::util::args opt) {
         // TODO construct using already computed exchanges
         buffer_ps.compute_overlap(proj);
 
-        auto x = td::partitioned_image<D, 2, T>(world, partitioning, global_volume);
-        auto buffer_image = td::partitioned_image<D, 2, T>(world, partitioning, global_volume);
+        auto x = td::partitioned_image<D, G, T>(world, partitioning, global_volume);
+        auto buffer_image = td::partitioned_image<D, G, T>(world, partitioning, global_volume);
 
         bench.phase("iterating sirt");
         for (int iter = 0; iter < opt.iterations; ++iter) {
@@ -126,25 +131,15 @@ void run(tomo::util::args opt) {
                 x[j] += cs[j] * buffer_image[j];
             }
 
-            plotter.plot(x);
+            //plotter.plot(x);
         }
+        plotter.plot(x);
     });
 }
 
 int main(int argc, char* argv[]) {
     auto opt = tomo::util::args(argc, argv);
-
-    // TODO: can we make option for which projector to use (now compile time,
-    // need different options)
-    // TODO: want micro benchmarking merged here, instead of using `time ./prog`
-
-    if (opt.two) {
-        run<2_D>(opt);
-    } else if (opt.three) {
-        run<3_D>(opt);
-    } else {
-        std::cout << "No D given\n";
-    }
+    run<3_D>(opt);
 
     return 0;
 }
