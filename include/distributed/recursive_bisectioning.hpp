@@ -18,6 +18,8 @@ using optional = std::experimental::optional<T>;
 #include "../projectors/closest.hpp"
 #include "../volume.hpp"
 
+#include <bulk/bulk.hpp>
+
 namespace tomo {
 namespace distributed {
 
@@ -28,9 +30,10 @@ partition_bisection(const Geometry& geometry, tomo::volume<D, T> object_volume,
                     int processors, T max_epsilon = 0.2) {
     bulk::binary_tree<bulk::split> result;
 
-    // FIXME the new coordinate system is non-voxel based, so we need to adjust
-    // here
-    // Go to voxel-based system?
+    // We want the resulting partitioning to be portable for different detector
+    // configurations. We do this in two steps:
+    // - Do the splitting in physical coordinates here
+    // - Make a conversion function in voxel-based coordinates
 
     // assert that the number of processors is a power of two
     // TODO: support for non-2^k-way partitionings

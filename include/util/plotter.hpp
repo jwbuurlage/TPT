@@ -291,6 +291,11 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
         });
     }
 
+    // FIXME
+    // void send_partition_information() {
+
+    // }
+
     void send_projection_data(
         const geometry::trajectory<3_D, T>& acquisition_geometry,
         const projections<3_D, T>& proj_stack, volume<3_D, T> volume) {
