@@ -35,7 +35,6 @@ void print_tree(bulk::binary_tree<bulk::split>& tree) {
     print_node(tree.root.get());
 }
 
-
 template <tomo::dimension D, typename T>
 void partition_test(std::string name, const tomo::geometry::base<D, T>& g,
                     tomo::util::report& table, tomo::volume<3_D, T> v,
@@ -95,12 +94,14 @@ int main(int argc, char* argv[]) {
     table.add_column("max_overlap");
     table.add_column("improvement");
 
-//    partition_test<D, T>("parallel", tomo::geometry::parallel<3_D, T>(v, k, k),
-//                         table, v, p, e);
-//
-//    partition_test<D, T>("cone_beam", tomo::geometry::cone_beam<T>(
-//                                          v, k, {1.5, 1.5}, {k, k}, 2.0, 2.0),
-//                         table, v, p, e);
+    //    partition_test<D, T>("parallel", tomo::geometry::parallel<3_D, T>(v,
+    //    k, k),
+    //                         table, v, p, e);
+    //
+    //    partition_test<D, T>("cone_beam", tomo::geometry::cone_beam<T>(
+    //                                          v, k, {1.5, 1.5}, {k, k}, 2.0,
+    //                                          2.0),
+    //                         table, v, p, e);
 
     std::vector<std::thread> threads;
     // 'gather results'
@@ -133,9 +134,10 @@ int main(int argc, char* argv[]) {
                              v, k, {1.5, 1.5}, {k, k}, 1.0, 1.0, k / 2, k / 2),
                          std::ref(table), v, p, e);
 
-    threads.emplace_back(partition_test<D, T>, "tomo_synthesis",
-                         tomo::geometry::tomosynthesis<T>(v, k, {1.5, 1.5}, {k, k}),
-                         std::ref(table), v, p, e);
+    threads.emplace_back(
+        partition_test<D, T>, "tomo_synthesis",
+        tomo::geometry::tomosynthesis<T>(v, k, {1.5, 1.5}, {k, k}),
+        std::ref(table), v, p, e);
 
     for (auto& thread : threads)
         thread.join();
