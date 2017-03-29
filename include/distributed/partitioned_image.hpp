@@ -10,7 +10,6 @@
 namespace tomo {
 namespace distributed {
 
-
 /** Partitioned image partitions the _voxels_ */
 template <tomo::dimension D, tomo::dimension G, typename T>
 class partitioned_image {
@@ -47,7 +46,9 @@ class partitioned_image {
         return math::array_to_vec<D>(part_.local_size(world_.processor_id()));
     }
 
-    auto global_size() const { return math::array_to_vec<D>(part_.global_size()); }
+    auto global_size() const {
+        return math::array_to_vec<D>(part_.global_size());
+    }
     auto local_volume() const { return local_volume_; }
 
     // get the element with _local index_ idx
@@ -77,12 +78,13 @@ class partitioned_image {
         auto xs =
             bulk::coarray<T>(world_, world_.processor_id() == 0 ? cells : 0);
 
-        int idx = 0;
+
+        int local_idx = 0;
         for (auto& x : data_) {
             // origin
             // block size
             auto global_pos = bulk::unflatten<D>(
-                part_.local_size(world_.processor_id()), idx);
+                part_.local_size(world_.processor_id()), local_idx);
 
             // flatten wrt global size
             for (int d = 0; d < D; ++d) {
@@ -93,12 +95,12 @@ class partitioned_image {
 
             xs(0)[global_idx] = x;
 
-            ++idx;
+            ++local_idx;
         }
 
         world_.sync();
 
-        idx = 0;
+        int idx = 0;
         for (auto x : xs) {
             result[idx++] = x;
         }

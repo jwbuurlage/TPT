@@ -161,7 +161,11 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
         connect(address, name);
     }
 
-    virtual ~ext_plotter() { serve_thread_.join(); }
+    virtual ~ext_plotter() {
+        if (serve_thread_.joinable()) {
+            serve_thread_.join();
+        }
+    }
 
     void plot(tomo::image<3_D, T> f) {
         for (int axis = 0; axis < 3; ++axis) {
