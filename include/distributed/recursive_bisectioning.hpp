@@ -23,11 +23,11 @@ using optional = std::experimental::optional<T>;
 namespace tomo {
 namespace distributed {
 
-template <dimension D, typename Geometry,
-          typename T = typename Geometry::value_type>
+template <dimension D, typename T>
 bulk::binary_tree<bulk::split>
-partition_bisection(const Geometry& geometry, tomo::volume<D, T> object_volume,
-                    int processors, T max_epsilon = 0.2) {
+partition_bisection(const tomo::geometry::base<D, T>& geometry,
+                    tomo::volume<D, T> object_volume, int processors,
+                    T max_epsilon = 0.2) {
     bulk::binary_tree<bulk::split> result;
 
     // We want the resulting partitioning to be portable for different detector
@@ -131,12 +131,12 @@ partition_bisection(const Geometry& geometry, tomo::volume<D, T> object_volume,
             // FIXME output debug info
             // using box_t = std::array<math::vec2<int>, D>;
             std::cout << "Can't find split for bounds: "
-                << "[" << bounds[0][0] << ", " << bounds[0][1] <<  "], "
-                << "[" << bounds[1][0] << ", " << bounds[1][1] <<  "], "
-                << "[" << bounds[2][0] << ", " << bounds[2][1] <<  "] "
-                << "crossings.size(): " << crossings.size() << ", "
-                << "lines.size(): " << lines.size() << ", "
-                << "\n";
+                      << "[" << bounds[0][0] << ", " << bounds[0][1] << "], "
+                      << "[" << bounds[1][0] << ", " << bounds[1][1] << "], "
+                      << "[" << bounds[2][0] << ", " << bounds[2][1] << "] "
+                      << "crossings.size(): " << crossings.size() << ", "
+                      << "lines.size(): " << lines.size() << ", "
+                      << "\n";
             assert(best_d >= 0);
         }
 

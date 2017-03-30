@@ -33,13 +33,13 @@ int main() {
     // [x] (write to file)
     tomo::serialize_tree(neutral, "data/partitionings/cone_test.toml");
 
-    // [ ] (load from file)
+    // [x] (load from file)
     auto reloaded =
         tomo::deserialize_tree<T>("data/partitionings/cone_test.toml");
     std::cout << "RELOADED: \n";
     tomo::print_neutral_tree(*reloaded);
 
-    // [ ] convert to non-neutral with larger size
+    // [x] convert to non-neutral with larger size
     int large_size = 128;
     auto large_v = tomo::volume<D, T>(large_size);
     auto large_g = tomo::geometry::cone_beam<T>(large_v, large_size, {(T)2.0, (T)2.0},
