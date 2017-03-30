@@ -119,10 +119,10 @@ int main(int argc, char* argv[]) {
         tomo::geometry::dynamic_cone_beam<T>(v, k, {1.5, 1.5}, {k, k}),
         std::ref(table), v, p, e);
 
-    threads.emplace_back(
-        partition_test<D, T>, "helical_cone",
-        tomo::geometry::helical_cone_beam<T>(v, k, {1.5, 1.5}, {k, k}, (T)2.0),
-        std::ref(table), v, p, e);
+    threads.emplace_back(partition_test<D, T>, "helical_cone",
+                         tomo::geometry::helical_cone_beam<T>(
+                             v, k, {1.5, 1.5}, {k, k}, (T)2.0, (T)2.0, (T)2.0),
+                         std::ref(table), v, p, e);
 
     threads.emplace_back(
         partition_test<D, T>, "cone",

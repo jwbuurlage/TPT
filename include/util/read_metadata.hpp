@@ -12,6 +12,7 @@ namespace fs = std::experimental::filesystem;
 
 #include "../common.hpp"
 #include "../geometries/cone.hpp"
+#include "../geometries/helical_cone_beam.hpp"
 #include "../geometries/parallel.hpp"
 #include "../geometry.hpp"
 #include "../projections.hpp"
@@ -122,6 +123,31 @@ read_circular_cone_beam_geometry(std::shared_ptr<cpptoml::table> parameters,
     return std::make_unique<tomo::geometry::cone_beam<T>>(
         v, projection_count, detector_size, detector_shape, source_position,
         detector_position, std::array<tomo::math::vec<3_D, T>, 2>{
+                               detector_tilt_vec[0], detector_tilt_vec[1]});
+}
+
+template <typename T>
+std::unique_ptr<tomo::geometry::cone_beam<T>>
+read_helical_cone_beam_geometry(std::shared_ptr<cpptoml::table> parameters,
+                                tomo::volume<3_D, T> v) {
+    auto projection_count =
+        (int)(*parameters->get_as<int64_t>("projection-count"));
+
+    auto detector_size = read_vec<2_D, T>(parameters, "detector-size");
+    auto detector_shape = read_vec<2_D, int>(parameters, "detector-shape");
+    auto source_position = read_vec<3_D, T>(parameters, "source-position");
+    auto detector_position = read_vec<3_D, T>(parameters, "detector-position");
+    auto rotations = (T)(*parameters->get_as<double>("rotations"));
+
+    auto detector_tilt_vec = read_vecs<3_D, T>(parameters, "detector-tilt");
+    if (detector_tilt_vec.size() != 2) {
+        throw invalid_geometry_config_error(
+            "detector tilt does not consist of two vectors");
+    }
+
+    return std::make_unique<tomo::geometry::helical_cone_beam<T>>(
+        v, projection_count, detector_size, detector_shape, source_position,
+        detector_position, rotations, std::array<tomo::math::vec<3_D, T>, 2>{
                                detector_tilt_vec[0], detector_tilt_vec[1]});
 }
 
