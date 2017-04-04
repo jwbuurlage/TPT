@@ -207,7 +207,6 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
     }
 
     void new_data_available(on_demand_reconstructor<T>&) override {
-        std::cout << "new data available\n";
         this->send_slices_();
         this->send_volume_();
     }
