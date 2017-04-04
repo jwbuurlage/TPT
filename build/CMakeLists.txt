@@ -55,7 +55,6 @@ set(
     "read_tiff.cpp"
     "dose_deposition.cpp"
     "geometry_benchmark.cpp"
-    "partition.cpp"
     "partitioning_tests.cpp"
 )
 
@@ -92,6 +91,9 @@ if(WITH_ZMQ)
 
     add_executable("read_legoscan_test" "../examples/read_legoscan_test.cpp")
     target_link_libraries("read_legoscan_test" ${LIB_NAMES})
+
+    add_executable("partition" "../examples/partition.cpp")
+    target_link_libraries("partition" ${LIB_NAMES})
 endif(WITH_ZMQ)
 
 #find_package(CUDA 7.5 QUIET)

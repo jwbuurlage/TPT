@@ -5,6 +5,7 @@
 #include <thread>
 #include <vector>
 
+#include <bulk/bulk.hpp>
 #include <zmq.hpp>
 
 #include "tomovis.hpp"
@@ -295,10 +296,40 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
         });
     }
 
-    // FIXME
-    // void send_partition_information() {
+    void
+        send_partition_information(bulk::rectangular_partitioning<3_D, 1>& part,
+                                   int processors, volume<3_D, T> volume) {
+        auto voxels = volume.voxels();
+        auto lengths = volume.physical_lengths();
+        auto volume_origin = volume.origin();
+        for (int s = 0; s < processors; ++s) {
+            auto origin = part.origin(s);
+            auto local_size = part.local_size(s);
 
-    // }
+            auto min_pt = math::vec3<float>{(float)origin[0] / voxels[0],
+                                            (float)origin[1] / voxels[1],
+                                            (float)origin[2] / voxels[2]} *
+                              lengths +
+                          volume_origin;
+
+            auto max_pt =
+                math::vec3<float>{
+                    (float)(origin[0] + local_size[0]) / voxels[0],
+                    (float)(origin[1] + local_size[1]) / voxels[1],
+                    (float)(origin[2] + local_size[2]) / voxels[2]} *
+                    lengths +
+                volume_origin;
+
+            auto set_part_packet = tomovis::SetPartPacket(
+                scene_id_, s, math::vec_to_array<3_D, float>(min_pt),
+                math::vec_to_array<3_D, float>(max_pt));
+
+            set_part_packet.send(socket_);
+
+            zmq::message_t reply;
+            socket_.recv(&reply);
+        }
+    }
 
     void send_projection_data(
         const geometry::trajectory<3_D, T>& acquisition_geometry,
