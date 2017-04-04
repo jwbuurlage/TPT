@@ -76,7 +76,7 @@ image<2_D, T> slice_of_image(const image<3_D, T>& f, math::slice<T> s) {
             auto normalized_point = (T)0.5 * (point + math::vec3<T>(1));
             auto voxel_coordinate = math::vec3<int>(
                 normalized_point * math::vec3<T>(f.get_volume().voxels()));
-            if (math::inside(voxel_coordinate, f.get_volume())) {
+            if (math::valid_index(voxel_coordinate, f.get_volume())) {
                 g({i, j}) = f(voxel_coordinate);
             }
         }

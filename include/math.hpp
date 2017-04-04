@@ -187,14 +187,28 @@ optional<vec2<T>> intersection(vec2<T> p, vec2<T> p2, vec2<T> q, vec2<T> q2) {
     return optional<vec2<T>>();
 }
 
+/** Checks whether a *voxel-coordinate* is a valid index (is 'inside') the
+ * volume. */
+template <dimension D, typename T>
+bool valid_index(vec<D, int> a, volume<D, T> vol) {
+    for (int dim = 0; dim < D; ++dim) {
+        if (a[dim] < 0 || a[dim] >= (T)vol.voxels()[dim]) {
+            return false;
+        }
+    }
+    return true;
+}
+
 /** Checks whether a *voxel-coordinate* vector lies in the box defined by a
  * volume. This is
  * open by one side, the upper side in each axis. */
 template <dimension D, typename T>
 bool inside(vec<D, T> a, volume<D, T> vol) {
     for (int dim = 0; dim < D; ++dim) {
-        if (a[dim] < -epsilon<T> || a[dim] > (T)vol.voxels()[dim] + epsilon<T>)
+        if (a[dim] < -epsilon<T> ||
+            a[dim] > (T)vol.voxels()[dim] + epsilon<T>) {
             return false;
+        }
     }
     return true;
 }
