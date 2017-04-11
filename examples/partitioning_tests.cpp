@@ -5,7 +5,6 @@
 #include <glm/gtx/string_cast.hpp>
 
 #include "tomo.hpp"
-#include "util/plotter.hpp"
 #include "util/trees.hpp"
 
 using T = float;

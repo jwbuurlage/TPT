@@ -19,42 +19,46 @@ namespace geometry {
 template <typename T>
 class laminography : public trajectory<3_D, T> {
   public:
-    /** Construct the geometry with a given number of lines. */
     laminography(volume<3_D, T> volume, int projection_count,
-               math::vec<2_D, T> detector_size,
-               math::vec<2_D, int> detector_shape,
-               T relative_source_distance = (T)1.0,
-               T relative_detector_distance = (T)1.0, T source_radius = (T)1.0,
-               T detector_radius = (T)1.0)
+                 math::vec<2_D, T> detector_size,
+                 math::vec<2_D, int> detector_shape,
+                 math::vec<3_D, T> source_position,
+                 math::vec<3_D, T> detector_position, T source_radius,
+                 T detector_radius)
         : trajectory<3_D, T>(volume, projection_count, detector_size,
                              detector_shape),
-          relative_source_distance_(relative_source_distance),
-          relative_detector_distance_(relative_detector_distance),
-          source_radius_(source_radius), detector_radius_(detector_radius) {}
+          source_position_(source_position),
+          detector_position_(detector_position), source_radius_(source_radius),
+          detector_radius_(detector_radius) {}
+
+    laminography(volume<3_D, T> volume, int projection_count,
+                 math::vec<2_D, T> detector_size,
+                 math::vec<2_D, int> detector_shape,
+                 T source_to_center = (T)1.0, T detector_to_center = (T)1.0,
+                 T source_radius = (T)1.0, T detector_radius = (T)1.0)
+        : laminography(volume, projection_count, detector_size, detector_shape,
+                       math::volume_center(volume) -
+                           source_to_center * math::standard_basis<3_D, T>(2),
+                       math::volume_center(volume) +
+                           detector_to_center * math::standard_basis<3_D, T>(2),
+                       source_radius, detector_radius) {}
 
     math::vec<3_D, T> source_location(int projection) const override final {
-        auto pivot = image_center_() -
-                     relative_source_distance_ * this->volume_[1] *
-                         math::standard_basis<3_D, T>(1);
-
-        return pivot +
+        return source_position_ +
                apply_rotation_(source_radius_ * math::standard_basis<3_D, T>(0),
                                projection);
     }
 
     math::vec<3_D, T> detector_location(int projection) const override final {
-        auto pivot = image_center_() +
-                     relative_detector_distance_ * this->volume_[1] *
-                         math::standard_basis<3_D, T>(1);
-
-        return pivot + apply_rotation_(-detector_radius_ *
-                                           math::standard_basis<3_D, T>(0),
-                                       projection);
+        return detector_position_ +
+               apply_rotation_(-detector_radius_ *
+                                   math::standard_basis<3_D, T>(0),
+                               projection);
     }
 
     std::array<math::vec<3_D, T>, 2>
     detector_tilt(int projection) const override final {
-        auto a = math::standard_basis<3_D, T>(1);
+        auto a = math::standard_basis<3_D, T>(2);
         auto b = math::normalize(detector_location(projection) -
                                  source_location(projection));
         auto n = math::cross<T>(a, b);
@@ -66,14 +70,13 @@ class laminography : public trajectory<3_D, T> {
                 math::rotate(math::standard_basis<3_D, T>(2), n_hat, theta)};
     }
 
-    T& relative_source_distance() { return relative_source_distance_; }
-    T& relative_detector_distance() { return relative_detector_distance_; }
     T& source_radius() { return source_radius_; }
     T& detector_radius() { return detector_radius_; }
 
   private:
-    T relative_source_distance_;
-    T relative_detector_distance_;
+    math::vec<3_D, T> source_position_;
+    math::vec<3_D, T> detector_position_;
+
     T source_radius_;
     T detector_radius_;
 
@@ -85,7 +88,7 @@ class laminography : public trajectory<3_D, T> {
 
     inline math::vec<3_D, T> apply_rotation_(math::vec<3_D, T> location,
                                              int projection) const {
-        static auto axis = math::standard_basis<3_D, T>(1);
+        static auto axis = math::standard_basis<3_D, T>(2);
 
         T angle_projection = (T)2.0 * math::pi<T> / this->projection_count_;
 
