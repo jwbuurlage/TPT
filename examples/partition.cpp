@@ -51,8 +51,7 @@ int main(int argc, char* argv[]) {
         auto proj_stack =
             tomo::projections<3_D, T>(*problem.acquisition_geometry);
         plotter.send_projection_data(
-            (tomo::geometry::trajectory<3_D, T>&)(*problem
-                                                       .acquisition_geometry),
+            (tomo::geometry::trajectory<3_D, T>&)(*(problem.acquisition_geometry)),
             proj_stack, problem.object_volume);
     }
 
