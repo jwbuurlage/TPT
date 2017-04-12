@@ -253,10 +253,8 @@ read_geometry(std::string kind, std::shared_ptr<cpptoml::table> parameters,
 }
 
 template <tomo::dimension D, typename T>
-tomo::volume<D, T> read_volume(std::shared_ptr<cpptoml::table> parameters,
-                               tomo::math::vec<D - 1, int> detector_size) {
-    auto voxels =
-        tomo::math::extend<D, int>(detector_size, D - 1, detector_size[0]);
+tomo::volume<D, T> read_volume(std::shared_ptr<cpptoml::table> parameters) {
+    auto voxels = read_vec<3_D, int>(parameters, "voxels");
 
     // cpptoml only supports double precision and 64 bit integer parsing,
     // we cast down later
@@ -320,13 +318,7 @@ reconstruction_problem<D, T> read_configuration(std::string file) {
                                             "dimension");
     }
 
-    // First read the detector count from the parameter list
-    // just read it separately
-    auto detector_size_array =
-        config->get_qualified_array_of<int64_t>("parameters.detector-shape");
-    auto detector_size = stdvec_to_tomovec<D - 1, int>(*detector_size_array);
-
-    auto v = read_volume<D, T>(config->get_table("volume"), detector_size);
+    auto v = read_volume<D, T>(config->get_table("volume"));
 
     auto kind = config->get_as<std::string>("type");
     auto g = read_geometry<D, T>(*kind, config->get_table("parameters"), v);
