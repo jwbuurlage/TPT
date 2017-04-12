@@ -36,11 +36,11 @@ void partition(std::string meta_file, std::string output_file, int processors,
     // its easier to load in large geometry, and downscale for partitioning,
     // then run on large
 
-    tree = tomo::from_neutral_tree<T>(neutral, volume);
+    auto large_tree = tomo::from_neutral_tree<T>(neutral, volume);
 
     auto part_bisected = bulk::tree_partitioning<D>(
         tomo::math::vec_to_array<D, int>(volume.voxels()),
-        processors, std::move(tree));
+        processors, std::move(large_tree));
     auto part_trivial = tomo::distributed::partition_trivial(
         *problem.acquisition_geometry, volume, processors);
 
