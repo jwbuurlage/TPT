@@ -14,6 +14,7 @@ namespace fs = std::experimental::filesystem;
 #include "../geometries/cone.hpp"
 #include "../geometries/helical_cone_beam.hpp"
 #include "../geometries/laminography.hpp"
+#include "../geometries/tomosynthesis.hpp"
 #include "../geometries/parallel.hpp"
 #include "../geometry.hpp"
 #include "../projections.hpp"
@@ -180,10 +181,22 @@ read_laminography_geometry(std::shared_ptr<cpptoml::table> parameters,
 }
 
 template <typename T>
-std::unique_ptr<tomo::geometry::cone_beam<T>>
+std::unique_ptr<tomo::geometry::tomosynthesis<T>>
 read_tomosynthesis_geometry(std::shared_ptr<cpptoml::table> parameters,
                             tomo::volume<3_D, T> v) {
 
+    auto projection_count =
+        (int)(*parameters->get_as<int64_t>("projection-count"));
+
+    auto detector_size = read_vec<2_D, T>(parameters, "detector-size");
+    auto detector_shape = read_vec<2_D, int>(parameters, "detector-shape");
+    auto source_position = read_vec<3_D, T>(parameters, "source-position");
+    auto detector_position = read_vec<3_D, T>(parameters, "detector-position");
+    auto source_arc = (T)(*parameters->get_as<double>("source-arc"));
+
+    return std::make_unique<tomo::geometry::tomosynthesis<T>>(
+        v, projection_count, detector_size, detector_shape, source_position,
+        detector_position, source_arc);
     return nullptr;
 }
 
@@ -219,17 +232,19 @@ read_geometry(std::string kind, std::shared_ptr<cpptoml::table> parameters,
         std::cout << "Loading parallel geometry...\n";
         return read_parallel_geometry<D, T>(parameters, v);
     } else if (D != 3_D) {
-        throw invalid_geometry_config_error(
-            "Only parallel available in 2D");
+        throw invalid_geometry_config_error("Only parallel available in 2D");
     } else if (kind == "circular-cone-beam") {
         std::cout << "Loading circular cone beam geometry...\n";
         return read_circular_cone_beam_geometry<T>(parameters, v);
     } else if (kind == "helical-cone-beam") {
         std::cout << "Loading helical cone beam geometry...\n";
         return read_helical_cone_beam_geometry<T>(parameters, v);
-    }  else if (kind == "laminography") {
+    } else if (kind == "laminography") {
         std::cout << "Loading laminography geometry...\n";
         return read_laminography_geometry<T>(parameters, v);
+    } else if (kind == "tomosynthesis") {
+        std::cout << "Loading tomosynthesis geometry...\n";
+        return read_tomosynthesis_geometry<T>(parameters, v);
     } else {
         throw invalid_geometry_config_error(
             "Invalid or unsupported 'type' supplied for geometry");
