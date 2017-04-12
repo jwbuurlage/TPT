@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
 
     if (tomo::passed(opts, "--preview")) {
         tomo::util::ext_plotter<D, T> plotter(
-            "tcp://localhost:5555", "Partitioning preview: " + output_file);
+            "tcp://localhost:5555", "PP: " + output_file);
         auto part_bisected = bulk::tree_partitioning<D>(
             tomo::math::vec_to_array<D, int>(problem.object_volume.voxels()),
             processors, std::move(tree));

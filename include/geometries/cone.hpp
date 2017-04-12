@@ -64,8 +64,10 @@ class cone_beam : public trajectory<3_D, T> {
 
     std::array<math::vec<3_D, T>, 2>
     detector_tilt(int projection) const override final {
-        return {apply_rotation_(detector_tilt_[0], projection),
-                apply_rotation_(detector_tilt_[1], projection)};
+        return {apply_rotation_(detector_tilt_[0], projection) *
+                    this->detector_size_[0] * (T)0.5,
+                apply_rotation_(detector_tilt_[1], projection) *
+                    this->detector_size_[1] * (T)0.5};
     }
 
     void reduce_projections(int scaled_projection_count) override {
