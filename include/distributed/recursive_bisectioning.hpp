@@ -137,7 +137,8 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
                       << "crossings.size(): " << crossings.size() << ", "
                       << "lines.size(): " << lines.size() << ", "
                       << "\n";
-            assert(best_d >= 0);
+            best_d = 0;
+            best_split = (T)0.5 * (bounds[0][0] + bounds[0][1]);
         }
 
         auto best_compare = [best_d](crossing_event& lhs, crossing_event& rhs) {

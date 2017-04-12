@@ -8,38 +8,53 @@ namespace tomo {
 struct options {
     int argc;
     char** argv;
-};
 
-bool passed(options opts, std::string flag) {
-    return std::find(opts.argv, opts.argv + opts.argc, flag) !=
-           (opts.argv + opts.argc);
-}
-
-std::string arg(options opts, std::string flag) {
-    auto pos = std::find(opts.argv, opts.argv + opts.argc, flag);
-    if (pos == opts.argv + opts.argc || pos + 1 == opts.argv + opts.argc) {
-        return "";
+    bool passed(std::string flag) {
+        return std::find(argv, argv + argc, flag) !=
+               (argv + argc);
     }
-    pos++;
 
-    return std::string(*pos);
-}
-
-template <typename T>
-T arg_as(options opts, std::string flag) {
-    auto value = std::stringstream(arg(opts, flag));
-    T x = {};
-    value >> x;
-    return x;
-}
-
-bool required_arguments(options opts, std::vector<std::string> args) {
-    for (auto& arg : args) {
-        if (!passed(opts, arg)) {
-            return false;
+    std::string arg(std::string flag) {
+        auto pos = std::find(argv, argv + argc, flag);
+        if (pos == argv + argc || pos + 1 == argv + argc) {
+            return "";
         }
+        pos++;
+
+        return std::string(*pos);
     }
-    return true;
-}
+
+    std::vector<std::string> args(std::string flag) {
+        auto pos = std::find(argv, argv + argc, flag);
+        std::vector<std::string> result;
+        if (pos == argv + argc || pos + 1 == argv + argc) {
+            return result;
+        }
+        pos++;
+        while(pos != argv + argc && *pos[0] != '-') {
+            result.push_back(std::string(*pos));
+            pos++;
+        }
+
+        return result;
+    }
+
+    template <typename T>
+    T arg_as(std::string flag) {
+        auto value = std::stringstream(arg(flag));
+        T x = {};
+        value >> x;
+        return x;
+    }
+
+    bool required_arguments(std::vector<std::string> args) {
+        for (auto& arg : args) {
+            if (!passed(arg)) {
+                return false;
+            }
+        }
+        return true;
+    }
+};
 
 } // namespace tomo
