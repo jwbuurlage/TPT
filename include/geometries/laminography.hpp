@@ -37,9 +37,9 @@ class laminography : public trajectory<3_D, T> {
                  T source_to_center = (T)1.0, T detector_to_center = (T)1.0,
                  T source_radius = (T)1.0, T detector_radius = (T)1.0)
         : laminography(volume, projection_count, detector_size, detector_shape,
-                       math::volume_center(volume) -
-                           source_to_center * math::standard_basis<3_D, T>(2),
                        math::volume_center(volume) +
+                           source_to_center * math::standard_basis<3_D, T>(2),
+                       math::volume_center(volume) -
                            detector_to_center * math::standard_basis<3_D, T>(2),
                        source_radius, detector_radius) {}
 
