@@ -128,7 +128,7 @@ read_circular_cone_beam_geometry(std::shared_ptr<cpptoml::table> parameters,
 }
 
 template <typename T>
-std::unique_ptr<tomo::geometry::cone_beam<T>>
+std::unique_ptr<tomo::geometry::helical_cone_beam<T>>
 read_helical_cone_beam_geometry(std::shared_ptr<cpptoml::table> parameters,
                                 tomo::volume<3_D, T> v) {
     auto projection_count =
@@ -225,6 +225,13 @@ read_geometry(std::string kind, std::shared_ptr<cpptoml::table> parameters,
         }
         std::cout << "Loading circular cone beam geometry...\n";
         return read_circular_cone_beam_geometry<T>(parameters, v);
+    } else if (kind == "helical-cone-beam") {
+        if (D != 3_D) {
+            throw invalid_geometry_config_error(
+                "Circular cone beam geometry is only valid in 3D");
+        }
+        std::cout << "Loading helical cone beam geometry...\n";
+        return read_helical_cone_beam_geometry<T>(parameters, v);
     } else {
         throw invalid_geometry_config_error(
             "Invalid or unsupported 'type' supplied for geometry");
