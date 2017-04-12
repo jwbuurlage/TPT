@@ -264,4 +264,15 @@ auto random_list_geometry(int k, volume<D, T> v) {
     return g;
 }
 
+/** Compute the 'zip' of two vectors. */
+template <typename T, typename U>
+std::vector<std::pair<T, U>> zip(std::vector<T> xs, std::vector<U> ys) {
+    std::vector<std::pair<T, U>> result;
+    for (size_t i = 0; i < (xs.size() < ys.size() ? xs.size() : ys.size());
+         ++i) {
+        result.push_back(make_pair(xs[i], ys[i]));
+    }
+    return result;
+}
+
 } // namespace tomo
