@@ -78,7 +78,7 @@ endforeach(source_file)
 if(WITH_ZMQ)
     link_directories("../ext/libzmq/build/lib")
     include_directories(
-        "../ext/slicevis/include"
+        "../ext/tomopackets/include"
         "../ext/cppzmq"
         "../ext/libzmq/include"
     )
