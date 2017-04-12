@@ -11,9 +11,6 @@
 [submodule "catch"]
 	path = ext/catch
 	url = https://github.com/philsquared/Catch
-[submodule "ext/slicevis"]
-	path = ext/slicevis
-	url = https://github.com/jwbuurlage/slicevis.git
 [submodule "ext/libzmq"]
 	path = ext/libzmq
 	url = https://github.com/zeromq/libzmq.git
@@ -23,3 +20,6 @@
 [submodule "ext/cpptoml"]
 	path = ext/cpptoml
 	url = https://github.com/skystrife/cpptoml.git
+[submodule "ext/tomopackets"]
+	path = ext/tomopackets
+	url = https://github.com/jwbuurlage/tomopackets

@@ -8,7 +8,7 @@
 #include <bulk/bulk.hpp>
 #include <zmq.hpp>
 
-#include "tomovis.hpp"
+#include "tomop/tomop.hpp"
 
 #include "../common.hpp"
 #include "../image.hpp"
@@ -92,7 +92,7 @@ class ext_plotter_base {
         socket_.connect(address);
 
         // FIXME see if plotter is up
-        auto packet = tomovis::MakeScenePacket(name, D);
+        auto packet = tomop::MakeScenePacket(name, D);
 
         packet.send(socket_);
 
@@ -134,7 +134,7 @@ class ext_plotter<2_D, T> : public ext_plotter_base<2_D> {
             image_size[d] = f.size(d);
         }
 
-        auto upd_packet = tomovis::SliceDataPacket(scene_id_, 0, image_size,
+        auto upd_packet = tomop::SliceDataPacket(scene_id_, 0, image_size,
                                                    std::move(pack_image(f)));
 
         upd_packet.send(socket_);
@@ -178,7 +178,7 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
                 image_size[d] = slice.size(d);
             }
 
-            auto upd_packet = tomovis::SliceDataPacket(
+            auto upd_packet = tomop::SliceDataPacket(
                 scene_id_, axis, image_size, std::move(pack_image(slice)));
 
             upd_packet.send(socket_);
@@ -191,7 +191,7 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
         int downsample_size = 32;
         std::vector<int> volume_size(3, downsample_size);
 
-        auto vol_packet = tomovis::VolumeDataPacket(
+        auto vol_packet = tomop::VolumeDataPacket(
             scene_id_, volume_size,
             std::move(downsample_pack_image(f, volume_size)));
 
@@ -223,15 +223,15 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
         //  Socket to talk to server
         subscribe_socket_.connect(subscribe_host);
 
-        int filter[] = {(std::underlying_type<tomovis::packet_desc>::type)
-                            tomovis::packet_desc::set_slice,
+        int filter[] = {(std::underlying_type<tomop::packet_desc>::type)
+                            tomop::packet_desc::set_slice,
                         scene_id_};
         subscribe_socket_.setsockopt(ZMQ_SUBSCRIBE, filter,
                                      sizeof(decltype(filter)));
 
         int remove_filter[] = {
-            (std::underlying_type<tomovis::packet_desc>::type)
-                tomovis::packet_desc::remove_slice,
+            (std::underlying_type<tomop::packet_desc>::type)
+                tomop::packet_desc::remove_slice,
             scene_id_};
 
         subscribe_socket_.setsockopt(ZMQ_SUBSCRIBE, remove_filter,
@@ -244,13 +244,13 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
                 zmq::message_t update;
                 subscribe_socket_.recv(&update);
 
-                auto desc = ((tomovis::packet_desc*)update.data())[0];
+                auto desc = ((tomop::packet_desc*)update.data())[0];
                 auto buffer =
-                    tomovis::memory_buffer(update.size(), (char*)update.data());
+                    tomop::memory_buffer(update.size(), (char*)update.data());
 
                 switch (desc) {
-                case tomovis::packet_desc::set_slice: {
-                    auto packet = std::make_unique<tomovis::SetSlicePacket>();
+                case tomop::packet_desc::set_slice: {
+                    auto packet = std::make_unique<tomop::SetSlicePacket>();
                     packet->deserialize(std::move(buffer));
 
                     int update_slice_index = -1;
@@ -277,9 +277,9 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
 
                     break;
                 }
-                case tomovis::packet_desc::remove_slice: {
+                case tomop::packet_desc::remove_slice: {
                     auto packet =
-                        std::make_unique<tomovis::RemoveSlicePacket>();
+                        std::make_unique<tomop::RemoveSlicePacket>();
                     packet->deserialize(std::move(buffer));
 
                     auto to_erase = std::find_if(
@@ -319,7 +319,7 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
                     lengths +
                 volume_origin;
 
-            auto set_part_packet = tomovis::SetPartPacket(
+            auto set_part_packet = tomop::SetPartPacket(
                 scene_id_, s, math::vec_to_array<3_D, float>(min_pt),
                 math::vec_to_array<3_D, float>(max_pt));
 
@@ -334,7 +334,7 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
         const geometry::trajectory<3_D, T>& acquisition_geometry,
         const projections<3_D, T>& proj_stack, volume<3_D, T> volume) {
         // send geometry specification and wait for reply
-        auto geo_spec_packet = tomovis::GeometrySpecificationPacket(
+        auto geo_spec_packet = tomop::GeometrySpecificationPacket(
             scene_id_, false, acquisition_geometry.projection_count());
         geo_spec_packet.volume_min_point =
             math::vec_to_array<3_D, float>(volume.origin());
@@ -382,7 +382,7 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
             std::vector<unsigned char> data =
                 pack_image(proj_stack.get_projection(i));
 
-            auto projection_packet = tomovis::ProjectionDataPacket(
+            auto projection_packet = tomop::ProjectionDataPacket(
                 scene_id_, projection_id, source_position, detector_orientation,
                 detector_shape, data);
             projection_packet.send(socket_);
@@ -410,7 +410,7 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
             }
 
             auto upd_packet =
-                tomovis::SliceDataPacket(scene_id_, the_id, image_size,
+                tomop::SliceDataPacket(scene_id_, the_id, image_size,
                                          std::move(pack_image(image_data)));
 
             upd_packet.send(socket_);
@@ -429,7 +429,7 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
         int downsample_size = 32;
         auto vol_image = reconstructor_->get_volume_data(downsample_size);
         std::vector<int> volume_size(3, downsample_size);
-        auto vol_packet = tomovis::VolumeDataPacket(
+        auto vol_packet = tomop::VolumeDataPacket(
             scene_id_, volume_size, std::move(pack_image(vol_image)));
 
         vol_packet.send(socket_);
