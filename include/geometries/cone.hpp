@@ -70,16 +70,15 @@ class cone_beam : public trajectory<3_D, T> {
                     this->detector_size_[1] * (T)0.5};
     }
 
-    void reduce_projections(int scaled_projection_count) override {
-        auto step = (T)(this->projection_count_) / scaled_projection_count;
-        for (int i = 0; i < scaled_projection_count; ++i) {
-            int j = (int)(i * step);
-            angles_[i] = angles_[j];
+    void set_projections(int projection_count) override {
+        angles_.clear();
+
+        T delta = ((T)2.0 * math::pi<T>) / projection_count;
+        for (int i = 0; i < projection_count; ++i) {
+            angles_.push_back(delta * i);
         }
-        angles_.resize(scaled_projection_count);
-        this->projection_count_ = scaled_projection_count;
-        this->line_count_ =
-            this->projection_count_ * this->detector_pixel_count_;
+
+        trajectory<3_D, T>::set_projections(projection_count);
     }
 
   private:

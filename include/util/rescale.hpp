@@ -16,7 +16,7 @@ rescale(reconstruction_problem<D, T>& problem,
     auto g = std::move(problem.acquisition_geometry);
     auto old_projection_count = g->projection_count();
     g->set_detector_shape(scaled_detector_shape);
-    g->reduce_projections(scaled_projection_count);
+    g->set_projections(scaled_projection_count);
 
     auto projs = tomo::projections<D, T>(*g);
     auto projection_step = (T)old_projection_count / scaled_projection_count;
