@@ -98,9 +98,7 @@ class base {
     math::vec<D - 1, int> detector_shape() const { return detector_shape_; }
     void set_detector_shape(math::vec<D - 1, int> detector_shape) {
         detector_shape_ = detector_shape;
-        detector_pixel_count_ = math::product<D - 1, int>(detector_shape);
-        this->line_count_ =
-            this->projection_count_ * this->detector_pixel_count_;
+        recompute_lines_();
     }
 
     /* Obtain the i-th line */
@@ -109,12 +107,18 @@ class base {
     int projection_count() const { return projection_count_; }
     int detector_pixel_count() const { return detector_pixel_count_; }
 
-    virtual void reduce_projections(int scaled_projection_count) {
-        (void)scaled_projection_count;
-        std::cout << "`reduce_projections` called but not implemented.\n";
+    virtual void set_projections(int projection_count) {
+        projection_count_ = projection_count;
+        recompute_lines_();
     }
 
   protected:
+    void recompute_lines_() {
+        detector_pixel_count_ = math::product<D - 1, int>(detector_shape_);
+        this->line_count_ =
+            this->projection_count_ * this->detector_pixel_count_;
+    }
+
     int projection_count_;
     math::vec<D - 1, int> detector_shape_;
     int line_count_;
