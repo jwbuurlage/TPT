@@ -5,7 +5,7 @@
 namespace po = boost::program_options;
 #include "fmt/format.h"
 
-#include "tomo.hpp"
+#include "tomos/tomos.hpp"
 
 #include "../cuda/tomo_cuda.hpp"
 

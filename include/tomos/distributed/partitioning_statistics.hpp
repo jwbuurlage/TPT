@@ -2,7 +2,7 @@
 
 #include "bulk/bulk.hpp"
 
-#include "projectors/closest.hpp"
+#include "../projectors/closest.hpp"
 
 namespace tomo {
 namespace distributed {

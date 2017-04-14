@@ -23,8 +23,8 @@ namespace fs = std::experimental::filesystem;
 #include "reconstruction_problem.hpp"
 
 // FIXME remove when no longer falling back on ShLo
-#include "projector.hpp"
-#include "projectors/joseph.hpp"
+#include "../projector.hpp"
+#include "../projectors/joseph.hpp"
 
 namespace tomo {
 

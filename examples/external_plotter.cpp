@@ -4,8 +4,8 @@
 
 #include <glm/gtx/string_cast.hpp>
 
-#include "tomo.hpp"
-#include "util/plotter.hpp"
+#include "tomos/tomos.hpp"
+#include "tomos/util/plotter.hpp"
 
 using T = float;
 constexpr tomo::dimension D = 3_D;

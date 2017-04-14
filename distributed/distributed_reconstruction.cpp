@@ -1,7 +1,3 @@
-#include "distributed/plotter.hpp"
-#include "tomo.hpp"
-#include "util/trees.hpp"
-
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -10,6 +6,10 @@
 
 #include "bulk/backends/mpi/mpi.hpp"
 #include "bulk/bulk.hpp"
+
+#include "tomos/distributed/plotter.hpp"
+#include "tomos/tomos.hpp"
+#include "tomos/util/trees.hpp"
 
 namespace td = tomo::distributed;
 
@@ -39,26 +39,28 @@ void run(tomo::util::args opt) {
         std::fill(size.begin(), size.end(), opt.k);
         // auto partitioning = td::partition_trivial(geom, global_volume, p);
         // auto partitioning = bulk::block_partitioning<D, G>(size, {p}, {2});
-        auto partitioning_ptr = tomo::load_partitioning<T>("data/partitionings/cone_test.toml", global_volume);
+        auto partitioning_ptr = tomo::load_partitioning<T>(
+            "data/partitionings/cone_test.toml", global_volume);
         auto& partitioning = *partitioning_ptr;
 
         // construct distributed image and the associated volumes
-        auto img = td::partitioned_image<D, G, T>(world, partitioning, global_volume);
+        auto img =
+            td::partitioned_image<D, G, T>(world, partitioning, global_volume);
         auto local_volume = img.local_volume();
 
         // we initialize a Shepp-Logan phantom inside the image
         td::partitioned_phantom(img);
         plotter.plot(img);
 
-        //auto geom = tomo::geometry::cone_beam<T>(global_volume, opt.k, 1.5, {opt.k, opt.k});
+        // auto geom = tomo::geometry::cone_beam<T>(global_volume, opt.k, 1.5,
+        // {opt.k, opt.k});
         auto proj = tomo::dim::linear<D, T>(local_volume);
 
         // the forward projection is modified so that we can perform it
         // in parallel on a distributed image, obtaining a 'distributed
         // projection_stack'
         auto partitioned_ps =
-            td::partitioned_projection_stack<D, T>(world, partitioning,
-                                                                   geom);
+            td::partitioned_projection_stack<D, T>(world, partitioning, geom);
 
         // we compute the overlap on the projection stack
         bench.phase("compute overlap");
@@ -101,17 +103,20 @@ void run(tomo::util::args opt) {
         for (auto& r : rs)
             r = 1.0 / r;
         for (auto& c : cs)
-            c = (tomo::math::abs(beta) > tomo::math::epsilon<T>) ? (beta / c) : (T)0;
+            c = (tomo::math::abs(beta) > tomo::math::epsilon<T>) ? (beta / c)
+                                                                 : (T)0;
 
         bench.phase("initialize sirt");
         // temporary ps
-        auto buffer_ps = td::partitioned_projection_stack<D, T>(
-            world, partitioning, geom);
+        auto buffer_ps =
+            td::partitioned_projection_stack<D, T>(world, partitioning, geom);
         // TODO construct using already computed exchanges
         buffer_ps.compute_overlap(proj);
 
-        auto x = td::partitioned_image<D, G, T>(world, partitioning, global_volume);
-        auto buffer_image = td::partitioned_image<D, G, T>(world, partitioning, global_volume);
+        auto x =
+            td::partitioned_image<D, G, T>(world, partitioning, global_volume);
+        auto buffer_image =
+            td::partitioned_image<D, G, T>(world, partitioning, global_volume);
 
         bench.phase("iterating sirt");
         for (int iter = 0; iter < opt.iterations; ++iter) {
@@ -131,7 +136,7 @@ void run(tomo::util::args opt) {
                 x[j] += cs[j] * buffer_image[j];
             }
 
-            //plotter.plot(x);
+            // plotter.plot(x);
         }
         plotter.plot(x);
     });

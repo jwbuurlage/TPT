@@ -32,8 +32,10 @@ class helical_cone_beam : public trajectory<3_D, T> {
           source_position_(source_position),
           detector_position_(detector_position), rotations_(rotations),
           detector_tilt_(detector_tilt), angles_(std::move(angles)) {
+        assert(projection_count > 1);
         if (angles_.empty()) {
-            T delta = (rotations_ * (T)2.0 * math::pi<T>) / projection_count;
+            T delta =
+                (rotations_ * (T)2.0 * math::pi<T>) / (projection_count - 1);
             for (int i = 0; i < projection_count; ++i) {
                 angles_.push_back(delta * i);
             }

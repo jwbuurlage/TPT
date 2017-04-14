@@ -1,7 +1,7 @@
-#include "tomo.hpp"
-#include "util/image_processing.hpp"
-#include "util/plotter.hpp"
-#include "util/rescale.hpp"
+#include "tomos/tomos.hpp"
+#include "tomos/util/image_processing.hpp"
+#include "tomos/util/plotter.hpp"
+#include "tomos/util/rescale.hpp"
 using tomo::img::operator-;
 using tomo::img::operator+;
 using tomo::img::operator/;
