@@ -3,7 +3,7 @@
 
 #include "fmt/format.h"
 
-#include "tomo.hpp"
+#include "tomos/tomos.hpp"
 
 using T = float;
 

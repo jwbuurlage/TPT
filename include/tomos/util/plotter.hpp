@@ -11,10 +11,10 @@
 #include "tomop/tomop.hpp"
 
 #include "../common.hpp"
+#include "../geometries/trajectory.hpp"
 #include "../image.hpp"
 #include "../utilities.hpp"
 #include "../volume.hpp"
-#include "geometries/trajectory.hpp"
 #include "reconstructor.hpp"
 
 namespace tomo {
@@ -135,7 +135,7 @@ class ext_plotter<2_D, T> : public ext_plotter_base<2_D> {
         }
 
         auto upd_packet = tomop::SliceDataPacket(scene_id_, 0, image_size,
-                                                   std::move(pack_image(f)));
+                                                 std::move(pack_image(f)));
 
         upd_packet.send(socket_);
 
@@ -229,10 +229,9 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
         subscribe_socket_.setsockopt(ZMQ_SUBSCRIBE, filter,
                                      sizeof(decltype(filter)));
 
-        int remove_filter[] = {
-            (std::underlying_type<tomop::packet_desc>::type)
-                tomop::packet_desc::remove_slice,
-            scene_id_};
+        int remove_filter[] = {(std::underlying_type<tomop::packet_desc>::type)
+                                   tomop::packet_desc::remove_slice,
+                               scene_id_};
 
         subscribe_socket_.setsockopt(ZMQ_SUBSCRIBE, remove_filter,
                                      sizeof(decltype(remove_filter)));
@@ -278,8 +277,7 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
                     break;
                 }
                 case tomop::packet_desc::remove_slice: {
-                    auto packet =
-                        std::make_unique<tomop::RemoveSlicePacket>();
+                    auto packet = std::make_unique<tomop::RemoveSlicePacket>();
                     packet->deserialize(std::move(buffer));
 
                     auto to_erase = std::find_if(
@@ -411,7 +409,7 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
 
             auto upd_packet =
                 tomop::SliceDataPacket(scene_id_, the_id, image_size,
-                                         std::move(pack_image(image_data)));
+                                       std::move(pack_image(image_data)));
 
             upd_packet.send(socket_);
 

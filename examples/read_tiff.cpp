@@ -1,4 +1,4 @@
-#include "tomo.hpp"
+#include "tomos/tomos.hpp"
 
 using T = float;
 constexpr tomo::dimension D = 2_D;

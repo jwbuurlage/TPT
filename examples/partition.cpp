@@ -7,10 +7,10 @@ namespace fs = std::experimental::filesystem;
 
 #include "fmt/format.h"
 
-#include "tomo.hpp"
-#include "util/plotter.hpp"
-#include "util/simple_args.hpp"
-#include "util/trees.hpp"
+#include "tomos/tomos.hpp"
+#include "tomos/util/plotter.hpp"
+#include "tomos/util/simple_args.hpp"
+#include "tomos/util/trees.hpp"
 
 using T = float;
 constexpr tomo::dimension D = 3_D;

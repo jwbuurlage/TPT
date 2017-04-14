@@ -1,6 +1,6 @@
-#include "tomo.hpp"
-#include "util/plotter.hpp"
-#include "util/rescale.hpp"
+#include "tomos/tomos.hpp"
+#include "tomos/util/plotter.hpp"
+#include "tomos/util/rescale.hpp"
 
 #include "fmt/format.h"
 
