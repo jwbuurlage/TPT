@@ -14,17 +14,13 @@ namespace fs = std::experimental::filesystem;
 #include "../geometries/cone.hpp"
 #include "../geometries/helical_cone_beam.hpp"
 #include "../geometries/laminography.hpp"
-#include "../geometries/tomosynthesis.hpp"
 #include "../geometries/parallel.hpp"
+#include "../geometries/tomosynthesis.hpp"
 #include "../geometry.hpp"
 #include "../projections.hpp"
 #include "../volume.hpp"
 #include "read_tiff.hpp"
 #include "reconstruction_problem.hpp"
-
-// FIXME remove when no longer falling back on ShLo
-#include "../projector.hpp"
-#include "../projectors/joseph.hpp"
 
 namespace tomo {
 
@@ -275,8 +271,7 @@ tomo::volume<D, T> read_volume(std::shared_ptr<cpptoml::table> parameters) {
 template <tomo::dimension D, typename T>
 tomo::projections<D, T>
 read_projection_stack(std::shared_ptr<cpptoml::table> parameters,
-                      tomo::volume<D, T> v, tomo::geometry::base<D, T>& g,
-                      fs::path root_directory) {
+                      tomo::geometry::base<D, T>& g, fs::path root_directory) {
 
     try {
         auto proj_count = *parameters->get_qualified_as<int64_t>(
@@ -287,12 +282,8 @@ read_projection_stack(std::shared_ptr<cpptoml::table> parameters,
         return tomo::tiff_stack_to_projections<D, T>(
             g, filename_pattern, proj_count, root_directory);
     } catch (const std::exception& e) {
-        std::cout << "Reading projection stack failed: " << e.what()
-                  << "\nFalling back on ShLo..\n";
-
-        auto f = tomo::modified_shepp_logan_phantom<T>(v);
-        auto proj = tomo::dim::joseph<D, T>(v);
-        auto projs = tomo::forward_projection<D, T>(f, g, proj);
+        std::cout << "No projection stack given, resolving to default.\n";
+        auto projs = tomo::projections<D, T>(g);
         return projs;
     }
 }
@@ -325,7 +316,7 @@ reconstruction_problem<D, T> read_configuration(std::string file) {
 
     assert(g->lines() > 0);
 
-    auto projs = read_projection_stack<D, T>(config, v, *g, root_directory);
+    auto projs = read_projection_stack<D, T>(config, *g, root_directory);
 
     return reconstruction_problem<D, T>{std::move(g), v, std::move(projs)};
 }
