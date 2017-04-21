@@ -39,8 +39,8 @@ void partition(std::string meta_file, std::string output_file, int processors,
     auto large_tree = tomo::from_neutral_tree<T>(neutral, volume);
 
     auto part_bisected = bulk::tree_partitioning<D>(
-        tomo::math::vec_to_array<D, int>(volume.voxels()),
-        processors, std::move(large_tree));
+        tomo::math::vec_to_array<D, int>(volume.voxels()), processors,
+        std::move(large_tree));
     auto part_trivial = tomo::distributed::partition_trivial(
         *problem.acquisition_geometry, volume, processors);
 
@@ -48,8 +48,7 @@ void partition(std::string meta_file, std::string output_file, int processors,
         tomo::util::ext_plotter<D, T> plotter("tcp://localhost:5555",
                                               "PP: " + output_file);
 
-        plotter.send_partition_information(part_bisected, processors,
-                                           volume);
+        plotter.send_partition_information(part_bisected, processors, volume);
 
         auto proj_stack =
             tomo::projections<3_D, T>(*problem.acquisition_geometry);
@@ -74,6 +73,11 @@ void partition(std::string meta_file, std::string output_file, int processors,
     table.add_result(name, "improvement", fmt::format("{:.1f}%", 100 * imp));
 }
 
+void usage(std::string program_name) {
+    std::cout << "USAGE: " << program_name
+              << " --in GEOMS --out OUT_DIR [-p PROCS] [-e EPS]\n";
+}
+
 int main(int argc, char* argv[]) {
     auto opts = tomo::options{argc, argv};
 
@@ -86,7 +90,7 @@ int main(int argc, char* argv[]) {
     // epsilon
     if (!(opts.required_arguments({"-i", "-o"}) ||
           opts.required_arguments({"--in", "--out"}))) {
-        std::cout << "Input and/or output files not given.\n";
+        usage(argv[0]);
         return -1;
     }
 
