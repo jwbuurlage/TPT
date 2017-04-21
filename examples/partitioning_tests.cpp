@@ -52,6 +52,11 @@ void run(std::string meta_file, std::string partition_file, int size,
     table.add_result(name, "improvement", fmt::format("{:.1f}%", 100 * imp));
 }
 
+void usage(std::string program_name) {
+    std::cout << "USAGE: " << program_name
+              << " --in GEOMS --parts PART_DIR [-s SIZE]\n";
+}
+
 int main(int argc, char* argv[]) {
     auto opts = tomo::options{argc, argv};
 
@@ -61,7 +66,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (!opts.required_arguments({"--in", "--parts"})) {
-        std::cout << "Input and/or partitioning files not given.\n";
+        usage(argv[0]);
         return -1;
     }
 

@@ -60,13 +60,14 @@ class report {
     void print() {
         std::cout << title_ << "\n";
 
-        unsigned int line_size = row_size_ + 4;
+        unsigned int line_size = row_size_ + 2;
         for (auto col : column_width_) {
-            line_size += col.second + 2;
+            line_size += col.second + 4;
         }
-        std::string hline = "";
+        std::string hline = "| ";
         for (unsigned int i = 0; i < line_size; ++i)
             hline.push_back('-');
+        hline += " |";
 
         auto addElement = [](int width, std::stringstream& result,
                              std::string entry) {
@@ -75,11 +76,14 @@ class report {
         };
 
         std::stringstream ss;
-        addElement(row_size_ + 2, ss, row_title_);
         ss << "| ";
+        addElement(row_size_ + 2, ss, row_title_);
 
-        for (auto& col : columns_)
+        for (auto& col : columns_) {
+            ss << "| ";
             addElement(column_width_[col] + 2, ss, col);
+        }
+        ss << " |";
 
         std::cout << hline << "\n";
         std::cout << ss.str() << "\n";
@@ -87,11 +91,13 @@ class report {
 
         for (auto& rowCols : entries_) {
             std::stringstream rowSs;
-            addElement(row_size_ + 2, rowSs, rowCols.first);
             rowSs << "| ";
+            addElement(row_size_ + 2, rowSs, rowCols.first);
             for (auto& col : columns_) {
+                rowSs << "| ";
                 addElement(column_width_[col] + 2, rowSs, rowCols.second[col]);
             }
+            rowSs << " |";
             std::cout << rowSs.str() << "\n";
         }
         std::cout << hline << "\n";
@@ -146,7 +152,6 @@ class report {
         }
         fout << "\\hline" << std::endl;
         fout << "\\end{tabular}" << std::endl;
-        ;
 
         fout << "\\caption{\\ldots}" << std::endl;
         fout << "\\end{table}" << std::endl;
