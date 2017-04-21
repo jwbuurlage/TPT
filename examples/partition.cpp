@@ -30,25 +30,19 @@ void partition(std::string meta_file, std::string output_file, int processors,
     // then save to:
     tomo::serialize_tree(neutral, output_file);
 
-    auto volume = problem.object_volume;
-    volume.set_voxels({256, 256, 256});
-    // TODO FIXME we need to upscale the geometry not the number of voxels..
-    // its easier to load in large geometry, and downscale for partitioning,
-    // then run on large
-
-    auto large_tree = tomo::from_neutral_tree<T>(neutral, volume);
+    auto large_tree = tomo::from_neutral_tree<T>(neutral, problem.object_volume);
 
     auto part_bisected = bulk::tree_partitioning<D>(
-        tomo::math::vec_to_array<D, int>(volume.voxels()), processors,
+        tomo::math::vec_to_array<D, int>(problem.object_volume.voxels()), processors,
         std::move(large_tree));
     auto part_trivial = tomo::distributed::partition_trivial(
-        *problem.acquisition_geometry, volume, processors);
+        *problem.acquisition_geometry, problem.object_volume, processors);
 
     if (preview) {
         tomo::util::ext_plotter<D, T> plotter("tcp://localhost:5555",
                                               "PP: " + output_file);
 
-        plotter.send_partition_information(part_bisected, processors, volume);
+        plotter.send_partition_information(part_bisected, processors, problem.object_volume);
 
         auto proj_stack =
             tomo::projections<3_D, T>(*problem.acquisition_geometry);
@@ -59,9 +53,9 @@ void partition(std::string meta_file, std::string output_file, int processors,
 
     // Store result to table
     auto overlap_trivial = tomo::distributed::communication_volume<D, T>(
-        *problem.acquisition_geometry, volume, part_trivial);
+        *problem.acquisition_geometry, problem.object_volume, part_trivial);
     auto overlap_bisected = tomo::distributed::communication_volume<D, T>(
-        *problem.acquisition_geometry, volume, part_bisected);
+        *problem.acquisition_geometry, problem.object_volume, part_bisected);
     T imp = (T)0.0;
     if (overlap_trivial != 0)
         imp = (overlap_trivial - overlap_bisected) / (T)overlap_trivial;
