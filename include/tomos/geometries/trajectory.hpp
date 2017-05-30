@@ -39,7 +39,10 @@ class trajectory : public base<D, T> {
     math::ray<D, T> get_line(int i) const override final {
         int projection = i / this->detector_pixel_count_;
         int pixel = i % this->detector_pixel_count_;
+        return get_line(projection, pixel);
+    }
 
+    math::ray<D, T> get_line(int projection, int pixel) const {
         auto source = source_location(projection);
         auto target = detector_pixel_location(projection, pixel);
 
@@ -59,8 +62,7 @@ class trajectory : public base<D, T> {
 
     /**
      * The tilt of the detector in projection `projection`. The tilt is given as
-     * the
-     * principal axes of the hyperplane, i.e. by (D - 1) D-dimensional
+     * the principal axes of the hyperplane, i.e. by (D - 1) D-dimensional
      * vectors.
      */
     virtual std::array<math::vec<D, T>, D - 1>

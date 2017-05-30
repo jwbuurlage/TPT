@@ -1,5 +1,7 @@
 # Tomos
 
+![](doc/images/logo.png)
+
 Tomos is a library with many tools for tomographic reconstruction. Its features, and advantages over other 'tomography toolboxes', include:
 
 - Modular system, where projectors, geometries, volumes and algorithmic skeletons are all independent and can be mixed and matched.
