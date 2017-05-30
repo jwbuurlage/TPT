@@ -95,6 +95,9 @@ if(WITH_ZMQ)
 
     add_executable("partition" "../examples/partition.cpp")
     target_link_libraries("partition" ${LIB_NAMES})
+
+    add_executable("simple_distributed" "../examples/simple_distributed.cpp")
+    target_link_libraries("simple_distributed" ${LIB_NAMES})
 endif(WITH_ZMQ)
 
 #find_package(CUDA 7.5 QUIET)
