@@ -24,11 +24,11 @@ namespace tomo {
 namespace distributed {
 
 template <dimension D, typename T>
-bulk::binary_tree<bulk::split>
+bulk::util::binary_tree<bulk::util::split>
 partition_bisection(const tomo::geometry::base<D, T>& geometry,
                     tomo::volume<D, T> object_volume, int processors,
                     T max_epsilon = 0.2) {
-    bulk::binary_tree<bulk::split> result;
+    bulk::util::binary_tree<bulk::util::split> result;
 
     // We want the resulting partitioning to be portable for different detector
     // configurations. We do this in two steps:
@@ -40,7 +40,7 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
     assert(math::is_power_of_two(processors));
 
     // alias the split type of the form (d, a)
-    using split_t = bulk::split;
+    using split_t = bulk::util::split;
     using box_t = std::array<math::vec2<int>, D>;
 
     // compute the 'depth' of the tree (i.e. log(p))
@@ -189,8 +189,8 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
         }
     }
 
-    using node = typename bulk::binary_tree<split_t>::node;
-    using dir = typename bulk::binary_tree<split_t>::dir;
+    using node = typename bulk::util::binary_tree<split_t>::node;
+    using dir = typename bulk::util::binary_tree<split_t>::dir;
 
     // all the information we need to split a subvolume and save it
     struct subvolume {

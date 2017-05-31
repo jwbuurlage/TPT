@@ -1,13 +1,13 @@
-#pragma once
-
 #include <functional>
 #include <iostream>
 #include <thread>
 #include <vector>
 
-#include <bulk/bulk.hpp>
+#include "bulk/bulk.hpp"
+namespace bulk {
+using namespace experimental;
+}
 #include <zmq.hpp>
-
 #include "tomop/tomop.hpp"
 
 #include "../common.hpp"

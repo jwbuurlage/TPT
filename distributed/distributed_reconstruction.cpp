@@ -19,7 +19,10 @@ constexpr tomo::dimension G = 1;
 template <tomo::dimension D>
 void run(tomo::util::args opt) {
     bulk::mpi::environment env;
-    env.spawn(env.available_processors(), [=](auto& world, int s, int p) {
+    env.spawn(env.available_processors(), [=](auto& world) {
+        auto s = world.processor_id();
+        auto p = world.active_processors();
+
         td::ext_plotter<D, T> plotter("tcp://localhost:5555",
                                       "Distributed reconstruction", world);
         auto bench = tomo::benchmark("reconstruction");
@@ -93,8 +96,8 @@ void run(tomo::util::args opt) {
         }
         world.sync();
 
-        for (auto msg : row_queue) {
-            rs[msg.tag] += msg.content;
+        for (auto [tag, content] : row_queue) {
+            rs[tag] += content;
         }
 
         T beta = (T)1.0;
