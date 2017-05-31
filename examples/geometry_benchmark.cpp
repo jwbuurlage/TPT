@@ -18,7 +18,7 @@ std::mutex g_result_mutex;
 using T = float;
 constexpr tomo::dimension D = 3_D;
 
-void print_node(bulk::binary_tree<bulk::split>::node* node, int depth = 0) {
+void print_node(bulk::util::binary_tree<bulk::util::split>::node* node, int depth = 0) {
     for (int i = 0; i < depth; ++i) {
         std::cout << "> ";
     }
@@ -31,7 +31,7 @@ void print_node(bulk::binary_tree<bulk::split>::node* node, int depth = 0) {
     }
 }
 
-void print_tree(bulk::binary_tree<bulk::split>& tree) {
+void print_tree(bulk::util::binary_tree<bulk::util::split>& tree) {
     print_node(tree.root.get());
 }
 

@@ -60,14 +60,20 @@ class report {
     void print() {
         std::cout << title_ << "\n";
 
+        std::string hline = "|";
+        auto repeat = [](std::string base, auto n) -> std::string {
+            std::string result = "";
+            while (n--) {
+                result += base;
+            }
+            return result;
+        };
         unsigned int line_size = row_size_ + 2;
         for (auto col : column_width_) {
             line_size += col.second + 4;
+            hline += repeat("-", col.second + 3);
+            hline += "|";
         }
-        std::string hline = "| ";
-        for (unsigned int i = 0; i < line_size; ++i)
-            hline.push_back('-');
-        hline += " |";
 
         auto addElement = [](int width, std::stringstream& result,
                              std::string entry) {

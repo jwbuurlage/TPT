@@ -4,8 +4,12 @@
 #include <chrono>
 #include <thread>
 
-#include "../phantoms.hpp"
 #include "bulk/bulk.hpp"
+namespace bulk {
+using namespace experimental;
+}
+
+#include "../phantoms.hpp"
 
 namespace tomo {
 namespace distributed {
@@ -57,8 +61,8 @@ class partitioned_image {
     T& operator()(std::array<int, D> xs) {
         // FIXME this is unnecessarily involved because of the
         // std::array/tomo::math::vec discrepency. Come up with a solution.
-        return (*this)[bulk::flatten<D>(part_.local_size(world_.processor_id()),
-                                        xs)];
+        return (*this)[bulk::util::flatten<D>(
+            part_.local_size(world_.processor_id()), xs)];
     }
 
     tomo::image<D, T> gather() {
@@ -78,12 +82,11 @@ class partitioned_image {
         auto xs =
             bulk::coarray<T>(world_, world_.processor_id() == 0 ? cells : 0);
 
-
         int local_idx = 0;
         for (auto& x : data_) {
             // origin
             // block size
-            auto global_pos = bulk::unflatten<D>(
+            auto global_pos = bulk::util::unflatten<D>(
                 part_.local_size(world_.processor_id()), local_idx);
 
             // flatten wrt global size
@@ -91,7 +94,8 @@ class partitioned_image {
                 global_pos[d] += part_.origin({world_.processor_id()})[d];
             }
 
-            int global_idx = bulk::flatten<D>(part_.global_size(), global_pos);
+            int global_idx =
+                bulk::util::flatten<D>(part_.global_size(), global_pos);
 
             xs(0)[global_idx] = x;
 

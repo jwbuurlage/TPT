@@ -1,6 +1,9 @@
 #pragma once
 
 #include "bulk/bulk.hpp"
+namespace bulk {
+using namespace experimental;
+}
 
 #include "../projectors/closest.hpp"
 
@@ -22,7 +25,8 @@ int communication_volume(const geometry::base<D, T>& geometry,
         int count = 0;
         int prev = -1;
         for (auto elem : integrator(line)) {
-            auto owner = partitioning.owner(bulk::unflatten<D>(voxels, elem.index));
+            auto owner = partitioning.owner(
+                bulk::util::unflatten<D>(voxels, elem.index));
             if (owner != prev) {
                 count++;
                 prev = owner;

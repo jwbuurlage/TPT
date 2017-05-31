@@ -33,7 +33,7 @@ struct tree_node {
 
 template <typename T>
 void add_to_tree(tree_node<T>* neutral,
-                 bulk::binary_tree<bulk::split>::node* original,
+                 bulk::util::binary_tree<bulk::util::split>::node* original,
                  tomo::volume<3_D, T> v) {
     if (neutral && original) {
         neutral->d = original->value.d;
@@ -50,7 +50,7 @@ void add_to_tree(tree_node<T>* neutral,
 }
 
 template <typename T>
-tree_node<T> to_neutral_tree(bulk::binary_tree<bulk::split>& splits,
+tree_node<T> to_neutral_tree(bulk::util::binary_tree<bulk::util::split>& splits,
                              tomo::volume<3_D, T> v) {
     tree_node<T> neutral_root;
     add_to_tree(&neutral_root, splits.root.get(), v);
@@ -58,32 +58,33 @@ tree_node<T> to_neutral_tree(bulk::binary_tree<bulk::split>& splits,
 }
 
 template <typename T>
-void add_to_voxel_tree(bulk::binary_tree<bulk::split>::node* voxel,
+void add_to_voxel_tree(bulk::util::binary_tree<bulk::util::split>::node* voxel,
                        tree_node<T>* neutral, tomo::volume<3_D, T> v) {
     if (neutral && voxel) {
         voxel->value.d = neutral->d;
         voxel->value.a = (int)(neutral->a * v.voxels()[neutral->d]);
         if (neutral->left.get()) {
-            voxel->left =
-                std::make_unique<bulk::binary_tree<bulk::split>::node>(
-                    bulk::split{0, 0});
+            voxel->left = std::make_unique<
+                bulk::util::binary_tree<bulk::util::split>::node>(
+                bulk::util::split{0, 0});
             add_to_voxel_tree<T>(voxel->left.get(), neutral->left.get(), v);
         }
         if (neutral->right.get()) {
-            voxel->right =
-                std::make_unique<bulk::binary_tree<bulk::split>::node>(
-                    bulk::split{0, 0});
+            voxel->right = std::make_unique<
+                bulk::util::binary_tree<bulk::util::split>::node>(
+                bulk::util::split{0, 0});
             add_to_voxel_tree<T>(voxel->right.get(), neutral->right.get(), v);
         }
     }
 }
 
 template <typename T>
-bulk::binary_tree<bulk::split> from_neutral_tree(tree_node<T>& splits,
-                                                 tomo::volume<3_D, T> v) {
-    bulk::binary_tree<bulk::split> result;
-    result.root = std::make_unique<bulk::binary_tree<bulk::split>::node>(
-        bulk::split{0, 0});
+bulk::util::binary_tree<bulk::util::split>
+from_neutral_tree(tree_node<T>& splits, tomo::volume<3_D, T> v) {
+    bulk::util::binary_tree<bulk::util::split> result;
+    result.root =
+        std::make_unique<bulk::util::binary_tree<bulk::util::split>::node>(
+            bulk::util::split{0, 0});
     add_to_voxel_tree(result.root.get(), &splits, v);
     return result;
 }
@@ -174,7 +175,7 @@ std::unique_ptr<tree_node<T>> deserialize_tree(std::string filename) {
     return deserialize_node<T>(tree_line);
 }
 
-void print_bulk_node_(bulk::binary_tree<bulk::split>::node* node,
+void print_bulk_node_(bulk::util::binary_tree<bulk::util::split>::node* node,
                       int depth = 0) {
     if (!node)
         return;
@@ -191,7 +192,7 @@ void print_bulk_node_(bulk::binary_tree<bulk::split>::node* node,
     }
 }
 
-void print_tree(bulk::binary_tree<bulk::split>& tree) {
+void print_tree(bulk::util::binary_tree<bulk::util::split>& tree) {
     print_bulk_node_(tree.root.get());
 }
 

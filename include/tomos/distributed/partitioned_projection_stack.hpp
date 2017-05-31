@@ -28,6 +28,7 @@ class partitioned_projection_stack {
     int communication_volume() { return exchanges_.size(); }
 
     void harmonize() {
+        auto q = bulk::queue<int, int, int, float>(world_);
         auto sino_q = bulk::queue<int, T>(world_);
         // make exchange queue
         // exchange all overlaps
@@ -37,8 +38,8 @@ class partitioned_projection_stack {
 
         world_.sync();
 
-        for (auto msg : sino_q) {
-            data_[msg.tag] += msg.content;
+        for (auto [tag, content] : sino_q) {
+            data_[tag] += content;
         }
     }
 
@@ -69,9 +70,8 @@ class partitioned_projection_stack {
         std::vector<std::vector<int>> targets(
             cyclic.local_count(world_.processor_id()));
 
-        for (auto& msg : q) {
-            targets[msg.tag / world_.active_processors()].push_back(
-                msg.content);
+        for (auto [tag, content] : q) {
+            targets[tag / world_.active_processors()].push_back(content);
         }
 
         auto exchange_queue = bulk::queue<int, int>(world_);
@@ -94,8 +94,8 @@ class partitioned_projection_stack {
 
         world_.sync();
 
-        for (auto msg : exchange_queue) {
-            exchanges_.push_back({msg.tag, msg.content});
+        for (auto [tag, content] : exchange_queue) {
+            exchanges_.push_back({tag, content});
         }
     }
 
