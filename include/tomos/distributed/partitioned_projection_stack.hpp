@@ -28,7 +28,6 @@ class partitioned_projection_stack {
     int communication_volume() { return exchanges_.size(); }
 
     void harmonize() {
-        auto q = bulk::queue<int, int, int, float>(world_);
         auto sino_q = bulk::queue<int, T>(world_);
         // make exchange queue
         // exchange all overlaps

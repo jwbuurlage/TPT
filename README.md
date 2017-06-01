@@ -74,7 +74,7 @@ To build the examples:
 
 ```
 cd build
-cmake .
+cmake ..
 make
 ```
 
