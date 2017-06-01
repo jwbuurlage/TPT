@@ -14,10 +14,10 @@ feature_summary(WHAT ALL)
 link_directories("~/.local/lib")
 
 include_directories(
-    "../include"
-    "../ext/fmt/"
-    "../ext/cpptoml/include/"
-    "../ext/bulk/include"
+    "include"
+    "ext/fmt/"
+    "ext/cpptoml/include/"
+    "ext/bulk/include"
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wno-missing-braces -Wfatal-errors -Werror -pedantic -O3 -march=native")
@@ -38,15 +38,15 @@ set(LIB_NAME "tomos")
 
 set(
     LIB_SOURCES
-    "../src/phantoms.cpp"
-    "../ext/fmt/fmt/format.cc"
+    "src/phantoms.cpp"
+    "ext/fmt/fmt/format.cc"
 )
 
 add_library( ${LIB_NAME} SHARED ${LIB_SOURCES} )
 
 set(
     EXAMPLE_DIR
-    "../examples/"
+    "examples/"
 )
 
 set(
@@ -77,27 +77,27 @@ foreach(source_file ${EXAMPLE_SOURCES})
 endforeach(source_file)
 
 if(WITH_ZMQ)
-    link_directories("../ext/libzmq/build/lib")
+    link_directories("ext/libzmq/build/lib")
     include_directories(
-        "../ext/tomopackets/include"
-        "../ext/cppzmq"
-        "../ext/libzmq/include"
+        "ext/tomopackets/include"
+        "ext/cppzmq"
+        "ext/libzmq/include"
     )
     set(LIB_NAMES ${LIB_NAMES} "zmq")
-    add_executable("external_plotter" "../examples/external_plotter.cpp")
+    add_executable("external_plotter" "examples/external_plotter.cpp")
     target_link_libraries("external_plotter" ${LIB_NAMES})
 
-    add_executable("read_geometry_test" "../examples/read_geometry_test.cpp")
+    add_executable("read_geometry_test" "examples/read_geometry_test.cpp")
     target_link_libraries("read_geometry_test" ${LIB_NAMES})
 
-    add_executable("read_legoscan_test" "../examples/read_legoscan_test.cpp")
+    add_executable("read_legoscan_test" "examples/read_legoscan_test.cpp")
     target_link_libraries("read_legoscan_test" ${LIB_NAMES})
 
-    add_executable("partition" "../examples/partition.cpp")
+    add_executable("partition" "examples/partition.cpp")
     target_link_libraries("partition" ${LIB_NAMES})
 
-    add_executable("simple_distributed" "../examples/simple_distributed.cpp")
-    target_link_libraries("simple_distributed" ${LIB_NAMES})
+    #    add_executable("simple_distributed" "../examples/simple_distributed.cpp")
+    #    target_link_libraries("simple_distributed" ${LIB_NAMES})
 endif(WITH_ZMQ)
 
 #find_package(CUDA 7.5 QUIET)
@@ -136,7 +136,7 @@ if(WITH_MPI AND WITH_ZMQ)
 if(MPI_CXX_FOUND)
     set(
         MPI_DIR
-        "../distributed/"
+        "distributed/"
         )
 
     set(
@@ -159,4 +159,4 @@ else(MPI_CXX_FOUND)
 endif(MPI_CXX_FOUND)
 endif(WITH_MPI AND WITH_ZMQ)
 
-add_subdirectory(../test/build ../test/build)
+add_subdirectory(test/build test/build)

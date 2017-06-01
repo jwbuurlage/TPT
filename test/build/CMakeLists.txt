@@ -28,7 +28,7 @@ set(
 )
 
 # reignore warnings from cpptoml, there is probably a nicer way. TODO
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ../../ext/cpptoml/include")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ../../../ext/cpptoml/include")
 
 add_executable(${TEST_EXEC_NAME} ${TEST_SOURCES})
 target_link_libraries( ${TEST_EXEC_NAME} ${LIB_NAMES} )
