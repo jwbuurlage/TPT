@@ -95,9 +95,6 @@ if(WITH_ZMQ)
 
     add_executable("partition" "examples/partition.cpp")
     target_link_libraries("partition" ${LIB_NAMES})
-
-    #    add_executable("simple_distributed" "../examples/simple_distributed.cpp")
-    #    target_link_libraries("simple_distributed" ${LIB_NAMES})
 endif(WITH_ZMQ)
 
 #find_package(CUDA 7.5 QUIET)
@@ -142,6 +139,7 @@ if(MPI_CXX_FOUND)
     set(
         MPI_SOURCES
         "distributed_reconstruction.cpp"
+        "simple_distributed.cpp"
         )
 
     set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${MPI_COMPILE_FLAGS})
