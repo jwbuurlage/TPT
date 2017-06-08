@@ -36,7 +36,9 @@ std::vector<uint32_t> pack_image(image<D, T> f) {
         }
     }
 
-    auto max_uint = std::numeric_limits<uint32_t>::max();
+    max *= (T)1.1;
+
+    auto max_uint = std::numeric_limits<uint32_t>::max() - 1;
     for (int k = 0; k < f.get_volume().cells(); ++k) {
         grayscale_image[k] =
             (uint32_t)((T)max_uint * std::max(f[k], (T)0) / max);
@@ -60,12 +62,14 @@ std::vector<uint32_t> downsample_pack_image(image<3_D, T>& f,
         }
     }
 
+    max *= (T)1.1;
+
     auto voxels = f.get_volume().voxels();
     auto stride = math::vec3<T>{voxels[0] / (T)volume_size[0],
                                 voxels[1] / (T)volume_size[1],
                                 voxels[2] / (T)volume_size[2]};
 
-    auto max_uint = std::numeric_limits<uint32_t>::max();
+    auto max_uint = std::numeric_limits<uint32_t>::max() - 1;
 
     int idx = 0;
     for (int k = 0; k < volume_size[2]; ++k) {
