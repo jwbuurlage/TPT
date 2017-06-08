@@ -1,14 +1,16 @@
+#include <cstddef>
 #include <functional>
 #include <iostream>
 #include <thread>
+#include <limits>
 #include <vector>
 
 #include "bulk/bulk.hpp"
 namespace bulk {
 using namespace experimental;
 }
-#include <zmq.hpp>
 #include "tomop/tomop.hpp"
+#include <zmq.hpp>
 
 #include "../common.hpp"
 #include "../geometries/trajectory.hpp"
@@ -24,8 +26,8 @@ template <dimension D, typename T>
 class ext_plotter;
 
 template <dimension D, typename T>
-std::vector<unsigned char> pack_image(image<D, T> f) {
-    std::vector<unsigned char> grayscale_image(f.get_volume().cells());
+std::vector<uint32_t> pack_image(image<D, T> f) {
+    std::vector<uint32_t> grayscale_image(f.get_volume().cells());
 
     T max = (T)0;
     for (int k = 0; k < f.get_volume().cells(); ++k) {
@@ -34,21 +36,22 @@ std::vector<unsigned char> pack_image(image<D, T> f) {
         }
     }
 
+    auto max_uint = std::numeric_limits<uint32_t>::max();
     for (int k = 0; k < f.get_volume().cells(); ++k) {
         grayscale_image[k] =
-            (unsigned char)((T)255 * std::max(f[k], (T)0) / max);
+            (uint32_t)((T)max_uint * std::max(f[k], (T)0) / max);
     }
 
     return grayscale_image;
 }
 
 template <typename T>
-std::vector<unsigned char> downsample_pack_image(image<3_D, T>& f,
-                                                 std::vector<int> volume_size) {
+std::vector<uint32_t> downsample_pack_image(image<3_D, T>& f,
+                                            std::vector<int> volume_size) {
     assert(volume_size.size() == 3);
 
-    std::vector<unsigned char> grayscale_image(volume_size[0] * volume_size[1] *
-                                               volume_size[2]);
+    std::vector<uint32_t> grayscale_image(volume_size[0] * volume_size[1] *
+                                          volume_size[2]);
 
     T max = (T)0;
     for (int k = 0; k < f.get_volume().cells(); ++k) {
@@ -62,16 +65,18 @@ std::vector<unsigned char> downsample_pack_image(image<3_D, T>& f,
                                 voxels[1] / (T)volume_size[1],
                                 voxels[2] / (T)volume_size[2]};
 
+    auto max_uint = std::numeric_limits<uint32_t>::max();
+
     int idx = 0;
     for (int k = 0; k < volume_size[2]; ++k) {
         for (int j = 0; j < volume_size[1]; ++j) {
             for (int i = 0; i < volume_size[0]; ++i) {
-                grayscale_image[idx++] =
-                    (unsigned char)((T)255 * std::max(f({(int)(i * stride[0]),
-                                                         (int)(j * stride[1]),
-                                                         (int)(k)*stride[2]}),
-                                                      (T)0) /
-                                    max);
+                grayscale_image[idx++] = (uint32_t)(
+                    (T)max_uint *
+                    std::max(f({(int)(i * stride[0]), (int)(j * stride[2]),
+                                (int)(k)*stride[2]}),
+                             (T)0) /
+                    max);
             }
         }
     }
@@ -377,7 +382,7 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
 
             std::array<int, 2> detector_shape = math::vec_to_array<2_D, int>(
                 acquisition_geometry.detector_shape());
-            std::vector<unsigned char> data =
+            std::vector<uint32_t> data =
                 pack_image(proj_stack.get_projection(i));
 
             auto projection_packet = tomop::ProjectionDataPacket(
