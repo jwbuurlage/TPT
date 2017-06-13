@@ -132,28 +132,6 @@ struct line {
     vec<D, T> delta;  //> the direction vector
 };
 
-/** Return the `axis`-th vector of the standard basis */
-template <dimension D, typename T>
-auto standard_basis(int axis) {
-    auto result = vec<D, T>{};
-    result[axis] = (T)1;
-    return result;
-}
-
-/** Return a vector with the sign of each component as 1 or -1 */
-template <dimension D, typename T>
-vec<D, int> sign(vec<D, T> rhs) {
-    auto result = vec<D, int>{};
-    for (int d = 0; d < D; ++d) {
-        if (approx_equal(rhs[d], (T)0)) {
-            result[d] = 0;
-        } else {
-            result[d] = rhs[d] > 0 ? 1 : -1;
-        }
-    }
-    return result;
-}
-
 /** Check whether an integral value is a power of two. */
 template <typename T,
           typename = typename std::enable_if<std::is_integral<T>::value>::type>

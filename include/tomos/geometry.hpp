@@ -112,6 +112,10 @@ class base {
         recompute_lines_();
     }
 
+    void set_line_count(int line_count) {
+        line_count_ = line_count;
+    }
+
   protected:
     void recompute_lines_() {
         detector_pixel_count_ = math::product<D - 1, int>(detector_shape_);

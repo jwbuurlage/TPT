@@ -128,6 +128,28 @@ class volume {
 
     void set_voxels(math::vec<D, int> new_voxels) { voxels_ = new_voxels; }
 
+    /**
+     * Obtain a std::vector of D-dimensional vectors containing the corners of
+     * the volume.
+     *
+     * Note: only implemented for D = 3.
+     */
+    std::vector<math::vec<D, T>> corners() {
+        static_assert(D == 3_D, "volume corners only implemented for D = 3");
+        auto axes = std::array<math::vec3<T>, 3>{
+            lengths_[0] * math::standard_basis<3_D, T>(0),
+            lengths_[1] * math::standard_basis<3_D, T>(1),
+            lengths_[2] * math::standard_basis<3_D, T>(2)};
+        return {origin_,
+                origin_ + axes[0],
+                origin_ + axes[1],
+                origin_ + axes[0] + axes[1],
+                origin_ + axes[2],
+                origin_ + axes[0] + axes[2],
+                origin_ + axes[1] + axes[2],
+                origin_ + axes[0] + axes[1] + axes[2]};
+    }
+
   private:
     template <typename S, typename... Ss>
     int index_(int current, int offset, S x, Ss... xs) const {

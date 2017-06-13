@@ -21,10 +21,5 @@ constexpr T pow(T a, int n) {
     return result;
 }
 
-template <typename T>
-auto max(T a, T b) {
-    return a > b ? a : b;
-}
-
 } // namespace math
 } // namespace tomo
