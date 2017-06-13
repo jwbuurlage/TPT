@@ -36,6 +36,18 @@ auto cos(T obj) {
     return glm::cos(obj);
 }
 
+/** Compute the max for an object of type T. */
+template <typename T>
+auto max(T a, T b) {
+    return glm::max(a, b);
+}
+
+/** Compute the max for an object of type T. */
+template <typename T>
+auto min(T a, T b) {
+    return glm::min(a, b);
+}
+
 /** Compute the sine for an object of type T. */
 template <typename T>
 auto sin(T obj) {
@@ -203,6 +215,30 @@ auto vec_to_array(tomo::math::vec<D, T> in) {
     }
     return out;
 }
+
+/** Return the `axis`-th vector of the standard basis */
+template <dimension D, typename T>
+auto standard_basis(int axis) {
+    auto result = vec<D, T>{};
+    result[axis] = (T)1;
+    return result;
+}
+
+/** Return a vector with the sign of each component as 1 or -1 */
+template <dimension D, typename T>
+vec<D, int> sign(vec<D, T> rhs) {
+    auto result = vec<D, int>{};
+    for (int d = 0; d < D; ++d) {
+        if (approx_equal(rhs[d], (T)0)) {
+            result[d] = 0;
+        } else {
+            result[d] = rhs[d] > 0 ? 1 : -1;
+        }
+    }
+    return result;
+}
+
+
 
 } // namespace math
 } // namespace tomo

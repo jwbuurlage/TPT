@@ -5,6 +5,7 @@ namespace bulk {
 using namespace experimental;
 }
 
+#include "../math.hpp"
 #include "../projectors/closest.hpp"
 
 namespace tomo {

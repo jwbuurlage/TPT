@@ -21,8 +21,9 @@ template <dimension D, typename T>
 struct projection {
     math::vec<D, T> source_location;
     math::vec<D, T> detector_location;
-    math::vec<D, T> detector_size;
-    math::vec<D, int> detector_shape;
+    math::vec<D - 1, T> detector_size;
+    std::array<math::vec<D, T>, D - 1> detector_tilt;
+    math::vec<D - 1, int> detector_shape;
 };
 
 /**
@@ -60,8 +61,7 @@ class trajectory : public base<D, T> {
     math::ray<D, T> get_line(int projection, math::vec<2_D, int> pixel) const {
         auto source = source_location(projection);
         auto target = detector_pixel_location(projection, pixel);
-
-        return math::ray<D, T>(source, target);
+        return {source, target};
     }
 
     /** The location of the source in projection `projection`. */
@@ -87,8 +87,8 @@ class trajectory : public base<D, T> {
     auto detector_size() const { return detector_size_; }
 
     projection<D, T> get_projection(int idx) {
-        return {source_location(idx), detector_location(index), detector_size_,
-                this->detector_shape_};
+        return {source_location(idx), detector_location(idx), detector_size_,
+                detector_tilt(idx), this->detector_shape_};
     }
 
   protected:
