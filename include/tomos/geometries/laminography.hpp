@@ -66,10 +66,8 @@ class laminography : public trajectory<3_D, T> {
         auto theta = -math::asin<T>(n_norm);
         auto n_hat = n / n_norm;
 
-        return {math::rotate(math::standard_basis<3_D, T>(0), n_hat, theta) *
-                    this->detector_size_[0] * (T)0.5,
-                math::rotate(math::standard_basis<3_D, T>(1), n_hat, theta) *
-                    this->detector_size_[1] * (T)0.5};
+        return {math::rotate(math::standard_basis<3_D, T>(0), n_hat, theta),
+                math::rotate(math::standard_basis<3_D, T>(1), n_hat, theta)};
     }
 
     T& source_radius() { return source_radius_; }

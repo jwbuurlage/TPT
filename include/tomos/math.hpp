@@ -13,7 +13,6 @@
 #include <vector>
 
 #include <experimental/optional>
-
 template <typename T>
 using optional = std::experimental::optional<T>;
 
@@ -78,14 +77,11 @@ template <typename T>
 struct slice {
     /** Construct the axis-aligned slice along the d-th axis. */
     slice(int d) {
-        base = math::vec3<T>(-1.0f);
+        base = vec3<T>(-1.0f);
         base[d] = 0.0f;
 
-        b_x = (d == 0) ? math::vec3<T>(0.0f, 2.0f, 0.0f)
-                       : math::vec3<T>(2.0f, 0.0f, 0.0f);
-
-        b_y = (d == 2) ? math::vec3<T>(0.0f, 2.0f, 0.0f)
-                       : math::vec3<T>(0.0f, 0.0f, 2.0f);
+        b_x = (d == 0) ? vec3<T>(0.0f, 2.0f, 0.0f) : vec3<T>(2.0f, 0.0f, 0.0f);
+        b_y = (d == 2) ? vec3<T>(0.0f, 2.0f, 0.0f) : vec3<T>(0.0f, 0.0f, 2.0f);
     }
 
     slice(std::array<float, 9> orientation) {
@@ -102,9 +98,9 @@ struct slice {
         base.z = orientation[8];
     }
 
-    math::vec<3_D, T> base; // base point of the sice
-    math::vec<3_D, T> b_x;  // 'basis vector' first direction
-    math::vec<3_D, T> b_y;  // 'basis vector' second direction
+    vec<3_D, T> base; // base point of the sice
+    vec<3_D, T> b_x;  // 'basis vector' first direction
+    vec<3_D, T> b_y;  // 'basis vector' second direction
 };
 
 /** Rotate a 3D vector */
@@ -287,9 +283,8 @@ template <dimension D, typename T>
 optional<line<D, T>> truncate_to_volume(ray<D, T> ray, volume<D, T> v) {
     // need line plane intersection, because the box is axis aligned (AABB) we
     // need to do a ray/AABB intersection.
-    auto origin =
-        aabb_intersection<D, T>(ray.source, ray.detector, v.physical_lengths(),
-                                math::vec<D, T>(v.origin()));
+    auto origin = aabb_intersection<D, T>(
+        ray.source, ray.detector, v.physical_lengths(), vec<D, T>(v.origin()));
     if (!origin) {
         return optional<line<D, T>>();
     }
@@ -312,15 +307,15 @@ optional<line<D, T>> truncate_to_volume(ray<D, T> ray, volume<D, T> v) {
  */
 template <dimension D, typename T>
 optional<std::pair<vec<D, T>, vec<D, T>>>
-intersect_bounds(math::line<D, T> l, std::array<math::vec2<int>, D> bounds) {
+intersect_bounds(line<D, T> l, std::array<vec2<int>, D> bounds) {
     vec<D, T> bounds_origin{bounds[0][0], bounds[1][0], bounds[2][0]};
 
     vec<D, T> bounds_sides =
         vec<D, T>{bounds[0][1], bounds[1][1], bounds[2][1]} - bounds_origin;
 
-    auto for_sure_far_enough = math::product<D, T>(bounds_sides);
+    auto for_sure_far_enough = product<D, T>(bounds_sides);
 
-    auto result = math::aabb_intersection<D, T>(
+    auto result = aabb_intersection<D, T>(
         l.origin, for_sure_far_enough * l.delta, bounds_sides, bounds_origin);
 
     if (result) {
@@ -345,10 +340,8 @@ void interpolate(vec<D, T> a, volume<D, T> v,
         cells_indices[i] = {b[i] - 1, b[i]};
     }
 
-    /* This cartesian product uses bit shifts to compute it efficiently, we
-     * can
-     * do this because each set only has two elements. Note: requires D <
-     * 32,
+    /* This cartesian product uses bit shifts to compute it efficiently, we can
+     * do this because each set only has two elements. Note: requires D < 32,
      * which we should never exceed, ever. */
     auto cartesian_product = [](std::array<std::array<int, 2>, D> indices) {
         std::array<vec<D, int>, pow(2, D)> result;
@@ -378,15 +371,14 @@ void interpolate(vec<D, T> a, volume<D, T> v,
         }
 
         int index = v.index_by_vector(cell);
-        auto value = math::product<D, T>(math::vec<D, T>((T)1) -
-                                         math::abs(a - cell_center));
+        auto value = product<D, T>(vec<D, T>((T)1) - abs(a - cell_center));
         queue.push_back({index, value});
     }
 }
 
 template <tomo::dimension D, typename T>
-math::vec<D - 1, T> restrict(math::vec<D, T> x, int skip) {
-    math::vec<D - 1, T> reduced_point;
+vec<D - 1, T> restrict(vec<D, T> x, int skip) {
+    vec<D - 1, T> reduced_point;
     int k = 0;
     for (int d = 0; d < D; ++d) {
         if (d == skip)
@@ -397,8 +389,8 @@ math::vec<D - 1, T> restrict(math::vec<D, T> x, int skip) {
 }
 
 template <tomo::dimension D, typename T>
-math::vec<D, T> extend(math::vec<D - 1, T> x, int axis, T value) {
-    math::vec<D, T> point;
+vec<D, T> extend(vec<D - 1, T> x, int axis, T value) {
+    vec<D, T> point;
     int k = 0;
     for (int d = 0; d < D; ++d) {
         if (d == axis) {
@@ -412,8 +404,21 @@ math::vec<D, T> extend(math::vec<D - 1, T> x, int axis, T value) {
 
 /** Return the center of the volume */
 template <tomo::dimension D, typename T>
-math::vec<D, T> volume_center(tomo::volume<D, T> v) {
+vec<D, T> volume_center(tomo::volume<D, T> v) {
     return v.origin() + (T)0.5 * v.physical_lengths();
+}
+
+/** Return the optional intersection point of a ray with a plane */
+template <typename T>
+optional<vec3<T>> ray_plane_intersection(vec3<T> source, vec3<T> direction,
+                                         vec3<T> base, vec3<T> normal) {
+    auto alpha = dot(normal, direction);
+    if (abs(alpha) < 0.001f) {
+        // error: ray and plane are parallel
+        return {};
+    }
+    auto offset = dot((base - source), normal) / alpha;
+    return {source + offset * direction};
 }
 
 } // namespace math

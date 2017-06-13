@@ -54,8 +54,8 @@ class tomosynthesis : public trajectory<3_D, T> {
 
     std::array<math::vec<3_D, T>, 2>
     detector_tilt(int /* projection */) const override final {
-        return {math::standard_basis<3_D, T>(0) * this->detector_size_[0] * (T)0.5,
-                math::standard_basis<3_D, T>(1) * this->detector_size_[1] * (T)0.5};
+        return {math::standard_basis<3_D, T>(0),
+                math::standard_basis<3_D, T>(1)};
     }
 
     T& source_arc() { return source_arc_; }
