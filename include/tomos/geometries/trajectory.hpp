@@ -11,14 +11,28 @@ namespace tomo {
 namespace geometry {
 
 /**
+ * Relevant data when requesting projection 'i'
+ *
+ * when we have this projection, we can make a subprojection by specifying:
+ * - base pixel
+ * - subprojection size
+ */
+template <dimension D, typename T>
+struct projection {
+    math::vec<D, T> source_location;
+    math::vec<D, T> detector_location;
+    math::vec<D, T> detector_size;
+    math::vec<D, int> detector_shape;
+};
+
+/**
  * A geometry defined by trajectories of the source and the detector (array)
  *
  * The detector and the source move in projections along some trajectory, which
- * is
- * described by concrete subclasses.
+ * is described by concrete subclasses.
  *
- * FIXME: maybe it is better to call this a 'focused geometry' (cone-beam
- * geometry), where parallel is an 'unfocused geometry'.
+ * FIXME: maybe it is better to call this not trajectory but a 'focused
+ * geometry' (cone-beam geometry), where parallel is an 'unfocused geometry'.
  *
  * \tparam D the dimension of the volume.
  * \tparam T the scalar type to use
@@ -39,10 +53,11 @@ class trajectory : public base<D, T> {
     math::ray<D, T> get_line(int i) const override final {
         int projection = i / this->detector_pixel_count_;
         int pixel = i % this->detector_pixel_count_;
-        return get_line(projection, pixel);
+        return get_line(projection, {pixel % this->detector_shape_[0],
+                                     pixel / this->detector_shape_[0]});
     }
 
-    math::ray<D, T> get_line(int projection, int pixel) const {
+    math::ray<D, T> get_line(int projection, math::vec<2_D, int> pixel) const {
         auto source = source_location(projection);
         auto target = detector_pixel_location(projection, pixel);
 
@@ -55,7 +70,8 @@ class trajectory : public base<D, T> {
     /** The location of the detector in projection `projection`. */
     virtual math::vec<D, T> detector_location(int projection) const = 0;
 
-    math::vec<D, T> detector_pixel_location(int projection, int pixel) const {
+    math::vec<D, T> detector_pixel_location(int projection,
+                                            math::vec<2_D, int> pixel) const {
         return detector_location(projection) +
                detector_offset_(projection, pixel);
     }
@@ -70,6 +86,11 @@ class trajectory : public base<D, T> {
 
     auto detector_size() const { return detector_size_; }
 
+    projection<D, T> get_projection(int idx) {
+        return {source_location(idx), detector_location(index), detector_size_,
+                this->detector_shape_};
+    }
+
   protected:
     virtual ~trajectory() = default;
 
@@ -78,15 +99,16 @@ class trajectory : public base<D, T> {
     math::vec<2_D, T> detector_size_;
 
     // compute detector location in space
-    inline math::vec<D, T> detector_offset_(int projection, int pixel) const {
+    inline math::vec<D, T> detector_offset_(int projection,
+                                            math::vec<2_D, int> pixel) const {
         math::vec<D, T> offset;
-        // TODO we now recompute every pixel this location, should just have one
-        // offset and loop over this projection, inefficient!
+        // TODO we now recompute for every pixel this location, should just have
+        // one offset and loop over this projection, inefficient!
         auto axes = detector_tilt(projection);
 
-        auto relative = math::vec<D - 1, T>(
-            (T)(pixel % this->detector_shape_[0]) / this->detector_shape_[0],
-            (T)(pixel / this->detector_shape_[0]) / this->detector_shape_[1]);
+        auto relative =
+            math::vec<D - 1, T>((T)(pixel.x) / this->detector_shape_[0],
+                                (T)(pixel.y) / this->detector_shape_[1]);
 
         offset += (relative[0] - (T)0.5) * detector_size_[0] * axes[0];
         offset += (relative[1] - (T)0.5) * detector_size_[1] * axes[1];
