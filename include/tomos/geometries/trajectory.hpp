@@ -78,8 +78,8 @@ class trajectory : public base<D, T> {
 
     /**
      * The tilt of the detector in projection `projection`. The tilt is given as
-     * the principal axes of the hyperplane, i.e. by (D - 1) D-dimensional
-     * vectors.
+     * the *normalized* principal axes of the hyperplane, i.e. by (D - 1)
+     * D-dimensional vectors.
      */
     virtual std::array<math::vec<D, T>, D - 1>
     detector_tilt(int projection) const = 0;

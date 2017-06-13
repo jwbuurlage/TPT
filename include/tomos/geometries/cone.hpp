@@ -46,13 +46,13 @@ class cone_beam : public trajectory<3_D, T> {
               math::vec<2_D, T> detector_size,
               math::vec<2_D, int> detector_shape, T source_to_center,
               T detector_to_center)
-        : cone_beam(
-              volume, projection_count, detector_size, detector_shape,
-              math::volume_center(volume) -
-                  source_to_center * math::standard_basis<3_D, T>(0),
-              math::volume_center(volume) +
-                  detector_to_center * math::standard_basis<3_D, T>(0),
-              {math::standard_basis<3_D, T>(1), math::standard_basis<3_D, T>(2)}) {}
+        : cone_beam(volume, projection_count, detector_size, detector_shape,
+                    math::volume_center(volume) -
+                        source_to_center * math::standard_basis<3_D, T>(0),
+                    math::volume_center(volume) +
+                        detector_to_center * math::standard_basis<3_D, T>(0),
+                    {math::standard_basis<3_D, T>(1),
+                     math::standard_basis<3_D, T>(2)}) {}
 
     math::vec<3_D, T> source_location(int projection) const override final {
         return transform_location_(source_position_, projection);
@@ -64,10 +64,8 @@ class cone_beam : public trajectory<3_D, T> {
 
     std::array<math::vec<3_D, T>, 2>
     detector_tilt(int projection) const override final {
-        return {apply_rotation_(detector_tilt_[0], projection) *
-                    this->detector_size_[0] * (T)0.5,
-                apply_rotation_(detector_tilt_[1], projection) *
-                    this->detector_size_[1] * (T)0.5};
+        return {apply_rotation_(detector_tilt_[0], projection),
+                apply_rotation_(detector_tilt_[1], projection)};
     }
 
     void set_projections(int projection_count) override {
