@@ -19,10 +19,7 @@ class projections {
     using value_type = T;
 
     /** Construct default-initialized projections for a geometry. */
-    projections(const geometry::base<D, T>& geometry)
-        : projection_count_(geometry.projection_count()),
-          shape_(geometry.detector_shape()),
-          projection_pixels_(geometry.detector_pixel_count()) {
+    projections(const geometry::base<D, T>& geometry) : geometry_(geometry) {
         data_.resize(geometry.lines());
     }
 
@@ -43,26 +40,37 @@ class projections {
     /** Clear the projection stack. Sets each measurement to zero. */
     void clear() { std::fill(data_.begin(), data_.end(), 0); }
 
-    /** Get a projection as an image */
-    image<D - 1, T> get_projection(int projection) const {
-        auto img = image<D - 1, T>(volume<D - 1, T>(shape_));
-        for (int i = 0; i < projection_pixels_; ++i) {
-            img[i] = data_[projection_pixels_ * projection + i];
+    ///** Get a projection as an image */
+    image<D - 1, T> get_projection(int idx) const {
+        auto offset = compute_offset_(idx);
+        auto shape = geometry_.projection_shape(idx);
+        auto img = image<D - 1, T>(volume<D - 1, T>(shape));
+        for (int i = 0; i < math::reduce<D - 1>(shape); ++i) {
+            img[i] = data_[offset + i];
         }
         return img;
     }
 
     /** Set a projection using an image */
-    void set_projection(int projection, const image<D - 1, T>& img) {
-        for (int i = 0; i < projection_pixels_; ++i) {
-            data_[projection_pixels_ * projection + i] = img[i];
+    void set_projection(int idx, const image<D - 1, T>& img) {
+        auto offset = compute_offset_(idx);
+        auto pixels = math::reduce<D - 1>(geometry_.projection_shape(idx));
+        for (int i = 0; i < pixels; ++i) {
+            data_[offset + i] = img[i];
         }
     }
 
   private:
+    int compute_offset_(int idx) const {
+        auto offset = 0;
+        for (int i = 0; i < idx; ++i) {
+            offset += math::reduce<D - 1>(geometry_.projection_shape(i));
+        }
+        return offset;
+    }
+
+    const geometry::base<D, T>& geometry_;
     int projection_count_;
-    math::vec<D - 1, int> shape_;
-    int projection_pixels_;
     std::vector<T> data_;
 };
 

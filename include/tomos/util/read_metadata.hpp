@@ -211,13 +211,10 @@ read_parallel_geometry(std::shared_ptr<cpptoml::table> parameters,
      * - Extend parallel geometry support
      * - Detector shape is square
      * - Many fields ignored:
-     *     tilt, size, position, source position, and so on
+     *     tilt, size, position, source position, detector shape, and so on
      */
     auto angle_count = (int)(*parameters->get_as<int64_t>("projection-count"));
-    auto detector_shape = stdvec_to_tomovec<D - 1, int>(
-        *parameters->get_array_of<int64_t>("detector-shape"));
-    return std::make_unique<tomo::geometry::parallel<D, T>>(v, angle_count,
-                                                            detector_shape[0]);
+    return std::make_unique<tomo::geometry::parallel<D, T>>(v, angle_count);
 }
 
 template <tomo::dimension D, typename T>

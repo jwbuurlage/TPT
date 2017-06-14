@@ -50,7 +50,7 @@ class volume {
      * \param i the index of the dimension
      * \returns size of the volume in the axis
      */
-    int operator[](size_t i) const { return lengths_[i]; }
+    T operator[](size_t i) const { return lengths_[i]; }
 
     /**
      * Obtain the index corresponding to a voxel

@@ -109,6 +109,12 @@ auto rotate(vec<3_D, T> v, vec<3_D, T> normal, T angle) {
     return glm::rotate(v, angle, normal);
 }
 
+/** Rotate a 2D vector */
+template <typename T>
+auto rotate(vec<2_D, T> v, [[maybe_unused]] vec<2_D, T> normal, T angle) {
+    return glm::rotate(v, angle);
+}
+
 /**
  * A line has an origin, and a delta -- and is used for numerical integration
  *

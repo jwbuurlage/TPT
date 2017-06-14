@@ -73,17 +73,6 @@ class helical_cone_beam : public trajectory<3_D, T> {
                 apply_rotation_(detector_tilt_[1], projection)};
     }
 
-    void set_projections(int projection_count) override {
-        angles_.clear();
-
-        T delta = ((T)2.0 * math::pi<T>) / projection_count;
-        for (int i = 0; i < projection_count; ++i) {
-            angles_.push_back(delta * i);
-        }
-
-        trajectory<3_D, T>::set_projections(projection_count);
-    }
-
   private:
     math::vec<3_D, T> source_position_;
     math::vec<3_D, T> detector_position_;

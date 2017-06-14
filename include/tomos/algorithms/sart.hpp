@@ -33,7 +33,7 @@ image<D, T> sart(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
     image<D, T> f(v);
 
     // the size of a single block
-    int k = g.detector_pixel_count();
+    int k = math::reduce<D -1>(g.projection_shape(0));
 
     // compute $w_i \cdot w_i$
     std::vector<T> w_norms(g.lines());

@@ -35,7 +35,7 @@ void run(tomo::util::args opt) {
 
         // projectors and geometries are modified so that they are
         // intersected with volumes at proper location
-        auto geom = tomo::geometry::parallel<D, T>(global_volume, opt.k, opt.k);
+        auto geom = tomo::geometry::parallel<D, T>(global_volume, opt.k);
 
         // set up the partitioning
         std::array<int, D> size{};
