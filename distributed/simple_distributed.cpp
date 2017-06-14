@@ -21,10 +21,10 @@ auto pixels(shadow s) {
     return (s.max_pt.x - s.min_pt.x) * (s.max_pt.y - s.min_pt.y);
 }
 
-math::vec<2_D, int> compute_pixel_intersection(math::vec3<T> point,
+math::vec<2_D, int> compute_pixel_intersection(math::vec3<T> x,
                                                geometry::projection<3_D, T> p) {
     auto geometric_point = math::ray_plane_intersection<T>(
-        p.source_location, point - p.source_location, p.detector_location,
+        p.source_location, x - p.source_location, p.detector_location,
         math::cross<T>(p.detector_tilt[0], p.detector_tilt[1]));
     assert(geometric_point);
     auto pt = geometric_point.value();
@@ -38,18 +38,20 @@ math::vec<2_D, int> compute_pixel_intersection(math::vec3<T> point,
             (int)(dy / p.detector_size[1] * p.detector_shape[1])};
 }
 
-shadow compute_shadow(std::vector<math::vec3<T>> points,
-                      geometry::projection<3_D, T> p, math::vec2<int> shape) {
+shadow compute_shadow(std::vector<math::vec3<T>> xs,
+                      geometry::projection<3_D, T> p) {
     shadow s = {
         {std::numeric_limits<int>::max(), std::numeric_limits<int>::max()},
         {-1, -1}};
-    for (auto pt : points) {
-        auto intersection = compute_pixel_intersection(pt, p);
-        intersection = math::min(intersection, shape - math::vec2<int>{1, 1});
+    for (auto x : xs) {
+        auto intersection = compute_pixel_intersection(x, p);
+        intersection =
+            math::min(intersection, p.detector_shape - math::vec2<int>{1, 1});
         intersection = math::max(intersection, {0, 0});
         s.min_pt = math::min(s.min_pt, intersection);
         s.max_pt = math::max(s.max_pt, intersection);
     }
+    // FIXME enlarge by one
     return s;
 }
 
@@ -57,45 +59,40 @@ class restricted_geometry : public geometry::base<3, T> {
   public:
     restricted_geometry(geometry::trajectory<3_D, T>& geometry,
                         volume<3_D, T> local_volume)
-        : geometry::base<3, T>(geometry.projection_count(), {-1, -1}),
+        : geometry::base<3, T>(geometry.projection_count(), false),
           geometry_(geometry), local_volume_(local_volume),
           pixels_(geometry.projection_count() + 1) {
         project();
         std::transform(shadows_.begin(), shadows_.end(), pixels_.begin() + 1,
                        [&](auto shadow) { return pixels(shadow); });
         std::partial_sum(pixels_.begin(), pixels_.end(), pixels_.begin());
-        this->set_line_count(pixels_[pixels_.size() - 1]);
+        this->compute_lines_();
     }
 
     void project() {
         for (int i = 0; i < geometry_.projection_count(); ++i) {
             shadows_.push_back(compute_shadow(local_volume_.corners(),
-                                              geometry_.get_projection(i),
-                                              geometry_.detector_shape()));
+                                              geometry_.get_projection(i)));
         }
     }
 
-    virtual math::ray<3, T> get_line(int i) const override {
-        // 1 compute projection (FIXME how to identify in O(1)?, need to rethink
-        // the whole 'get_line' system, making the iterators locally can boost
-        // performance greatly)
-        auto p = (std::find_if(pixels_.begin(), pixels_.end(),
-                               [=](auto x) { return x > i; }) -
-                  pixels_.begin()) -
-                 1;
-        assert(p >= 0);
-        assert(p < geometry_.projection_count());
-        // 2 compute global index in projection
-        auto j = i - pixels_[p];
-        auto x = j % (shadows_[p].max_pt.x - shadows_[p].min_pt.x);
-        auto y = j / (shadows_[p].max_pt.x - shadows_[p].min_pt.x);
-        x += shadows_[p].min_pt.x;
-        y += shadows_[p].min_pt.y;
-        int global_index = p * geometry_.detector_pixel_count() +
-                           y * geometry_.detector_shape()[0] + x;
-        assert(global_index >= 0 && global_index < geometry_.lines());
-        // 3 return get_line of global index
-        return geometry_.get_line(global_index);
+    math::vec<2_D, int> projection_shape(int i) const override {
+        return {shadows_[i].max_pt.x - shadows_[i].min_pt.x,
+                shadows_[i].max_pt.y - shadows_[i].min_pt.y};
+    }
+
+    math::vec<3_D, T> detector_corner(int i) const override {
+        return geometry_.detector_corner(i) +
+               (T)shadows_[i].min_pt[0] * geometry_.projection_delta(i)[0] +
+               (T)shadows_[i].min_pt[1] * geometry_.projection_delta(i)[1];
+    }
+
+    math::vec<3_D, T> source_location(int i) const override {
+        return geometry_.source_location(i);
+    }
+
+    std::array<math::vec<3_D, T>, 2> projection_delta(int i) const override {
+        return geometry_.projection_delta(i);
     }
 
   private:
@@ -106,7 +103,8 @@ class restricted_geometry : public geometry::base<3, T> {
 };
 
 // Assumes global volume has physical size [0, 1]^3
-auto calculate_local_volume(bulk::rectangular_partitioning<3, 1>& partitioning,
+template <int G>
+auto calculate_local_volume(bulk::rectangular_partitioning<3, G>& partitioning,
                             int s) {
     auto to_vec = [](auto array_like) -> math::vec3<T> {
         math::vec3<T> result;
@@ -136,8 +134,8 @@ void run(util::args options) {
                                {options.k, options.k}, 10.0, 2.0);
 
     auto processors = env.available_processors();
-    auto partitioning = bulk::block_partitioning<3, 1>(
-        {options.k, options.k, options.k}, {processors}, {1});
+    auto partitioning = bulk::block_partitioning<3, 3>(
+        {options.k, options.k, options.k}, {2, 2, 2});
 
     env.spawn(processors, [&](auto& world) {
         auto local_volume =
@@ -170,6 +168,8 @@ void run(util::args options) {
         auto sinos = bulk::gather_all(rsino.data()); */
 
         plotter.plot(phantom);
+        plotter.send_projection_data(local_geometry, local_proj_stack,
+                                     local_volume);
     });
 }
 

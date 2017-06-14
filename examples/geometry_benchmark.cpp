@@ -106,7 +106,7 @@ int main(int argc, char* argv[]) {
     std::vector<std::thread> threads;
     // 'gather results'
     threads.emplace_back(partition_test<D, T>, "parallel",
-                         tomo::geometry::parallel<3_D, T>(v, k, k),
+                         tomo::geometry::parallel<3_D, T>(v, k),
                          std::ref(table), v, p, e);
 
     // threads.emplace_back(

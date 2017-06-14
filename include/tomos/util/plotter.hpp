@@ -1,8 +1,8 @@
 #include <cstddef>
 #include <functional>
 #include <iostream>
-#include <thread>
 #include <limits>
+#include <thread>
 #include <vector>
 
 #include "bulk/bulk.hpp"
@@ -337,9 +337,10 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
         }
     }
 
-    void send_projection_data(
-        const geometry::trajectory<3_D, T>& acquisition_geometry,
-        const projections<3_D, T>& proj_stack, volume<3_D, T> volume) {
+    void
+    send_projection_data(const geometry::base<3_D, T>& acquisition_geometry,
+                         const projections<3_D, T>& proj_stack,
+                         volume<3_D, T> volume) {
         // send geometry specification and wait for reply
         auto geo_spec_packet = tomop::GeometrySpecificationPacket(
             scene_id_, false, acquisition_geometry.projection_count());
@@ -362,30 +363,25 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
             std::array<float, 9> detector_orientation;
 
             // detector_tilt
-            auto detector_tilt = acquisition_geometry.detector_tilt(i);
-            detector_orientation[0] = (T)2.0 * detector_tilt[0][0];
-            detector_orientation[1] = (T)2.0 * detector_tilt[0][1];
-            detector_orientation[2] = (T)2.0 * detector_tilt[0][2];
-            detector_orientation[3] = (T)2.0 * detector_tilt[1][0];
-            detector_orientation[4] = (T)2.0 * detector_tilt[1][1];
-            detector_orientation[5] = (T)2.0 * detector_tilt[1][2];
+            auto detector_tilt = acquisition_geometry.projection_delta(i);
+            detector_tilt[0] *= (T)acquisition_geometry.projection_shape(i)[0];
+            detector_tilt[1] *= (T)acquisition_geometry.projection_shape(i)[1];
+            detector_orientation[0] = detector_tilt[0][0];
+            detector_orientation[1] = detector_tilt[0][1];
+            detector_orientation[2] = detector_tilt[0][2];
+            detector_orientation[3] = detector_tilt[1][0];
+            detector_orientation[4] = detector_tilt[1][1];
+            detector_orientation[5] = detector_tilt[1][2];
 
             // detector_location
             std::array<float, 3> detector_position =
                 math::vec_to_array<3_D, float>(
-                    acquisition_geometry.detector_location(i));
-            detector_orientation[6] =
-                detector_position[0] -
-                (T)0.5 * (detector_orientation[0] + detector_orientation[3]);
-            detector_orientation[7] =
-                detector_position[1] -
-                (T)0.5 * (detector_orientation[1] + detector_orientation[4]);
-            detector_orientation[8] =
-                detector_position[2] -
-                (T)0.5 * (detector_orientation[2] + detector_orientation[5]);
-
+                    acquisition_geometry.detector_corner(i));
+            detector_orientation[6] = detector_position[0];
+            detector_orientation[7] = detector_position[1];
+            detector_orientation[8] = detector_position[2];
             std::array<int, 2> detector_shape = math::vec_to_array<2_D, int>(
-                acquisition_geometry.detector_shape());
+                acquisition_geometry.projection_shape(i));
             std::vector<uint32_t> data =
                 pack_image(proj_stack.get_projection(i));
 

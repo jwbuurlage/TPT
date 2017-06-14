@@ -10,7 +10,7 @@ using T = float;
 template <tomo::dimension D>
 void run(tomo::util::args opt) {
     auto v = tomo::volume<D, T>(opt.k);
-    auto g = tomo::geometry::parallel<D, T>(v, opt.k, opt.k);
+    auto g = tomo::geometry::parallel<D, T>(v, opt.k);
     auto f = tomo::modified_shepp_logan_phantom<T>(v);
 
     tomo::ascii_plot(f);

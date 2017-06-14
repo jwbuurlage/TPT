@@ -32,9 +32,6 @@ struct projection {
  * The detector and the source move in projections along some trajectory, which
  * is described by concrete subclasses.
  *
- * FIXME: maybe it is better to call this not trajectory but a 'focused
- * geometry' (cone-beam geometry), where parallel is an 'unfocused geometry'.
- *
  * \tparam D the dimension of the volume.
  * \tparam T the scalar type to use
  */
@@ -45,35 +42,9 @@ class trajectory : public base<D, T> {
     trajectory(volume<3_D, T> volume, int projection_count,
                math::vec<2_D, T> detector_size,
                math::vec<2_D, int> detector_shape)
-        : base<D, T>(projection_count, detector_shape), volume_(volume),
-          detector_size_(detector_size) {}
-
-    /**
-     * Return the i-th line of this geometry.
-     */
-    math::ray<D, T> get_line(int i) const override final {
-        int projection = i / this->detector_pixel_count_;
-        int pixel = i % this->detector_pixel_count_;
-        return get_line(projection, {pixel % this->detector_shape_[0],
-                                     pixel / this->detector_shape_[0]});
-    }
-
-    math::ray<D, T> get_line(int projection, math::vec<2_D, int> pixel) const {
-        auto source = source_location(projection);
-        auto target = detector_pixel_location(projection, pixel);
-        return {source, target};
-    }
-
-    /** The location of the source in projection `projection`. */
-    virtual math::vec<D, T> source_location(int projection) const = 0;
-
-    /** The location of the detector in projection `projection`. */
-    virtual math::vec<D, T> detector_location(int projection) const = 0;
-
-    math::vec<D, T> detector_pixel_location(int projection,
-                                            math::vec<2_D, int> pixel) const {
-        return detector_location(projection) +
-               detector_offset_(projection, pixel);
+        : base<D, T>(projection_count), volume_(volume),
+          detector_size_(detector_size), detector_shape_(detector_shape) {
+        this->compute_lines_();
     }
 
     /**
@@ -86,9 +57,29 @@ class trajectory : public base<D, T> {
 
     auto detector_size() const { return detector_size_; }
 
+    virtual math::vec<D, T> detector_location(int i) const = 0;
+
+    math::vec<D, T> detector_corner(int i) const override {
+        return detector_location(i) -
+               (T)0.5 * (detector_size_[0] * detector_tilt(i)[0] +
+                         detector_size_[1] * detector_tilt(i)[1]);
+    }
+
+    math::vec<D - 1, int> projection_shape(int) const override {
+        return detector_shape_;
+    }
+
     projection<D, T> get_projection(int idx) {
-        return {source_location(idx), detector_location(idx), detector_size_,
-                detector_tilt(idx), this->detector_shape_};
+        return {this->source_location(idx), this->detector_location(idx),
+                detector_size_, detector_tilt(idx), this->detector_shape_};
+    }
+
+    std::array<math::vec<D, T>, D - 1> projection_delta(int i) const override {
+        auto axes = detector_tilt(i);
+        auto relative =
+            math::vec<D - 1, T>(detector_size_[0] / this->detector_shape_[0],
+                                detector_size_[1] / this->detector_shape_[1]);
+        return {relative[0] * axes[0], relative[1] * axes[1]};
     }
 
   protected:
@@ -97,24 +88,7 @@ class trajectory : public base<D, T> {
     volume<D, T> volume_;
 
     math::vec<2_D, T> detector_size_;
-
-    // compute detector location in space
-    inline math::vec<D, T> detector_offset_(int projection,
-                                            math::vec<2_D, int> pixel) const {
-        math::vec<D, T> offset;
-        // TODO we now recompute for every pixel this location, should just have
-        // one offset and loop over this projection, inefficient!
-        auto axes = detector_tilt(projection);
-
-        auto relative =
-            math::vec<D - 1, T>((T)(pixel.x) / this->detector_shape_[0],
-                                (T)(pixel.y) / this->detector_shape_[1]);
-
-        offset += (relative[0] - (T)0.5) * detector_size_[0] * axes[0];
-        offset += (relative[1] - (T)0.5) * detector_size_[1] * axes[1];
-
-        return offset;
-    }
+    math::vec<2_D, int> detector_shape_;
 };
 
 } // namespace geometry
