@@ -26,61 +26,36 @@ template <dimension D, typename T>
 class ext_plotter;
 
 template <dimension D, typename T>
-std::vector<uint32_t> pack_image(image<D, T> f) {
-    std::vector<uint32_t> grayscale_image(f.get_volume().cells());
+std::vector<float> pack_image(image<D, T> f) {
+    std::vector<float> grayscale_image(f.get_volume().cells());
 
-    T max = (T)0;
     for (int k = 0; k < f.get_volume().cells(); ++k) {
-        if (f[k] > max) {
-            max = f[k];
-        }
-    }
-
-    max *= (T)1.1;
-
-    auto max_uint = std::numeric_limits<uint32_t>::max() - 1;
-    for (int k = 0; k < f.get_volume().cells(); ++k) {
-        grayscale_image[k] =
-            (uint32_t)((T)max_uint * std::max(f[k], (T)0) / max);
+        grayscale_image[k] = (float)f[k];
     }
 
     return grayscale_image;
 }
 
 template <typename T>
-std::vector<uint32_t> downsample_pack_image(image<3_D, T>& f,
-                                            std::vector<int> volume_size) {
+std::vector<float> downsample_pack_image(image<3_D, T>& f,
+                                         std::vector<int> volume_size) {
     assert(volume_size.size() == 3);
 
-    std::vector<uint32_t> grayscale_image(volume_size[0] * volume_size[1] *
-                                          volume_size[2]);
-
-    T max = (T)0;
-    for (int k = 0; k < f.get_volume().cells(); ++k) {
-        if (f[k] > max) {
-            max = f[k];
-        }
-    }
-
-    max *= (T)1.1;
+    std::vector<float> grayscale_image(volume_size[0] * volume_size[1] *
+                                       volume_size[2]);
 
     auto voxels = f.get_volume().voxels();
     auto stride = math::vec3<T>{voxels[0] / (T)volume_size[0],
                                 voxels[1] / (T)volume_size[1],
                                 voxels[2] / (T)volume_size[2]};
 
-    auto max_uint = std::numeric_limits<uint32_t>::max() - 1;
-
     int idx = 0;
     for (int k = 0; k < volume_size[2]; ++k) {
         for (int j = 0; j < volume_size[1]; ++j) {
             for (int i = 0; i < volume_size[0]; ++i) {
-                grayscale_image[idx++] = (uint32_t)(
-                    (T)max_uint *
-                    std::max(f({(int)(i * stride[0]), (int)(j * stride[2]),
-                                (int)(k)*stride[2]}),
-                             (T)0) /
-                    max);
+                grayscale_image[idx++] =
+                    (float)(f({(int)(i * stride[0]), (int)(j * stride[2]),
+                               (int)(k * stride[2])}));
             }
         }
     }
@@ -143,7 +118,7 @@ class ext_plotter<2_D, T> : public ext_plotter_base<2_D> {
             image_size[d] = f.size(d);
         }
 
-        auto upd_packet = tomop::SliceDataPacket(scene_id_, 0, image_size,
+        auto upd_packet = tomop::SliceDataPacket(scene_id_, 0, image_size, false,
                                                  std::move(pack_image(f)));
 
         upd_packet.send(socket_);
@@ -188,7 +163,7 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
             }
 
             auto upd_packet = tomop::SliceDataPacket(
-                scene_id_, axis, image_size, std::move(pack_image(slice)));
+                scene_id_, axis, image_size, false, std::move(pack_image(slice)));
 
             upd_packet.send(socket_);
 
@@ -382,8 +357,7 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
             detector_orientation[8] = detector_position[2];
             std::array<int, 2> detector_shape = math::vec_to_array<2_D, int>(
                 acquisition_geometry.projection_shape(i));
-            std::vector<uint32_t> data =
-                pack_image(proj_stack.get_projection(i));
+            std::vector<float> data = pack_image(proj_stack.get_projection(i));
 
             auto projection_packet = tomop::ProjectionDataPacket(
                 scene_id_, projection_id, source_position, detector_orientation,
@@ -413,7 +387,7 @@ class ext_plotter<3_D, T> : public ext_plotter_base<3_D>,
             }
 
             auto upd_packet =
-                tomop::SliceDataPacket(scene_id_, the_id, image_size,
+                tomop::SliceDataPacket(scene_id_, the_id, image_size, false,
                                        std::move(pack_image(image_data)));
 
             upd_packet.send(socket_);
