@@ -51,6 +51,7 @@
 #include "distributed/recursive_bisectioning.hpp"
 #include "distributed/trivial_partitioning.hpp"
 #include "distributed/partitioning_statistics.hpp"
+#include "distributed/restricted_geometry.hpp"
 
 #include "geometries/cone.hpp"
 //#include "geometries/dual_axis_parallel.hpp"

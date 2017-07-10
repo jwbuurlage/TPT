@@ -1,3 +1,5 @@
+#include <sstream>
+
 #include "bulk/backends/mpi/mpi.hpp"
 #include "bulk/bulk.hpp"
 
@@ -11,96 +13,6 @@ using namespace experimental;
 using namespace tomo;
 
 using T = float;
-
-struct shadow {
-    math::vec2<int> min_pt;
-    math::vec2<int> max_pt;
-};
-
-auto pixels(shadow s) {
-    return (s.max_pt.x - s.min_pt.x) * (s.max_pt.y - s.min_pt.y);
-}
-
-math::vec<2_D, int> compute_pixel_intersection(math::vec3<T> x,
-                                               geometry::projection<3_D, T> p) {
-    auto geometric_point = math::ray_plane_intersection<T>(
-        p.source_location, x - p.source_location, p.detector_location,
-        math::cross<T>(p.detector_tilt[0], p.detector_tilt[1]));
-    assert(geometric_point);
-    auto pt = geometric_point.value();
-    // detector location is the *center* of the detector, so we adjust
-    auto offset = pt - (p.detector_location -
-                        (T)0.5 * (p.detector_size[0] * p.detector_tilt[0] +
-                                  p.detector_size[1] * p.detector_tilt[1]));
-    auto dx = math::dot<3_D, T>(offset, p.detector_tilt[0]);
-    auto dy = math::dot<3_D, T>(offset, p.detector_tilt[1]);
-    return {(int)(dx / p.detector_size[0] * p.detector_shape[0]),
-            (int)(dy / p.detector_size[1] * p.detector_shape[1])};
-}
-
-shadow compute_shadow(std::vector<math::vec3<T>> xs,
-                      geometry::projection<3_D, T> p) {
-    shadow s = {
-        {std::numeric_limits<int>::max(), std::numeric_limits<int>::max()},
-        {-1, -1}};
-    for (auto x : xs) {
-        auto intersection = compute_pixel_intersection(x, p);
-        intersection =
-            math::min(intersection, p.detector_shape - math::vec2<int>{1, 1});
-        intersection = math::max(intersection, {0, 0});
-        s.min_pt = math::min(s.min_pt, intersection);
-        s.max_pt = math::max(s.max_pt, intersection);
-    }
-    // FIXME enlarge by one
-    return s;
-}
-
-class restricted_geometry : public geometry::base<3, T> {
-  public:
-    restricted_geometry(geometry::trajectory<3_D, T>& geometry,
-                        volume<3_D, T> local_volume)
-        : geometry::base<3, T>(geometry.projection_count(), false),
-          geometry_(geometry), local_volume_(local_volume),
-          pixels_(geometry.projection_count() + 1) {
-        project();
-        std::transform(shadows_.begin(), shadows_.end(), pixels_.begin() + 1,
-                       [&](auto shadow) { return pixels(shadow); });
-        std::partial_sum(pixels_.begin(), pixels_.end(), pixels_.begin());
-        this->compute_lines_();
-    }
-
-    void project() {
-        for (int i = 0; i < geometry_.projection_count(); ++i) {
-            shadows_.push_back(compute_shadow(local_volume_.corners(),
-                                              geometry_.get_projection(i)));
-        }
-    }
-
-    math::vec<2_D, int> projection_shape(int i) const override {
-        return {shadows_[i].max_pt.x - shadows_[i].min_pt.x,
-                shadows_[i].max_pt.y - shadows_[i].min_pt.y};
-    }
-
-    math::vec<3_D, T> detector_corner(int i) const override {
-        return geometry_.detector_corner(i) +
-               (T)shadows_[i].min_pt[0] * geometry_.projection_delta(i)[0] +
-               (T)shadows_[i].min_pt[1] * geometry_.projection_delta(i)[1];
-    }
-
-    math::vec<3_D, T> source_location(int i) const override {
-        return geometry_.source_location(i);
-    }
-
-    std::array<math::vec<3_D, T>, 2> projection_delta(int i) const override {
-        return geometry_.projection_delta(i);
-    }
-
-  private:
-    geometry::trajectory<3_D, T>& geometry_;
-    volume<3_D, T> local_volume_;
-    std::vector<shadow> shadows_;
-    std::vector<int> pixels_;
-};
 
 // Assumes global volume has physical size [0, 1]^3
 template <int G>
@@ -122,6 +34,73 @@ auto calculate_local_volume(bulk::rectangular_partitioning<3, G>& partitioning,
     auto relative_size = math::vec3<T>(voxel_size / global_voxels);
 
     return volume<3_D, T>(voxel_size, relative_origin, relative_size);
+}
+
+struct overlap {
+    int projection;
+    int target;
+    distributed::shadow region;
+};
+
+template <typename T>
+std::vector<overlap>
+compute_overlaps(bulk::world& world,
+                 const distributed::restricted_geometry<T>& geometry) {
+
+    struct pod_shadow {
+        std::array<int, 2> min_pt;
+        std::array<int, 2> max_pt;
+    };
+
+    auto overlaps = std::vector<overlap>();
+
+    auto s = world.processor_id();
+    auto p = world.active_processors();
+
+    // STEP 1: communicate shadows for all projections
+    // now have #proj * p shadows
+    auto shadows =
+        bulk::coarray<pod_shadow>(world, p * geometry.projection_count());
+
+    for (int i = 0; i < geometry.projection_count(); ++i) {
+        for (int t = 0; t < p; ++t) {
+            auto sh = geometry.local_shadow(i);
+            shadows(t)[p * i + s] = {math::vec_to_array<2_D, int>(sh.min_pt),
+                                     math::vec_to_array<2_D, int>(sh.max_pt)};
+        }
+    }
+    world.sync();
+
+    auto common_shadow = [](auto s1, auto s2) {
+        auto result =
+            distributed::shadow{math::array_to_vec<2_D, int>(s1.min_pt),
+                                math::array_to_vec<2_D, int>(s1.max_pt)};
+        for (int d = 0; d < 2; ++d) {
+            result.min_pt[d] = math::max(s1.min_pt[d], s2.min_pt[d]);
+            result.max_pt[d] = math::min(s1.max_pt[d], s2.max_pt[d]);
+        }
+        return result;
+    };
+
+    // STEP 2: compute which shadows we have overlap
+    //         store these rectangular regions
+    for (int i = 0; i < geometry.projection_count(); ++i) {
+        for (int t = 0; t < p; ++t) {
+            if (t == s) {
+                continue;
+            }
+            auto region = common_shadow(shadows[p * i + s], shadows[p * i + t]);
+            if (!distributed::empty(region)) {
+                overlaps.push_back({i, t, region});
+            }
+        }
+    }
+
+    // STEP 3: decide who is responsible for summing detector regions
+    //         avoid sending overlaps p^2 times
+    // TODO
+
+    return overlaps;
 }
 
 void run(util::args options) {
@@ -150,7 +129,7 @@ void run(util::args options) {
                          global_volume);
 
         auto local_geometry =
-            restricted_geometry(global_geometry, local_volume);
+            distributed::restricted_geometry(global_geometry, local_volume);
         auto local_proj_stack = projections<3_D, T>(local_geometry);
 
         // This is now a normal FP
@@ -164,8 +143,13 @@ void run(util::args options) {
             ++line_number;
         }
 
-        /* // we need to compute overlaps and so on.. TODO
-        auto sinos = bulk::gather_all(rsino.data()); */
+        // TODO: overlaps
+        auto overlaps = compute_overlaps<T>(world, local_geometry);
+        // communicate overlaps where necessary
+        // FIXME variable content sizes in these messages
+        // we get regions of projections 
+        // i guess most elegant thing is to use message passing
+        // back to bulk?
 
         plotter.plot(phantom);
         plotter.send_projection_data(local_geometry, local_proj_stack,
