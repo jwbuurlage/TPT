@@ -143,13 +143,50 @@ void run(util::args options) {
             ++line_number;
         }
 
-        // TODO: overlaps
+        // ------------------------------------------------------------------
+        // overlaps
         auto overlaps = compute_overlaps<T>(world, local_geometry);
         // communicate overlaps where necessary
-        // FIXME variable content sizes in these messages
-        // we get regions of projections 
-        // i guess most elegant thing is to use message passing
-        // back to bulk?
+        auto buffer = std::vector<T>();
+        auto& proj_data = local_proj_stack.mutable_data();
+
+        auto q = bulk::queue<T[], int, distributed::shadow>(world);
+        for (auto ov : overlaps) {
+            auto offset = local_proj_stack.offset(ov.projection);
+            auto local_region = local_geometry.local_shadow(ov.projection);
+            auto w =
+                distributed::shadow{ov.region.min_pt - local_region.min_pt,
+                                    ov.region.max_pt - local_region.min_pt};
+
+            buffer.resize(math::reduce<2_D>(w.max_pt - w.min_pt));
+
+            auto proj_size = local_geometry.projection_shape(ov.projection);
+            int idx = 0;
+            for (int i = w.min_pt.x; i < w.max_pt.x; ++i) {
+                for (int j = w.min_pt.y; j < w.max_pt.y; ++j) {
+                    buffer[idx++] = proj_data[offset + i + j * proj_size[0]];
+                }
+            }
+
+            q(ov.target).send_many(buffer, ov.projection, ov.region);
+        }
+
+        world.sync();
+
+        for (auto&& [xs, proj, sh] : q) {
+            auto local_region = local_geometry.local_shadow(proj);
+            auto w = distributed::shadow{sh.min_pt - local_region.min_pt,
+                                         sh.max_pt - local_region.min_pt};
+            auto offset = local_proj_stack.offset(proj);
+            auto proj_size = local_geometry.projection_shape(proj);
+            int idx = 0;
+            for (int i = w.min_pt.x; i < w.max_pt.x; ++i) {
+                for (int j = w.min_pt.y; j < w.max_pt.y; ++j) {
+                    proj_data[offset + i + j * proj_size[0]] = xs[idx++];
+                }
+            }
+        }
+        // ------------------------------------------------------------------
 
         plotter.plot(phantom);
         plotter.send_projection_data(local_geometry, local_proj_stack,
