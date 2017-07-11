@@ -7,7 +7,7 @@
 [submodule "ext/bulk"]
 	path = ext/bulk
 	url = https://github.com/jwbuurlage/Bulk.git
-        tag = v0.1.0
+        branch = array_queue
 [submodule "catch"]
 	path = ext/catch
 	url = https://github.com/philsquared/Catch

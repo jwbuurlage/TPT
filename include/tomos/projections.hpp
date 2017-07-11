@@ -60,8 +60,13 @@ class projections {
         }
     }
 
+    int offset(int idx) const {
+        return compute_offset_(idx);
+    }
+
   private:
     int compute_offset_(int idx) const {
+        // FIXME cache this
         auto offset = 0;
         for (int i = 0; i < idx; ++i) {
             offset += math::reduce<D - 1>(geometry_.projection_shape(i));
