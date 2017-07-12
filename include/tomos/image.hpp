@@ -24,9 +24,10 @@ class image {
     using value_type = T;
 
     /** Construct a default-initialized image for a given volume. */
-    image(volume<D, T> v) : v_(v) {
-        data_.resize(v.cells());
-    }
+    image(volume<D, T> v) : v_(v), data_(v.cells()) {}
+
+    /** Construct a image for a given volume with a constant value. */
+    image(volume<D, T> v, T value) : v_(v), data_(v.cells(), value) {}
 
     /** Obtain the index of an image voxel within the volume. */
     size_t index(math::vec<D, int> xs) const { return v_.index(xs); }

@@ -42,6 +42,51 @@ struct overlap {
     distributed::shadow region;
 };
 
+void communicate_overlaps(bulk::world& world,
+                          projections<3_D, T>& local_proj_stack,
+                          distributed::restricted_geometry<T>& local_geometry,
+                          const std::vector<overlap>& overlaps) {
+    auto buffer = std::vector<T>();
+    auto& proj_data = local_proj_stack.mutable_data();
+
+    auto q = bulk::queue<T[], int, distributed::shadow>(world);
+    for (auto ov : overlaps) {
+        auto offset = local_proj_stack.offset(ov.projection);
+        auto local_region = local_geometry.local_shadow(ov.projection);
+        auto w = distributed::shadow{ov.region.min_pt - local_region.min_pt,
+                                     ov.region.max_pt - local_region.min_pt};
+
+        buffer.resize(math::reduce<2_D>(w.max_pt - w.min_pt));
+
+        auto proj_size = local_geometry.projection_shape(ov.projection);
+        int idx = 0;
+        for (int j = w.min_pt.y; j < w.max_pt.y; ++j) {
+            for (int i = w.min_pt.x; i < w.max_pt.x; ++i) {
+                buffer[idx++] = proj_data[offset + i + j * proj_size[0]];
+            }
+        }
+
+        q(ov.target).send_many(buffer, ov.projection, ov.region);
+    }
+
+    world.sync();
+
+    for (auto && [ xs, proj, sh ] : q) {
+        auto local_region = local_geometry.local_shadow(proj);
+        auto w = distributed::shadow{sh.min_pt - local_region.min_pt,
+                                     sh.max_pt - local_region.min_pt};
+
+        auto offset = local_proj_stack.offset(proj);
+        auto proj_size = local_geometry.projection_shape(proj);
+        int idx = 0;
+        for (int j = w.min_pt.y; j < w.max_pt.y; ++j) {
+            for (int i = w.min_pt.x; i < w.max_pt.x; ++i) {
+                proj_data[offset + i + j * proj_size[0]] += xs[idx++];
+            }
+        }
+    }
+}
+
 template <typename T>
 std::vector<overlap>
 compute_overlaps(bulk::world& world,
@@ -109,88 +154,86 @@ void run(util::args options) {
     // this creates a volume [0, 1]^3, with k voxels in each axis
     auto global_volume = volume<3_D, T>(options.k);
     auto global_geometry =
-        geometry::cone_beam<T>(global_volume, options.k, {1.5, 1.5},
-                               {options.k, options.k}, 10.0, 2.0);
+        geometry::cone_beam<T>(global_volume, options.k, {2.0, 2.0},
+                               {options.k, options.k}, 10.0, 5.0);
 
     auto processors = env.available_processors();
     auto partitioning = bulk::block_partitioning<3, 3>(
         {options.k, options.k, options.k}, {2, 2, 2});
 
     env.spawn(processors, [&](auto& world) {
-        auto local_volume =
-            calculate_local_volume(partitioning, world.processor_id());
-        (void)world;
+        auto vs = calculate_local_volume(partitioning, world.processor_id());
 
         util::ext_plotter<3_D, T> plotter(
             "tcp://localhost:5555", "Distributed restricted geometry test");
 
-        image<3_D, T> phantom(local_volume);
-        fill_ellipsoids_(phantom, mshl_ellipsoids_<T>(), local_volume,
-                         global_volume);
+        image<3_D, T> phantom(vs);
+        fill_ellipsoids_(phantom, mshl_ellipsoids_<T>(), vs, global_volume);
 
-        auto local_geometry =
-            distributed::restricted_geometry(global_geometry, local_volume);
-        auto local_proj_stack = projections<3_D, T>(local_geometry);
+        auto gs = distributed::restricted_geometry(global_geometry, vs);
+        auto p = projections<3_D, T>(gs);
 
-        // This is now a normal FP
-        auto kernel = dim::joseph<3_D, T>(local_volume);
-        int line_number = 0;
-        for (auto line : local_geometry) {
-            for (auto elem : kernel(line)) {
-                local_proj_stack[line_number] +=
-                    phantom[elem.index] * elem.value;
-            }
-            ++line_number;
-        }
-
-        // ------------------------------------------------------------------
-        // overlaps
-        auto overlaps = compute_overlaps<T>(world, local_geometry);
-        // communicate overlaps where necessary
-        auto buffer = std::vector<T>();
-        auto& proj_data = local_proj_stack.mutable_data();
-
-        auto q = bulk::queue<T[], int, distributed::shadow>(world);
-        for (auto ov : overlaps) {
-            auto offset = local_proj_stack.offset(ov.projection);
-            auto local_region = local_geometry.local_shadow(ov.projection);
-            auto w =
-                distributed::shadow{ov.region.min_pt - local_region.min_pt,
-                                    ov.region.max_pt - local_region.min_pt};
-
-            buffer.resize(math::reduce<2_D>(w.max_pt - w.min_pt));
-
-            auto proj_size = local_geometry.projection_shape(ov.projection);
-            int idx = 0;
-            for (int i = w.min_pt.x; i < w.max_pt.x; ++i) {
-                for (int j = w.min_pt.y; j < w.max_pt.y; ++j) {
-                    buffer[idx++] = proj_data[offset + i + j * proj_size[0]];
+        auto fp = [](const auto& f, const auto& g, const auto& v, auto& q) {
+            auto proj = dim::joseph<3_D, T>(v);
+            int line_number = 0;
+            for (auto line : g) {
+                for (auto elem : proj(line)) {
+                    q[line_number] += f[elem.index] * elem.value;
                 }
+                ++line_number;
             }
+        };
+        fp(phantom, gs, vs, p);
 
-            q(ov.target).send_many(buffer, ov.projection, ov.region);
-        }
-
-        world.sync();
-
-        for (auto&& [xs, proj, sh] : q) {
-            auto local_region = local_geometry.local_shadow(proj);
-            auto w = distributed::shadow{sh.min_pt - local_region.min_pt,
-                                         sh.max_pt - local_region.min_pt};
-            auto offset = local_proj_stack.offset(proj);
-            auto proj_size = local_geometry.projection_shape(proj);
-            int idx = 0;
-            for (int i = w.min_pt.x; i < w.max_pt.x; ++i) {
-                for (int j = w.min_pt.y; j < w.max_pt.y; ++j) {
-                    proj_data[offset + i + j * proj_size[0]] = xs[idx++];
+        auto bp = [](const auto& p_, const auto& g, const auto& v, auto& x_) {
+            auto proj = dim::joseph<3_D, T>(v);
+            int line_number = 0;
+            for (auto line : g) {
+                for (auto elem : proj(line)) {
+                    x_[elem.index] += p_[line_number] * elem.value;
                 }
+                ++line_number;
             }
-        }
-        // ------------------------------------------------------------------
+        };
+
+        auto overlaps = compute_overlaps<T>(world, gs);
+        communicate_overlaps(world, p, gs, overlaps);
 
         plotter.plot(phantom);
-        plotter.send_projection_data(local_geometry, local_proj_stack,
-                                     local_volume);
+        plotter.send_projection_data(gs, p, vs);
+
+        // communicate row and column sums
+        auto invert = [](auto x) { return (T)1.0 / x; };
+        auto invert_all = [&](auto& xs) {
+            std::transform(xs.begin(), xs.end(), xs.begin(), invert);
+        };
+        auto r = projections<3_D, T>(gs);
+        fp(image<3_D, T>(vs, (T)1.0), gs, vs, r);
+        communicate_overlaps(world, r, gs, overlaps);
+        invert_all(r.mutable_data());
+        auto c = image<3_D, T>(vs);
+        bp(projections<3_D, T>(gs, (T)1.0), gs, vs, c);
+        invert_all(c.mutable_data());
+
+        // buffer proj stack
+        auto q = projections<3_D, T>(gs);
+        auto z = image<3_D, T>(vs);
+        auto x = image<3_D, T>(vs);
+        for (int iter = 0; iter < 10; ++iter) {
+            fp(x, gs, vs, q);
+            for (int l = 0; l < gs.lines(); ++l) {
+                q[l] = r[l] * (p[l] - q[l]);
+            }
+            communicate_overlaps(world, q, gs, overlaps);
+            bp(q, gs, vs, z);
+            for (int i = 0; i < vs.cells(); ++i) {
+                x[i] += c[i] * z[i];
+            }
+
+            plotter.plot(x);
+            z.clear();
+            q.clear();
+        }
     });
 }
 

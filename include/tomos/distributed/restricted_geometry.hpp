@@ -47,8 +47,8 @@ shadow compute_shadow(std::vector<math::vec3<T>> xs,
         {-1, -1}};
     for (auto x : xs) {
         auto intersection = compute_pixel_intersection(x, p);
-        s.min_pt = math::min(s.min_pt, intersection - math::vec2<int>{1, 1});
-        s.max_pt = math::max(s.max_pt, intersection + math::vec2<int>{1, 1});
+        s.min_pt = math::min(s.min_pt, intersection);
+        s.max_pt = math::max(s.max_pt, intersection);
     }
     s.min_pt = math::max(s.min_pt, {0, 0});
     s.max_pt = math::min(s.max_pt, p.detector_shape - math::vec2<int>{1, 1});
@@ -78,8 +78,8 @@ class restricted_geometry : public geometry::base<3, T> {
     }
 
     math::vec<2_D, int> projection_shape(int i) const override {
-        return {shadows_[i].max_pt.x - shadows_[i].min_pt.x,
-                shadows_[i].max_pt.y - shadows_[i].min_pt.y};
+        return {shadows_[i].max_pt.x + 1 - shadows_[i].min_pt.x,
+                shadows_[i].max_pt.y + 1 - shadows_[i].min_pt.y};
     }
 
     math::vec<3_D, T> detector_corner(int i) const override {
