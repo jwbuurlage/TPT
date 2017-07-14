@@ -17,7 +17,8 @@ class ext_plotter {
         if (world.processor_id() != 0)
             return;
 
-        plotter_.connect(address, name);
+        plotter_.connect(address);
+        plotter_.make_scene(name);
     }
 
     template <int G>

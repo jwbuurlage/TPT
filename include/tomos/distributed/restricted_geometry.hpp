@@ -18,7 +18,7 @@ inline auto empty(shadow s) {
 }
 
 inline auto pixels(shadow s) {
-    return (s.max_pt.x - s.min_pt.x) * (s.max_pt.y - s.min_pt.y);
+    return (s.max_pt.x - s.min_pt.x + 1) * (s.max_pt.y - s.min_pt.y + 1);
 }
 
 template <typename T>
@@ -35,8 +35,8 @@ math::vec<2_D, int> compute_pixel_intersection(math::vec3<T> x,
                                   p.detector_size[1] * p.detector_tilt[1]));
     auto dx = math::dot<3_D, T>(offset, p.detector_tilt[0]);
     auto dy = math::dot<3_D, T>(offset, p.detector_tilt[1]);
-    return {(int)(dx / p.detector_size[0] * p.detector_shape[0]),
-            (int)(dy / p.detector_size[1] * p.detector_shape[1])};
+    return {(int)(dx / p.detector_size[0] * p.detector_shape[0] + (T)0.5),
+            (int)(dy / p.detector_size[1] * p.detector_shape[1] + (T)0.5)};
 }
 
 template <typename T>
@@ -50,8 +50,9 @@ shadow compute_shadow(std::vector<math::vec3<T>> xs,
         s.min_pt = math::min(s.min_pt, intersection);
         s.max_pt = math::max(s.max_pt, intersection);
     }
-    s.min_pt = math::max(s.min_pt, {0, 0});
-    s.max_pt = math::min(s.max_pt, p.detector_shape - math::vec2<int>{1, 1});
+    s.min_pt = math::max(s.min_pt - math::vec2<int>{1, 1}, {0, 0});
+    s.max_pt = math::min(s.max_pt + math::vec2<int>{1, 1},
+                         p.detector_shape - math::vec2<int>{1, 1});
     return s;
 }
 
@@ -97,6 +98,7 @@ class restricted_geometry : public geometry::base<3, T> {
     }
 
     auto local_shadow(int i) const { return shadows_[i]; }
+    const auto& global_geometry() const { return geometry_; }
 
   private:
     geometry::trajectory<3_D, T>& geometry_;
