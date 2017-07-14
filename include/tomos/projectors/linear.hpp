@@ -32,7 +32,7 @@ class linear : public base<D, T> {
             current_point -= line.delta;
         }
 
-        while (math::inside_margin<D, T>(current_point, this->volume_, 1.0)) {
+        while (math::inside_margin<D, T>(current_point, this->volume_, (T)1.0)) {
             math::interpolate<D, T>(current_point, this->volume_, this->queue_);
             current_point += line.delta;
         }

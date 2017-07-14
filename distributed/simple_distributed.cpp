@@ -56,12 +56,13 @@ void communicate_overlaps(bulk::world& world,
         auto w = distributed::shadow{ov.region.min_pt - local_region.min_pt,
                                      ov.region.max_pt - local_region.min_pt};
 
-        buffer.resize(math::reduce<2_D>(w.max_pt - w.min_pt));
+        buffer.resize(
+            math::reduce<2_D>(w.max_pt - w.min_pt + math::vec2<int>{1, 1}));
 
         auto proj_size = local_geometry.projection_shape(ov.projection);
         int idx = 0;
-        for (int j = w.min_pt.y; j < w.max_pt.y; ++j) {
-            for (int i = w.min_pt.x; i < w.max_pt.x; ++i) {
+        for (int j = w.min_pt.y; j <= w.max_pt.y; ++j) {
+            for (int i = w.min_pt.x; i <= w.max_pt.x; ++i) {
                 buffer[idx++] = proj_data[offset + i + j * proj_size[0]];
             }
         }
@@ -71,7 +72,7 @@ void communicate_overlaps(bulk::world& world,
 
     world.sync();
 
-    for (auto && [ xs, proj, sh ] : q) {
+    for (auto&& [xs, proj, sh] : q) {
         auto local_region = local_geometry.local_shadow(proj);
         auto w = distributed::shadow{sh.min_pt - local_region.min_pt,
                                      sh.max_pt - local_region.min_pt};
@@ -79,8 +80,8 @@ void communicate_overlaps(bulk::world& world,
         auto offset = local_proj_stack.offset(proj);
         auto proj_size = local_geometry.projection_shape(proj);
         int idx = 0;
-        for (int j = w.min_pt.y; j < w.max_pt.y; ++j) {
-            for (int i = w.min_pt.x; i < w.max_pt.x; ++i) {
+        for (int j = w.min_pt.y; j <= w.max_pt.y; ++j) {
+            for (int i = w.min_pt.x; i <= w.max_pt.x; ++i) {
                 proj_data[offset + i + j * proj_size[0]] += xs[idx++];
             }
         }
@@ -117,9 +118,7 @@ compute_overlaps(bulk::world& world,
     world.sync();
 
     auto common_shadow = [](auto s1, auto s2) {
-        auto result =
-            distributed::shadow{math::array_to_vec<2_D, int>(s1.min_pt),
-                                math::array_to_vec<2_D, int>(s1.max_pt)};
+        auto result = distributed::shadow{};
         for (int d = 0; d < 2; ++d) {
             result.min_pt[d] = math::max(s1.min_pt[d], s2.min_pt[d]);
             result.max_pt[d] = math::min(s1.max_pt[d], s2.max_pt[d]);
@@ -155,17 +154,31 @@ void run(util::args options) {
     auto global_volume = volume<3_D, T>(options.k);
     auto global_geometry =
         geometry::cone_beam<T>(global_volume, options.k, {2.0, 2.0},
-                               {options.k, options.k}, 10.0, 5.0);
+                               {options.k, options.k}, 2.0, 2.0);
 
     auto processors = env.available_processors();
     auto partitioning = bulk::block_partitioning<3, 3>(
-        {options.k, options.k, options.k}, {2, 2, 2});
+        {options.k, options.k, options.k}, {2, 1, 4});
 
     env.spawn(processors, [&](auto& world) {
+        auto s = world.processor_id();
         auto vs = calculate_local_volume(partitioning, world.processor_id());
 
-        util::ext_plotter<3_D, T> plotter(
-            "tcp://localhost:5555", "Distributed restricted geometry test");
+        // Make scene with s = 0, connect to this scene from other procs
+        util::ext_plotter<3_D, T> plotter("tcp://localhost:5555");
+        auto scene_id = bulk::var<int>(world);
+        if (s == 0) {
+            plotter.make_scene("Distributed partial updates");
+            plotter.send_geometry(global_geometry, global_volume);
+            plotter.send_partition_information(
+                partitioning, world.active_processors(), global_volume);
+            scene_id.broadcast(plotter.scene_id());
+        }
+        world.sync();
+        if (s != 0) {
+            plotter.set_scene_id(scene_id);
+        }
+        plotter.group_request(world.active_processors());
 
         image<3_D, T> phantom(vs);
         fill_ellipsoids_(phantom, mshl_ellipsoids_<T>(), vs, global_volume);
@@ -174,7 +187,7 @@ void run(util::args options) {
         auto p = projections<3_D, T>(gs);
 
         auto fp = [](const auto& f, const auto& g, const auto& v, auto& q) {
-            auto proj = dim::joseph<3_D, T>(v);
+            auto proj = dim::linear<3_D, T>(v);
             int line_number = 0;
             for (auto line : g) {
                 for (auto elem : proj(line)) {
@@ -184,9 +197,10 @@ void run(util::args options) {
             }
         };
         fp(phantom, gs, vs, p);
+        plotter.send_partial_projection_data(gs, p);
 
         auto bp = [](const auto& p_, const auto& g, const auto& v, auto& x_) {
-            auto proj = dim::joseph<3_D, T>(v);
+            auto proj = dim::linear<3_D, T>(v);
             int line_number = 0;
             for (auto line : g) {
                 for (auto elem : proj(line)) {
@@ -200,7 +214,6 @@ void run(util::args options) {
         communicate_overlaps(world, p, gs, overlaps);
 
         plotter.plot(phantom);
-        plotter.send_projection_data(gs, p, vs);
 
         // communicate row and column sums
         auto invert = [](auto x) { return (T)1.0 / x; };
