@@ -138,7 +138,6 @@ if(MPI_CXX_FOUND)
 
     set(
         MPI_SOURCES
-        "distributed_reconstruction.cpp"
         "simple_distributed.cpp"
         )
 

@@ -23,6 +23,152 @@ using optional = std::experimental::optional<T>;
 namespace tomo {
 namespace distributed {
 
+// alias the split type of the form (d, a)
+template <dimension D>
+using box_t = std::array<math::vec2<int>, D>;
+
+using split_t = bulk::util::split;
+
+void voxel_weights() {
+    // TODO IMPL
+    // 1. Compute 'C' but with integer counts
+    // 2. Compute 2D partial sums everywhere
+    // 3. Write helper functions to get arbitrary rectangle weights
+}
+
+template <dimension D, typename T>
+split_t find_split(const std::vector<math::line<D, T>>& lines,
+                   std::vector<math::line<D, T>>& lines_left,
+                   std::vector<math::line<D, T>>& lines_right, box_t<D> bounds,
+                   T max_epsilon = 0.2) {
+    struct crossing_event {
+        math::vec<D, T> point;
+        std::size_t line_index;
+        math::vec<D, int> direction;
+    };
+
+    std::vector<crossing_event> crossings;
+
+    // we want to tag each line with an entry point and exit point
+    // the priority queue depends on the dimension!
+    // first intersect each line with the bounds
+    std::size_t idx = 0;
+    for (auto line : lines) {
+        auto intersections = math::intersect_bounds<D, T>(line, bounds);
+        // FIXME: check if intersects, since line may start inside bounds
+        if (intersections) {
+            auto a = intersections.value().first;
+            auto b = intersections.value().second;
+            crossings.push_back({a, idx, math::sign<D, T>(b - a)});
+            crossings.push_back({b, idx, math::sign<D, T>(a - b)});
+        }
+        ++idx;
+    }
+
+    T best_imbalance = max_epsilon;
+    int best_overlap = std::numeric_limits<int>::max();
+    int best_split = 0;
+    int best_d = -1;
+
+    for (int d = 0; d < D; ++d) {
+        auto compare = [d](crossing_event& lhs, crossing_event& rhs) {
+            return lhs.point[d] < rhs.point[d];
+        };
+
+        auto imbalance = [&](int i) -> T {
+            return math::abs(
+                0.5 - (T)(i - bounds[d][0]) / (bounds[d][1] - bounds[d][0]));
+        };
+
+        std::sort(crossings.begin(), crossings.end(), compare);
+
+        int overlap = 0;
+        std::size_t current_crossing = 0;
+        // FIXME can make this exponential search to speed up
+        while (current_crossing < crossings.size() &&
+               math::approx_equal(crossings[current_crossing].point[d],
+                                  (T)bounds[d][0])) {
+            ++overlap;
+            ++current_crossing;
+        }
+
+        // only if point changes
+        int last_split = bounds[d][0];
+        for (; current_crossing < crossings.size(); ++current_crossing) {
+            auto crossing = crossings[current_crossing];
+
+            int split = (int)crossings[current_crossing].point[d];
+            if (split != last_split) {
+                int half_split = (last_split + split) / 2;
+                last_split = split;
+
+                // FIXME we dont get here *after* the final crossing
+                auto epsilon = imbalance(half_split);
+                if ((overlap < best_overlap && epsilon < max_epsilon) ||
+                    (overlap == best_overlap && epsilon < best_imbalance)) {
+                    best_overlap = overlap;
+                    best_imbalance = epsilon;
+                    best_split = half_split;
+                    best_d = d;
+                }
+            }
+
+            overlap += crossing.direction[d];
+        }
+    }
+
+    if (best_d < 0) {
+        // FIXME output debug info
+        // using box_t = std::array<math::vec2<int>, D>;
+        std::cout << "Can't find split for bounds: "
+                  << "[" << bounds[0][0] << ", " << bounds[0][1] << "], "
+                  << "[" << bounds[1][0] << ", " << bounds[1][1] << "], "
+                  << "[" << bounds[2][0] << ", " << bounds[2][1] << "] "
+                  << "crossings.size(): " << crossings.size() << ", "
+                  << "lines.size(): " << lines.size() << ", "
+                  << "\n";
+        best_d = 0;
+        best_split = (T)0.5 * (bounds[0][0] + bounds[0][1]);
+    }
+
+    auto best_compare = [best_d](crossing_event& lhs, crossing_event& rhs) {
+        return lhs.point[best_d] < rhs.point[best_d];
+    };
+    std::sort(crossings.begin(), crossings.end(), best_compare);
+
+    std::set<std::size_t> indices_left;
+    std::set<std::size_t> indices_right;
+    for (std::size_t i = 0; i < lines.size(); ++i) {
+        indices_right.insert(i);
+    }
+
+    for (auto& crossing : crossings) {
+        if (crossing.point[best_d] > best_split)
+            break;
+
+        if (crossing.direction[best_d] > 0) {
+            // entering: in indices left as well as right
+            indices_left.insert(crossing.line_index);
+        } else if (crossing.direction[best_d] != 0) {
+            indices_right.erase(crossing.line_index);
+        } else {
+            // do both redundantly
+            indices_left.insert(crossing.line_index);
+            indices_right.erase(crossing.line_index);
+        }
+    }
+
+    for (auto left_idx : indices_left) {
+        lines_left.push_back(lines[left_idx]);
+    }
+
+    for (auto right_idx : indices_right) {
+        lines_right.push_back(lines[right_idx]);
+    }
+
+    return split_t{best_d, (int)(best_split)};
+}
+
 template <dimension D, typename T>
 bulk::util::binary_tree<bulk::util::split>
 partition_bisection(const tomo::geometry::base<D, T>& geometry,
@@ -39,150 +185,16 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
     // TODO: support for non-2^k-way partitionings
     assert(math::is_power_of_two(processors));
 
-    // alias the split type of the form (d, a)
-    using split_t = bulk::util::split;
-    using box_t = std::array<math::vec2<int>, D>;
-
     // compute the 'depth' of the tree (i.e. log(p))
     auto depth = (int)log2(processors);
     assert(1 << depth == processors);
-
-    auto find_split = [&](const std::vector<math::line<D, T>>& lines,
-                          std::vector<math::line<D, T>>& lines_left,
-                          std::vector<math::line<D, T>>& lines_right,
-                          box_t bounds) -> split_t {
-        struct crossing_event {
-            math::vec<D, T> point;
-            std::size_t line_index;
-            math::vec<D, int> direction;
-        };
-
-        std::vector<crossing_event> crossings;
-
-        // we want to tag each line with an entry point and exit point
-        // the priority queue depends on the dimension!
-        // first intersect each line with the bounds
-        std::size_t idx = 0;
-        for (auto line : lines) {
-            auto intersections = math::intersect_bounds<D, T>(line, bounds);
-            if (intersections) {
-                auto a = intersections.value().first;
-                auto b = intersections.value().second;
-                crossings.push_back({a, idx, math::sign<D, T>(b - a)});
-                crossings.push_back({b, idx, math::sign<D, T>(a - b)});
-            }
-            ++idx;
-        }
-
-        T best_imbalance = max_epsilon;
-        int best_overlap = std::numeric_limits<int>::max();
-        int best_split = 0;
-        int best_d = -1;
-
-        for (int d = 0; d < D; ++d) {
-            auto compare = [d](crossing_event& lhs, crossing_event& rhs) {
-                return lhs.point[d] < rhs.point[d];
-            };
-
-            auto imbalance = [&](int i) -> T {
-                return math::abs(0.5 -
-                                 (T)(i - bounds[d][0]) /
-                                     (bounds[d][1] - bounds[d][0]));
-            };
-
-            std::sort(crossings.begin(), crossings.end(), compare);
-
-            int overlap = 0;
-            std::size_t current_crossing = 0;
-            // FIXME can make this exponential search to speed up
-            while (current_crossing < crossings.size() &&
-                   math::approx_equal(crossings[current_crossing].point[d],
-                                      (T)bounds[d][0])) {
-                ++overlap;
-                ++current_crossing;
-            }
-
-            // only if point changes
-            int last_split = bounds[d][0];
-            for (; current_crossing < crossings.size(); ++current_crossing) {
-                auto crossing = crossings[current_crossing];
-
-                int split = (int)crossings[current_crossing].point[d];
-                if (split != last_split) {
-                    int half_split = (last_split + split) / 2;
-                    last_split = split;
-
-                    // FIXME we dont get here *after* the final crossing
-                    auto epsilon = imbalance(half_split);
-                    if ((overlap < best_overlap && epsilon < max_epsilon) ||
-                        (overlap == best_overlap && epsilon < best_imbalance)) {
-                        best_overlap = overlap;
-                        best_imbalance = epsilon;
-                        best_split = half_split;
-                        best_d = d;
-                    }
-                }
-
-                overlap += crossing.direction[d];
-            }
-        }
-
-        if (best_d < 0) {
-            // FIXME output debug info
-            // using box_t = std::array<math::vec2<int>, D>;
-            std::cout << "Can't find split for bounds: "
-                      << "[" << bounds[0][0] << ", " << bounds[0][1] << "], "
-                      << "[" << bounds[1][0] << ", " << bounds[1][1] << "], "
-                      << "[" << bounds[2][0] << ", " << bounds[2][1] << "] "
-                      << "crossings.size(): " << crossings.size() << ", "
-                      << "lines.size(): " << lines.size() << ", "
-                      << "\n";
-            best_d = 0;
-            best_split = (T)0.5 * (bounds[0][0] + bounds[0][1]);
-        }
-
-        auto best_compare = [best_d](crossing_event& lhs, crossing_event& rhs) {
-            return lhs.point[best_d] < rhs.point[best_d];
-        };
-        std::sort(crossings.begin(), crossings.end(), best_compare);
-
-        std::set<std::size_t> indices_left;
-        std::set<std::size_t> indices_right;
-        for (std::size_t i = 0; i < lines.size(); ++i) {
-            indices_right.insert(i);
-        }
-
-        for (auto& crossing : crossings) {
-            if (crossing.point[best_d] > best_split)
-                break;
-
-            if (crossing.direction[best_d] > 0) {
-                // entering: in indices left as well as right
-                indices_left.insert(crossing.line_index);
-            } else if (crossing.direction[best_d] != 0) {
-                indices_right.erase(crossing.line_index);
-            } else {
-                // do both redundantly
-                indices_left.insert(crossing.line_index);
-                indices_right.erase(crossing.line_index);
-            }
-        }
-
-        for (auto left_idx : indices_left) {
-            lines_left.push_back(lines[left_idx]);
-        }
-
-        for (auto right_idx : indices_right) {
-            lines_right.push_back(lines[right_idx]);
-        }
-
-        return split_t{best_d, (int)(best_split)};
-    };
 
     // containers for the current left and right lines
     // TODO: needed here?
     std::vector<math::line<D, T>> all_lines;
     for (auto l : geometry) {
+        // FIXME actually; we need intersections here, not the truncation
+        // because it does a 'discrete intersection'
         auto line = math::truncate_to_volume(l, object_volume);
         if (line) {
             all_lines.push_back(line.value());
@@ -194,7 +206,7 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
 
     // all the information we need to split a subvolume and save it
     struct subvolume {
-        box_t bounds;
+        box_t<D> bounds;
         node* parent;
         dir direction;
         std::vector<math::line<D, T>> lines;
@@ -204,7 +216,7 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
     // state should be the correct lines and bounds
     std::stack<subvolume> split_stack;
 
-    box_t bounds;
+    box_t<D> bounds;
     for (int d = 0; d < D; ++d) {
         bounds[d][1] = object_volume.voxels()[d];
     }
@@ -223,7 +235,9 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
         std::vector<math::line<D, T>> right;
 
         // we now have the subvolume, and want to find the best split
-        auto best_split = find_split(sub.lines, left, right, sub.bounds);
+        // TODO not max_epsilon, but something dynamic
+        auto best_split =
+            find_split<D, T>(sub.lines, left, right, sub.bounds, max_epsilon);
 
         // add the split to the tree
         node* current_node = result.add(sub.parent, sub.direction, best_split);

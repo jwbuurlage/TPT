@@ -200,7 +200,7 @@ template <dimension D, typename T>
 bool inside_margin(vec<D, T> a, volume<D, T> vol, T margin) {
     for (int dim = 0; dim < D; ++dim) {
         if (a[dim] < -(margin + epsilon<T>) ||
-            a[dim] > (T)vol.voxels()[dim] + margin + epsilon<T>)
+            a[dim] >= (T)vol.voxels()[dim] + margin + epsilon<T>)
             return false;
     }
     return true;
@@ -258,7 +258,7 @@ aabb_intersection(vec<D, T> a, vec<D, T> b, vec<D, T> sides,
             t_min = std::max(t_min, (t1 < t2) ? t1 : t2);
             t_max = std::min(t_max, (t1 > t2) ? t1 : t2);
         } else {
-            if (a[d] < 0 || a[d] >= sides[d]) {
+            if (a[d] < -epsilon<T> || a[d] >= sides[d] + epsilon<T>) {
                 return optional<std::pair<vec<D, T>, vec<D, T>>>();
             }
         }
