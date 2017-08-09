@@ -190,8 +190,7 @@ class base {
 
     /** Construct the geometry with a given number of lines. */
     base(int projection_count, bool parallel = false)
-        : projection_count_(projection_count), parallel_(parallel) {
-    }
+        : projection_count_(projection_count), parallel_(parallel) {}
 
     virtual ~base() = default;
 
@@ -217,12 +216,27 @@ class base {
 
     virtual std::array<math::vec<D, T>, D - 1>
     projection_delta(int i) const = 0;
+    int offset(int idx) const { return offsets_[idx]; }
 
   protected:
+    std::vector<int> offsets_;
+
+    void compute_offsets_() {
+        offsets_.resize(projection_count());
+        offsets_[0] = 0;
+        std::iota(offsets_.begin() + 1, offsets_.end(), 0);
+        std::transform(
+            offsets_.begin() + 1, offsets_.end(), offsets_.begin() + 1,
+            [&](int i) { return math::reduce<D - 1>(projection_shape(i)); });
+        std::partial_sum(offsets_.begin() + 1, offsets_.end(),
+                         offsets_.begin() + 1);
+    }
+
     void compute_lines_() {
         for (auto i = 0; i < projection_count_; ++i) {
             line_count_ += math::reduce<D - 1>(this->projection_shape(i));
         }
+        this->compute_offsets_();
     }
 
     int projection_count_ = 0;

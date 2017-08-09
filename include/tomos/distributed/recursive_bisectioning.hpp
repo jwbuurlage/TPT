@@ -55,12 +55,13 @@ split_t find_split(const std::vector<math::line<D, T>>& lines,
     std::size_t idx = 0;
     for (auto line : lines) {
         auto intersections = math::intersect_bounds<D, T>(line, bounds);
-        // FIXME: check if intersects, since line may start inside bounds
         if (intersections) {
             auto a = intersections.value().first;
             auto b = intersections.value().second;
             crossings.push_back({a, idx, math::sign<D, T>(b - a)});
             crossings.push_back({b, idx, math::sign<D, T>(a - b)});
+        } else {
+            std::cout << "Line that should intersect does indeed not\n";
         }
         ++idx;
     }
@@ -190,11 +191,8 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
     assert(1 << depth == processors);
 
     // containers for the current left and right lines
-    // TODO: needed here?
     std::vector<math::line<D, T>> all_lines;
     for (auto l : geometry) {
-        // FIXME actually; we need intersections here, not the truncation
-        // because it does a 'discrete intersection'
         auto line = math::truncate_to_volume(l, object_volume);
         if (line) {
             all_lines.push_back(line.value());
