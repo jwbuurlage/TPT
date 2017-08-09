@@ -322,7 +322,8 @@ intersect_bounds(line<D, T> l, std::array<vec2<int>, D> bounds) {
     auto for_sure_far_enough = product<D, T>(bounds_sides);
 
     auto result = aabb_intersection<D, T>(
-        l.origin, for_sure_far_enough * l.delta, bounds_sides, bounds_origin);
+        l.origin - for_sure_far_enough * l.delta, for_sure_far_enough * l.delta,
+        bounds_sides, bounds_origin);
 
     if (result) {
         return std::pair<vec<D, T>, vec<D, T>>{result.value().first,

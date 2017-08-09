@@ -15,6 +15,21 @@ struct overlap {
     distributed::shadow region;
 };
 
+struct pod_shadow {
+    std::array<int, 2> min_pt;
+    std::array<int, 2> max_pt;
+};
+
+auto to_pod(distributed::shadow sh) {
+    return pod_shadow{math::vec_to_array<2_D, int>(sh.min_pt),
+                      math::vec_to_array<2_D, int>(sh.max_pt)};
+}
+
+auto from_pod(pod_shadow sh) {
+    return distributed::shadow{math::array_to_vec<2_D, int>(sh.min_pt),
+                               math::array_to_vec<2_D, int>(sh.max_pt)};
+}
+
 void communicate_overlaps(bulk::world& world,
                           projections<3_D, T>& local_proj_stack,
                           distributed::restricted_geometry<T>& local_geometry,
@@ -22,7 +37,7 @@ void communicate_overlaps(bulk::world& world,
     auto buffer = std::vector<T>();
     auto& proj_data = local_proj_stack.mutable_data();
 
-    auto q = bulk::queue<T[], int, distributed::shadow>(world);
+    auto q = bulk::queue<T[], int, pod_shadow>(world);
     for (auto ov : overlaps) {
         auto offset = local_proj_stack.offset(ov.projection);
         auto local_region = local_geometry.local_shadow(ov.projection);
@@ -40,12 +55,13 @@ void communicate_overlaps(bulk::world& world,
             }
         }
 
-        q(ov.target).send_many(buffer, ov.projection, ov.region);
+        q(ov.target).send(buffer, ov.projection, to_pod(ov.region));
     }
 
     world.sync();
 
-    for (auto && [ xs, proj, sh ] : q) {
+    for (auto && [ xs, proj, shpod ] : q) {
+        auto sh = from_pod(shpod);
         auto local_region = local_geometry.local_shadow(proj);
         auto w = distributed::shadow{sh.min_pt - local_region.min_pt,
                                      sh.max_pt - local_region.min_pt};
@@ -66,14 +82,9 @@ std::vector<overlap>
 compute_overlaps(bulk::world& world,
                  const distributed::restricted_geometry<T>& geometry) {
 
-    struct pod_shadow {
-        std::array<int, 2> min_pt;
-        std::array<int, 2> max_pt;
-    };
-
     auto overlaps = std::vector<overlap>();
 
-    auto s = world.processor_id();
+    auto s = world.rank();
     auto p = world.active_processors();
 
     // STEP 1: communicate shadows for all projections
@@ -82,8 +93,8 @@ compute_overlaps(bulk::world& world,
         bulk::coarray<pod_shadow>(world, p * geometry.projection_count());
 
     for (int i = 0; i < geometry.projection_count(); ++i) {
+        auto sh = geometry.local_shadow(i);
         for (int t = 0; t < p; ++t) {
-            auto sh = geometry.local_shadow(i);
             shadows(t)[p * i + s] = {math::vec_to_array<2_D, int>(sh.min_pt),
                                      math::vec_to_array<2_D, int>(sh.max_pt)};
         }

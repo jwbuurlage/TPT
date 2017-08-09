@@ -22,15 +22,11 @@ class projections {
 
     /** Construct default-initialized projections for a geometry. */
     projections(const geometry::base<D, T>& geometry)
-        : geometry_(geometry), data_(geometry.lines()) {
-        compute_offsets_();
-    }
+        : geometry_(geometry), data_(geometry.lines()) {}
 
     /** Construct projections for a geometry with constant value. */
     projections(const geometry::base<D, T>& geometry, T value)
-        : geometry_(geometry), data_(geometry.lines(), value) {
-        compute_offsets_();
-    }
+        : geometry_(geometry), data_(geometry.lines(), value) {}
 
     /**
      * Obtain a reference to the i-th measurement, corresponding to the i-th
@@ -51,7 +47,7 @@ class projections {
 
     ///** Get a projection as an image */
     image<D - 1, T> get_projection(int idx) const {
-        auto offset = offsets_[idx];
+        auto offset = this->offset(idx);
         auto shape = geometry_.projection_shape(idx);
         auto img = image<D - 1, T>(volume<D - 1, T>(shape));
         for (int i = 0; i < math::reduce<D - 1>(shape); ++i) {
@@ -62,30 +58,18 @@ class projections {
 
     /** Set a projection using an image */
     void set_projection(int idx, const image<D - 1, T>& img) {
-        auto offset = offsets_[idx];
+        auto offset = this->offset(idx);
         auto pixels = math::reduce<D - 1>(geometry_.projection_shape(idx));
         for (int i = 0; i < pixels; ++i) {
             data_[offset + i] = img[i];
         }
     }
 
-    int offset(int idx) const { return offsets_[idx]; }
+    int offset(int idx) const { return geometry_.offset(idx); }
+
+    auto size() const { return geometry_.lines(); }
 
   private:
-    void compute_offsets_() {
-        offsets_.resize(geometry_.projection_count());
-        offsets_[0] = 0;
-        std::iota(offsets_.begin() + 1, offsets_.end(), 0);
-        std::transform(offsets_.begin() + 1, offsets_.end(),
-                       offsets_.begin() + 1, [&](int i) {
-                           return math::reduce<D - 1>(
-                               geometry_.projection_shape(i));
-                       });
-        std::partial_sum(offsets_.begin() + 1, offsets_.end(),
-                         offsets_.begin() + 1);
-    }
-
-    std::vector<int> offsets_;
     const geometry::base<D, T>& geometry_;
     int projection_count_;
     std::vector<T> data_;
