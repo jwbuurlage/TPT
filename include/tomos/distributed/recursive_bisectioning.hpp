@@ -29,18 +29,95 @@ using box_t = std::array<math::vec2<int>, D>;
 
 using split_t = bulk::util::split;
 
-void voxel_weights() {
-    // TODO IMPL
-    // 1. Compute 'C' but with integer counts
-    // 2. Compute 2D partial sums everywhere
-    // 3. Write helper functions to get arbitrary rectangle weights
+template <dimension D, typename T>
+image<D, T> partial_sums(const image<D, T>& w) {
+    auto w_sums = image<D, T>(w.get_volume());
+    auto v = w.get_volume();
+
+    auto idx = [&](auto x, auto y, auto z) {
+        return v.voxels()[0] * v.voxels()[1] * x + v.voxels()[0] * y + z;
+    };
+
+    // 2. Compute 3D partial sums everywhere
+    for (int k = 0; k < v.voxels()[2]; ++k) {
+        for (int j = 0; j < v.voxels()[1]; ++j) {
+            for (int i = 1; i < v.voxels()[0]; ++i) {
+                w_sums[idx(i, j, k)] =
+                    w_sums[idx(i - 1, j, k)] + w[idx(i, j, k)];
+            }
+        }
+    }
+
+    for (int k = 0; k < v.voxels()[2]; ++k) {
+        for (int j = 1; j < v.voxels()[1]; ++j) {
+            for (int i = 0; i < v.voxels()[0]; ++i) {
+                w_sums[idx(i, j, k)] =
+                    w_sums[idx(i, j - 1, k)] + w[idx(i, j - 1, k)];
+            }
+        }
+    }
+
+    for (int k = 1; k < v.voxels()[2]; ++k) {
+        for (int j = 0; j < v.voxels()[1]; ++j) {
+            for (int i = 0; i < v.voxels()[0]; ++i) {
+                w_sums[idx(i, j, k)] =
+                    w_sums[idx(i, j, k - 1)] + w[idx(i, j, k - 1)];
+            }
+        }
+    }
+
+    return w_sums;
+}
+
+template <dimension D, typename T>
+image<D, T> voxel_weights(const geometry::base<D, T>& geometry,
+                          const volume<D, T>& volume) {
+    auto w = image<D, T>(volume);
+    auto proj = dim::closest<D, T>(volume);
+    for (auto line : geometry) {
+        for (auto [idx, value] : proj(line)) {
+            (void)value;
+            w[idx] += 1.0;
+        }
+    }
+
+    return partial_sums(w);
+}
+
+template <dimension D, typename T>
+T weight(math::vec3<int> base, math::vec3<int> end, image<D, T> ws) {
+    auto v = ws.get_volume();
+
+    auto x = end.x;
+    auto y = end.y;
+    auto z = end.z;
+    auto x0 = base.x - 1;
+    auto y0 = base.y - 1;
+    auto z0 = base.z - 1;
+
+    auto sum = [&](auto i, auto j, auto k) { return ws[ws.index(i, j, k)]; };
+
+    auto a = sum(x, y, z);
+    auto b = x0 > 0 ? sum(x0 - 1, y, z) : (T)0.0;
+    auto c = y0 > 0 ? sum(x, y0 - 1, z) : (T)0.0;
+    auto d = (x0 > 0 && y0 > 0) ? sum(x0 - 1, y0 - 1, z) : (T)0.0;
+    auto e = z0 > 0 ? sum(x, y, z0 - 1) : (T)0.0;
+    auto f = (x0 > 0 && z0 > 0) ? sum(x0 - 1, y, z0 - 1) : (T)0.0;
+    auto g = (y0 > 0 && z0 > 0) ? sum(x, y0 - 1, z0 - 1) : (T)0.0;
+    auto h =
+        (x0 > 0 && y0 > 0 && z0 > 0) ? sum(x0 - 1, y0 - 1, z0 - 1) : (T)0.0;
+
+    auto v1 = a - b - c + d;
+    auto v2 = e - f - g + h;
+
+    return v1 - v2;
 }
 
 template <dimension D, typename T>
 split_t find_split(const std::vector<math::line<D, T>>& lines,
                    std::vector<math::line<D, T>>& lines_left,
                    std::vector<math::line<D, T>>& lines_right, box_t<D> bounds,
-                   T max_epsilon = 0.2) {
+                   const image<D, T>& ws, T max_epsilon = 0.2) {
     struct crossing_event {
         math::vec<D, T> point;
         std::size_t line_index;
@@ -61,7 +138,7 @@ split_t find_split(const std::vector<math::line<D, T>>& lines,
             crossings.push_back({a, idx, math::sign<D, T>(b - a)});
             crossings.push_back({b, idx, math::sign<D, T>(a - b)});
         } else {
-            std::cout << "Line that should intersect does indeed not\n";
+            std::cout << "Line that should intersect does indeed not..\n";
         }
         ++idx;
     }
@@ -76,6 +153,11 @@ split_t find_split(const std::vector<math::line<D, T>>& lines,
             return lhs.point[d] < rhs.point[d];
         };
 
+        // TODO use ws here..
+        (void)ws;
+        // all lines are in physical coordinates..
+        // we need some way to discretize the bounds
+        // for this we use the number of voxels in `ws.get_volume()`
         auto imbalance = [&](int i) -> T {
             return math::abs(
                 0.5 - (T)(i - bounds[d][0]) / (bounds[d][1] - bounds[d][0]));
@@ -199,6 +281,8 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
         }
     }
 
+    auto ws = voxel_weights<D, T>(geometry, object_volume);
+
     using node = typename bulk::util::binary_tree<split_t>::node;
     using dir = typename bulk::util::binary_tree<split_t>::dir;
 
@@ -235,7 +319,7 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
         // we now have the subvolume, and want to find the best split
         // TODO not max_epsilon, but something dynamic
         auto best_split =
-            find_split<D, T>(sub.lines, left, right, sub.bounds, max_epsilon);
+            find_split<D, T>(sub.lines, left, right, sub.bounds, ws, max_epsilon);
 
         // add the split to the tree
         node* current_node = result.add(sub.parent, sub.direction, best_split);
