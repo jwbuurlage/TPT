@@ -30,11 +30,12 @@ void partition(std::string meta_file, std::string output_file, int processors,
     // then save to:
     tomo::serialize_tree(neutral, output_file);
 
-    auto large_tree = tomo::from_neutral_tree<T>(neutral, problem.object_volume);
+    auto large_tree =
+        tomo::from_neutral_tree<T>(neutral, problem.object_volume);
 
     auto part_bisected = bulk::tree_partitioning<D>(
-        tomo::math::vec_to_array<D, int>(problem.object_volume.voxels()), processors,
-        std::move(large_tree));
+        tomo::math::vec_to_array<D, int>(problem.object_volume.voxels()),
+        processors, std::move(large_tree));
     auto part_trivial = tomo::distributed::partition_trivial(
         *problem.acquisition_geometry, problem.object_volume, processors);
 
@@ -42,7 +43,8 @@ void partition(std::string meta_file, std::string output_file, int processors,
         tomo::util::ext_plotter<D, T> plotter("tcp://localhost:5555",
                                               "PP: " + output_file);
 
-        plotter.send_partition_information(part_bisected, processors, problem.object_volume);
+        plotter.send_partition_information(part_bisected, processors,
+                                           problem.object_volume);
 
         auto proj_stack =
             tomo::projections<3_D, T>(*problem.acquisition_geometry);
@@ -69,7 +71,7 @@ void partition(std::string meta_file, std::string output_file, int processors,
 
 void usage(std::string program_name) {
     std::cout << "USAGE: " << program_name
-              << " --in GEOMS --out OUT_DIR [-p PROCS] [-e EPS]\n";
+              << " --in GEOMS --out OUT_DIR [-p PROCS] [-e EPS] [--preview]\n";
 }
 
 int main(int argc, char* argv[]) {

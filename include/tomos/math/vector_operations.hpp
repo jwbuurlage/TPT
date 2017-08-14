@@ -239,10 +239,5 @@ vec<D, int> sign(vec<D, T> rhs) {
     return result;
 }
 
-template <dimension D, typename T>
-auto to_string(vec<D, T> x) {
-    return glm::to_string(x);
-}
-
 } // namespace math
 } // namespace tomo
