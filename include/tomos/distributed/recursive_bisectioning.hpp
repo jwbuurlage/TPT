@@ -68,7 +68,7 @@ image<D, T> partial_sums(const image<D, T>& w) {
 template <dimension D, typename T>
 image<D, T> voxel_weights(const geometry::base<D, T>& geometry,
                           const volume<D, T>& volume) {
-    auto w = image<D, T>(volume, (T)1.0);
+    auto w = image<D, T>(volume, (T)0.0);
     auto proj = dim::linear<D, T>(volume);
     for (auto line : geometry) {
         for (auto [idx, value] : proj(line)) {
@@ -140,16 +140,6 @@ split_t find_split(const std::vector<math::line<D, T>>& lines,
             auto b = intersections.value().second;
             crossings.push_back({a, idx, math::sign<D, T>(b - a)});
             crossings.push_back({b, idx, math::sign<D, T>(a - b)});
-        } else {
-            //            std::cout << "Line that should intersect does indeed
-            //            not.. "
-            //                      << math::line_to_string(line) << " in "
-            //                      << math::to_string<2, int>(bounds[0]) << " x
-            //                      "
-            //                      << math::to_string<2, int>(bounds[1]) << " x
-            //                      "
-            //                      << math::to_string<2, int>(bounds[2]) <<
-            //                      "\n";
         }
         ++idx;
     }
@@ -179,7 +169,8 @@ split_t find_split(const std::vector<math::line<D, T>>& lines,
             auto weight_right = weight(split_after, end, ws);
 
             auto avg = (weight_right + weight_left) * 0.5;
-            return math::max((weight_left / avg) - 1.0, (weight_right / avg) - 1.0);
+            return math::max((weight_left / avg) - 1.0,
+                             (weight_right / avg) - 1.0);
         };
 
         std::sort(crossings.begin(), crossings.end(), compare);
@@ -216,6 +207,7 @@ split_t find_split(const std::vector<math::line<D, T>>& lines,
                     best_split = half_split;
                     best_d = d;
                 }
+
             }
 
             overlap += crossing.direction[d];
@@ -246,12 +238,11 @@ split_t find_split(const std::vector<math::line<D, T>>& lines,
         indices_right.insert(i);
     }
 
-    for (auto& crossing : crossings) {
+    for (auto crossing : crossings) {
         if ((int)crossing.point[best_d] > best_split)
             break;
 
         if (crossing.direction[best_d] > 0) {
-            // entering: in indices left as well as right
             indices_left.insert(crossing.line_index);
         } else if (crossing.direction[best_d] < 0) {
             indices_right.erase(crossing.line_index);
@@ -293,13 +284,14 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
     auto depth = (int)log2(processors);
     assert(1 << depth == processors);
 
-    // containers for the current left and right lines
+    // container for all the lines intersecting the volume
     std::vector<math::line<D, T>> all_lines;
     for (auto l : geometry) {
         auto line = math::truncate_to_volume(l, object_volume);
         if (line) {
             all_lines.push_back(line.value());
         }
+        // ... else it misses the volume entirely, so we ignore it
     }
 
     auto ws = voxel_weights<D, T>(geometry, object_volume);
