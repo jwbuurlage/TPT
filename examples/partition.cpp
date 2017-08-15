@@ -1,6 +1,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <fstream>
 
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
@@ -124,6 +125,9 @@ int main(int argc, char* argv[]) {
     }
 
     table.print();
+
+    std::ofstream of(opts.arg("--out") + "volumes.md", std::ios::out);
+    table.print(of);
 
     return 0;
 }

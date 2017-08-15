@@ -42,7 +42,7 @@ class report {
             return;
         }
         std::stringstream ss;
-        ss << std::fixed << std::setprecision(1) << result;
+        ss << result;
         entries_[row][column] = ss.str();
         entries_tex_[row][column] = ss.str();
 
@@ -57,8 +57,8 @@ class report {
         entries_tex_[row][column] = texResult;
     }
 
-    void print() {
-        std::cout << title_ << "\n";
+    void print(std::ostream& os = std::cout) {
+        os << title_ << "\n";
 
         std::string hline = "|";
         auto repeat = [](std::string base, auto n) -> std::string {
@@ -68,45 +68,45 @@ class report {
             }
             return result;
         };
-        unsigned int line_size = row_size_ + 2;
-        for (auto col : column_width_) {
-            line_size += col.second + 4;
-            hline += repeat("-", col.second + 3);
+        hline += repeat("-", row_size_ + 2);
+        hline += "|";
+        for (auto col : columns_) {
+            hline += repeat("-", column_width_[col] + 2);
             hline += "|";
         }
 
-        auto addElement = [](int width, std::stringstream& result,
+        auto addElement = [repeat](int width, std::stringstream& result,
                              std::string entry) {
-            result << std::left << std::setprecision(1) << std::setw(width)
-                   << std::setfill(' ') << entry;
+            result << entry;
+            result << repeat(" ", width - entry.size());
         };
 
         std::stringstream ss;
         ss << "| ";
-        addElement(row_size_ + 2, ss, row_title_);
+        addElement(row_size_, ss, row_title_);
 
         for (auto& col : columns_) {
-            ss << "| ";
-            addElement(column_width_[col] + 2, ss, col);
+            ss << " | ";
+            addElement(column_width_[col], ss, col);
         }
         ss << " |";
 
-        std::cout << hline << "\n";
-        std::cout << ss.str() << "\n";
-        std::cout << hline << "\n";
+        os << hline << "\n";
+        os << ss.str() << "\n";
+        os << hline << "\n";
 
         for (auto& rowCols : entries_) {
             std::stringstream rowSs;
             rowSs << "| ";
-            addElement(row_size_ + 2, rowSs, rowCols.first);
+            addElement(row_size_, rowSs, rowCols.first);
             for (auto& col : columns_) {
-                rowSs << "| ";
-                addElement(column_width_[col] + 2, rowSs, rowCols.second[col]);
+                rowSs << " | ";
+                addElement(column_width_[col], rowSs, rowCols.second[col]);
             }
             rowSs << " |";
-            std::cout << rowSs.str() << "\n";
+            os << rowSs.str() << "\n";
         }
-        std::cout << hline << "\n";
+        os << hline << "\n";
     }
 
     void save_to_csv();
