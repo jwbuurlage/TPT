@@ -69,7 +69,7 @@ class tomosynthesis : public trajectory<3_D, T> {
     inline math::vec<3_D, T> apply_rotation_(math::vec<3_D, T> location,
                                              int projection) const {
         static auto axis = math::standard_basis<3_D, T>(0);
-        T angle_projection = source_arc_ / this->projection_count_;
+        T angle_projection = source_arc_ / (this->projection_count_ - 1);
         return math::rotate(location - image_center_(), axis,
                             -source_arc_ * (T)0.5 +
                                 angle_projection * projection) +

@@ -96,7 +96,7 @@ class helical_cone_beam : public trajectory<3_D, T> {
     }
 
     inline math::vec<3_D, T> height_(int projection) const {
-        return ((((T)projection / this->projection_count_) - (T)0.5) *
+        return ((((T)projection / (this->projection_count_ - 1)) - (T)0.5) *
                 this->volume_[2]) *
                math::standard_basis<3_D, T>(2);
     }

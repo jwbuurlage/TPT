@@ -118,6 +118,7 @@ int main(int argc, char* argv[]) {
     table.add_column("trivial");
     table.add_column("binary");
     table.add_column("improvement");
+    table.add_column("imbalance");
 
     for (auto in_and_out : ins_and_outs) {
         partition(in_and_out.first, in_and_out.second, processors, epsilon,
