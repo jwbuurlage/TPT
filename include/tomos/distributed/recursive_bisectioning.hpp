@@ -117,15 +117,28 @@ T weight(math::vec3<int> base, math::vec3<int> end, const image<D, T>& ws) {
 }
 
 template <dimension D, typename T>
+auto bounds_weight(box_t<D> bound, const image<D, T>& ws) {
+    auto base =
+        math::vec3<int>{bound[0][0], bound[1][0], bound[2][0]};
+    auto end =
+        math::vec3<int>{bound[0][1], bound[1][1], bound[2][1]};
+    return weight(base, end, ws);
+}
+
+template <dimension D, typename T>
 split_t find_split(const std::vector<math::line<D, T>>& lines,
                    std::vector<math::line<D, T>>& lines_left,
                    std::vector<math::line<D, T>>& lines_right, box_t<D> bounds,
                    const image<D, T>& ws, T max_epsilon = 0.2) {
+    std::cout << "Finding split with epsilon: " << max_epsilon << "\n";
+
     struct crossing_event {
         math::vec<D, T> point;
         std::size_t line_index;
         math::vec<D, int> direction;
     };
+
+    auto avg_weight = (bounds_weight<D, T>(bounds, ws) + 1) / 2;
 
     std::vector<crossing_event> crossings;
 
@@ -168,9 +181,7 @@ split_t find_split(const std::vector<math::line<D, T>>& lines,
             auto weight_left = weight(base, split_before, ws);
             auto weight_right = weight(split_after, end, ws);
 
-            auto avg = (weight_right + weight_left) * 0.5;
-            return math::max((weight_left / avg) - 1.0,
-                             (weight_right / avg) - 1.0);
+            return math::max(weight_left / (T)avg_weight, weight_right / (T)avg_weight) - (T)1.0;
         };
 
         std::sort(crossings.begin(), crossings.end(), compare);
@@ -261,6 +272,7 @@ split_t find_split(const std::vector<math::line<D, T>>& lines,
         lines_right.push_back(lines[right_idx]);
     }
 
+    std::cout << "Split found " << best_d << " " << best_split << "\n";
     return split_t{best_d, (int)(best_split)};
 }
 
@@ -306,6 +318,8 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
         dir direction;
         std::vector<math::line<D, T>> lines;
         int depth;
+        int p;
+        T epsilon;
     };
 
     // state should be the correct lines and bounds
@@ -316,7 +330,7 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
         bounds[d][1] = object_volume.voxels()[d] - 1;
     }
 
-    auto complete_volume = subvolume{bounds, nullptr, dir::left, all_lines, 0};
+    auto complete_volume = subvolume{bounds, nullptr, dir::left, all_lines, 0, processors, max_epsilon};
     split_stack.push(complete_volume);
 
     while (!split_stack.empty()) {
@@ -324,15 +338,18 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
 
         int sub_depth = sub.depth;
         auto sub_bounds = sub.bounds;
+        auto sub_p = sub.p;
+        auto sub_epsilon = sub.epsilon;
+
+        auto q = (int)log2(sub.p);
 
         // containers to hold the left and right lines
         std::vector<math::line<D, T>> left;
         std::vector<math::line<D, T>> right;
 
         // we now have the subvolume, and want to find the best split
-        // TODO not max_epsilon, but something dynamic
-        auto best_split = find_split<D, T>(sub.lines, left, right, sub.bounds,
-                                           ws, max_epsilon);
+        auto best_split = find_split<D, T>(sub.lines, left, right, sub_bounds,
+                                           ws, sub.epsilon / q);
 
         // add the split to the tree
         node* current_node = result.add(sub.parent, sub.direction, best_split);
@@ -341,16 +358,20 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
 
         // now right and left contain lines for recursion
         // we move these into the 'lower splits'
-        if (sub.depth + 1 < depth) {
+        if (sub_depth + 1 < depth) {
+            auto max_weight = ((T)1 + sub_epsilon) * (bounds_weight<D, T>(sub_bounds, ws) / sub_p);
+
             auto bounds_left = sub_bounds;
             bounds_left[best_split.d][1] = best_split.a;
+            auto eps_left = max_weight / bounds_weight<D, T>(bounds_left, ws) * sub_p / 2 - 1;
             split_stack.push(subvolume{bounds_left, current_node, dir::left,
-                                       std::move(left), sub_depth + 1});
+                                       std::move(left), sub_depth + 1, sub_p / 2, eps_left});
 
             auto bounds_right = sub_bounds;
             bounds_right[best_split.d][0] = best_split.a + 1;
+            auto eps_right = max_weight / bounds_weight<D, T>(bounds_right, ws) * sub_p / 2 - 1;
             split_stack.push(subvolume{bounds_right, current_node, dir::right,
-                                       std::move(right), sub_depth + 1});
+                                       std::move(right), sub_depth + 1, sub_p / 2, eps_right});
         }
     }
 
