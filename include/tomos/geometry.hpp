@@ -38,7 +38,7 @@ class base {
                        std::array<math::vec<D, T>, D - 1> projection_delta,
                        bool parallel = false, math::vec<D - 1, int> pixel = {})
             : projection_shape_(projection_shape),
-              detector_corner_(detector_corner),
+              detector_corner_(detector_corner + (T)0.5 * (projection_delta[0] + projection_delta[1])),
               source_location_(source_location),
               projection_delta_(projection_delta),
               current_location_(detector_corner_), parallel_(parallel),

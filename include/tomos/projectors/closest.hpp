@@ -24,10 +24,11 @@ class closest : public base<D, T> {
     using matrix_iterator = typename base<D, T>::matrix_iterator;
 
     void reset_(math::line<D, T> line) override {
-        auto current_point = line.origin;
+        auto current_point = line.origin + (T)0.5 * line.delta;
         while (math::inside<D, T>(current_point, this->volume_)) {
             // convert to vector of integers
-            auto index = this->volume_.index(math::vec<D, int>(current_point));
+            auto index = this->volume_.index(
+                math::vec<D, int>(current_point));
             if (index >= 0 && index < this->volume_.cells()) {
                 this->queue_.push_back({index, (T)1.0});
             }

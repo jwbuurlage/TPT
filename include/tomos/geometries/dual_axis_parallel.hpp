@@ -16,73 +16,114 @@ namespace geometry {
  * \tparam D the dimension of the volume.
  * \tparam T the scalar type to use
  */
-template <typename T>
-class dual_axis_parallel : public trajectory<3_D, T> {
+template <dimension D, typename T>
+class dual_axis_parallel : public base<D, T> {
   public:
-    dual_axis_parallel(volume<3_D, T> volume, int projection_count_per_axis,
-                       math::vec<2_D, T> detector_size,
-                       math::vec<2_D, int> detector_shape)
-        : trajectory<3_D, T>(volume, 2 * projection_count_per_axis,
-                             detector_size, detector_shape),
-          actual_detector_size_(detector_size) {
-        static_assert(false, "(dual-axis) parallel support should be "
-                             "implemented with a 'parallel trajectory' base");
-        projection_count_per_axis_ = math::reduce<2_D>(detector_size);
-        assert(projection_count_per_axis_ > 0);
+    /**
+     * Construct the parallel geometry for a given number of angles and
+     * detectors.
+     *
+     * \param angle_count the number of angles
+     * \param volume the volume being scanned
+     */
+    dual_axis_parallel(const volume<D, T>& volume, int angle_count)
+        : base<D, T>(angle_count * 2, true), volume_(volume),
+          projections_per_axis_(angle_count) {
+        auto angle_step = math::pi<T> / angle_count;
+        for (T angle = 0.0; angle < math::pi<T>; angle += angle_step) {
+            angles_.push_back(angle);
+        }
+
+        // TODO currently we only consider cubic volumes and explicitely check
+        // this here, but we can extend the definition to cuboids.
+        auto is_cubic = [](tomo::volume<D, T> vol) -> bool {
+            int x = vol[0];
+            for (int d = 1; d < D; ++d) {
+                if (vol[d] != x) {
+                    return false;
+                }
+            }
+            return true;
+        };
+        assert(is_cubic(volume));
+
+        source_position_ = math::volume_center(volume_);
+        source_position_[0] -= (T)2.0 * volume_[0];
+        detector_position_ = math::volume_center(volume_);
+        detector_position_[0] += (T)2.0 * volume_[0];
+
+        for (int d = 0; d < D - 1; ++d) {
+            detector_tilt_[d] = math::standard_basis<D, T>(d + 1);
+        }
+
+        this->compute_lines_();
     }
 
-    math::vec<3_D, T> source_location(int projection) const override final {
-        return transform_location_(
-            math::volume_center(this->volume_) -
-                ((T) this->volume_[0] * math::standard_basis<3_D, T>(0)),
-            projection_actual_(projection));
+    math::vec<D - 1, T> detector_size(int) const {
+        return math::restrict<D, T>(volume_.physical_lengths(), 0);
     }
 
-    math::vec<3_D, T> detector_location(int projection) const override final {
-        return transform_location_(
-                   math::volume_center(this->volume_) +
-                       ((T) this->volume_[0] * math::standard_basis<3_D, T>(0)),
-                   projection_actual_(projection)) +
-               this->detector_offset_(projection,
-                                      projection % projection_count_per_axis_,
-                                      actual_detector_size_);
+    math::vec<D - 1, int> projection_shape(int) const override {
+        return math::restrict<D, int>(volume_.voxels(), D - 1);
     }
 
-    std::array<math::vec<3_D, T>, 2>
-    detector_tilt(int projection) const override final {
-        return {apply_rotation_(math::standard_basis<3_D, T>(1),
-                                projection_actual_(projection)),
-                apply_rotation_(math::standard_basis<3_D, T>(2),
-                                projection_actual_(projection))};
+    math::vec<D, T> source_location(int i) const override final {
+        return transform_location_(source_position_, i) - delta_(i);
+    }
+
+    math::vec<D, T> detector_corner(int i) const override final {
+        return transform_location_(detector_position_, i) - delta_(i);
+    }
+
+    std::array<math::vec<D, T>, D - 1> detector_tilt(int i) const {
+        auto result = std::array<math::vec<D, T>, D - 1>();
+        for (int d = 0; d < D - 1; ++d) {
+            result[d] = apply_rotation_(detector_tilt_[d], i);
+        }
+        return result;
+    }
+
+    std::array<math::vec<D, T>, D - 1> projection_delta(int i) const override {
+        auto axes = detector_tilt(i);
+        auto result = std::array<math::vec<D, T>, D - 1>();
+        for (int d = 0; d < D - 1; ++d) {
+            result[d] = (T)(volume_[d] / projection_shape(i)[d]) * axes[d];
+        }
+        return result;
     }
 
   private:
-    inline math::vec<3_D, T> transform_location_(math::vec<3_D, T> location,
-                                                 int projection) const {
+    volume<D, T> volume_;
+    std::vector<T> angles_;
+
+    math::vec<D, T> source_position_;
+    math::vec<D, T> detector_position_;
+    std::array<math::vec<D, T>, D - 1> detector_tilt_;
+
+    inline math::vec<D, T> transform_location_(math::vec<D, T> location,
+                                               int projection) const {
         return apply_rotation_(location - math::volume_center(this->volume_),
                                projection) +
                math::volume_center(this->volume_);
     }
 
-    inline math::vec<3_D, T> apply_rotation_(math::vec<3_D, T> location,
-                                             int projection) const {
-        static auto axes = std::array<math::vec<3_D, T>, 2>{
-            math::standard_basis<3_D, T>(1), math::standard_basis<3_D, T>(2)};
-        auto axis = axes[projection / projection_count_per_axis_];
-
-        T angle_projection = math::pi<T> / projection_count_per_axis_;
-
-        return math::rotate(location, axis,
-                            angle_projection *
-                                (projection % projection_count_per_axis_));
+    inline math::vec<D, T> apply_rotation_(math::vec<D, T> location,
+                                           int projection) const {
+        auto axis = (projection > projections_per_axis_)
+                             ? math::standard_basis<D, T>(D - 1)
+                             : math::standard_basis<D, T>(D - 2);
+        return math::rotate(location, axis, angles_[projection % projections_per_axis_]);
     }
 
-    int projection_actual_(int projection) const {
-        return projection / projection_count_per_axis_;
+    inline math::vec<D, T> delta_(int i) const {
+        auto result = math::vec<D, T>();
+        for (int d = 0; d < D - 1; ++d) {
+            result += detector_size(i)[d] * detector_tilt(i)[d];
+        }
+        return (T)0.5 * result;
     }
 
-    int projection_count_per_axis_;
-    math::vec<2_D, int> actual_detector_size_;
+    int projections_per_axis_ = -1;
 };
 
 } // namespace geometry

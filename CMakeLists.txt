@@ -5,7 +5,7 @@ include(FeatureSummary)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-option(FOR_RELEASE "Build with all obtimizations turned on")
+option(FOR_RELEASE "Build with all optimizations turned on")
 option(WITH_MPI "Build MPI specific parts")
 option(WITH_ZMQ "Build ZeroMQ support for visualization servers")
 
@@ -20,7 +20,7 @@ include_directories(
     "ext/bulk/include"
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wno-missing-braces -Wfatal-errors -Werror -pedantic -O3 -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z -Wall -Wextra -Wshadow -Wno-missing-braces -Wfatal-errors -Werror -pedantic -O3 -march=native")
 if(FOR_RELEASE)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG")
 else(FOR_RELEASE)
@@ -95,6 +95,9 @@ if(WITH_ZMQ)
 
     add_executable("partition" "examples/partition.cpp")
     target_link_libraries("partition" ${LIB_NAMES})
+
+    add_executable("comvol" "examples/generate_comvol_table.cpp")
+    target_link_libraries("comvol" ${LIB_NAMES})
 endif(WITH_ZMQ)
 
 #find_package(CUDA 7.5 QUIET)
