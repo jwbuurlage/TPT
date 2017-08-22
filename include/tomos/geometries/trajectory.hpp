@@ -62,8 +62,7 @@ class trajectory : public base<D, T> {
     math::vec<D, T> detector_corner(int i) const override {
         return detector_location(i) -
                (T)0.5 * (detector_size_[0] * detector_tilt(i)[0] +
-                         detector_size_[1] * detector_tilt(i)[1] +
-                         projection_delta(i)[0] + projection_delta(i)[1]);
+                         detector_size_[1] * detector_tilt(i)[1]);
     }
 
     math::vec<D - 1, int> projection_shape(int) const override {

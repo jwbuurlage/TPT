@@ -16,7 +16,7 @@ using optional = std::experimental::optional<T>;
 #include "../common.hpp"
 #include "../math.hpp"
 #include "../math/stringify.hpp"
-#include "../projectors/linear.hpp"
+#include "../projectors/closest.hpp"
 #include "../volume.hpp"
 
 #include <bulk/bulk.hpp>
@@ -69,7 +69,7 @@ template <dimension D, typename T>
 image<D, T> voxel_weights(const geometry::base<D, T>& geometry,
                           const volume<D, T>& volume) {
     auto w = image<D, T>(volume, (T)0.0);
-    auto proj = dim::linear<D, T>(volume);
+    auto proj = dim::closest<D, T>(volume);
     for (auto line : geometry) {
         for (auto [idx, value] : proj(line)) {
             (void)value;
@@ -118,19 +118,22 @@ T weight(math::vec3<int> base, math::vec3<int> end, const image<D, T>& ws) {
 
 template <dimension D, typename T>
 auto bounds_weight(box_t<D> bound, const image<D, T>& ws) {
-    auto base =
-        math::vec3<int>{bound[0][0], bound[1][0], bound[2][0]};
-    auto end =
-        math::vec3<int>{bound[0][1], bound[1][1], bound[2][1]};
+    auto base = math::vec3<int>{bound[0][0], bound[1][0], bound[2][0]};
+    auto end = math::vec3<int>{bound[0][1], bound[1][1], bound[2][1]};
     return weight(base, end, ws);
 }
 
 template <dimension D, typename T>
-split_t find_split(const std::vector<math::line<D, T>>& lines,
-                   std::vector<math::line<D, T>>& lines_left,
-                   std::vector<math::line<D, T>>& lines_right, box_t<D> bounds,
-                   const image<D, T>& ws, T max_epsilon = 0.2) {
-    std::cout << "Finding split with epsilon: " << max_epsilon << "\n";
+std::pair<split_t, int> find_split(const std::vector<math::line<D, T>>& lines,
+                                   std::vector<math::line<D, T>>& lines_left,
+                                   std::vector<math::line<D, T>>& lines_right,
+                                   box_t<D> bounds, const image<D, T>& ws,
+                                   T max_epsilon = 0.2) {
+    std::cout << "Finding split with epsilon: " << max_epsilon << "\n"
+              << "for bounds: "
+              << "[" << bounds[0][0] << ", " << bounds[0][1] << "], "
+              << "[" << bounds[1][0] << ", " << bounds[1][1] << "], "
+              << "[" << bounds[2][0] << ", " << bounds[2][1] << "] \n";
 
     struct crossing_event {
         math::vec<D, T> point;
@@ -138,7 +141,7 @@ split_t find_split(const std::vector<math::line<D, T>>& lines,
         math::vec<D, int> direction;
     };
 
-    auto avg_weight = (bounds_weight<D, T>(bounds, ws) + 1) / 2;
+    auto avg_weight = (T)0.5 * bounds_weight<D, T>(bounds, ws);
 
     std::vector<crossing_event> crossings;
 
@@ -153,6 +156,12 @@ split_t find_split(const std::vector<math::line<D, T>>& lines,
             auto b = intersections.value().second;
             crossings.push_back({a, idx, math::sign<D, T>(b - a)});
             crossings.push_back({b, idx, math::sign<D, T>(a - b)});
+        } else {
+            std::cout << math::line_to_string(line) << " does not intersect\n"
+                      << "for bounds: "
+                      << "[" << bounds[0][0] << ", " << bounds[0][1] << "], "
+                      << "[" << bounds[1][0] << ", " << bounds[1][1] << "], "
+                      << "[" << bounds[2][0] << ", " << bounds[2][1] << "]\n";
         }
         ++idx;
     }
@@ -181,29 +190,24 @@ split_t find_split(const std::vector<math::line<D, T>>& lines,
             auto weight_left = weight(base, split_before, ws);
             auto weight_right = weight(split_after, end, ws);
 
-            return math::max(weight_left / (T)avg_weight, weight_right / (T)avg_weight) - (T)1.0;
+            return math::max(weight_left / (T)avg_weight,
+                             weight_right / (T)avg_weight) -
+                   (T)1.0;
         };
 
         std::sort(crossings.begin(), crossings.end(), compare);
 
         int overlap = 0;
-        std::size_t current_crossing = 0;
-        // FIXME can make this exponential search to speed up
-        while (current_crossing < crossings.size() &&
-               math::approx_equal(crossings[current_crossing].point[d],
-                                  (T)bounds[d][0])) {
-            ++overlap;
-            ++current_crossing;
-        }
 
         // only if point changes
         int last_split = bounds[d][0];
-        for (; current_crossing < crossings.size(); ++current_crossing) {
+        for (auto current_crossing = 0u; current_crossing < crossings.size(); ++current_crossing) {
             auto crossing = crossings[current_crossing];
 
             int split = (int)crossings[current_crossing].point[d];
-            if (split != last_split) {
-                int half_split = (last_split + split + 1) / 2;
+            if (split != last_split && split > bounds[d][0]) {
+                int half_split = ((split - 1) + last_split) / 2;
+                // FIXME average between the two again
                 last_split = split;
                 if (half_split >= bounds[d][1]) {
                     break;
@@ -218,7 +222,6 @@ split_t find_split(const std::vector<math::line<D, T>>& lines,
                     best_split = half_split;
                     best_d = d;
                 }
-
             }
 
             overlap += crossing.direction[d];
@@ -245,22 +248,24 @@ split_t find_split(const std::vector<math::line<D, T>>& lines,
 
     std::set<std::size_t> indices_left;
     std::set<std::size_t> indices_right;
-    for (std::size_t i = 0; i < lines.size(); ++i) {
-        indices_right.insert(i);
-    }
 
     for (auto crossing : crossings) {
-        if ((int)crossing.point[best_d] > best_split)
-            break;
-
-        if (crossing.direction[best_d] > 0) {
-            indices_left.insert(crossing.line_index);
-        } else if (crossing.direction[best_d] < 0) {
-            indices_right.erase(crossing.line_index);
+        if ((int)crossing.point[best_d] <= best_split) {
+            // event is happening left
+            if (crossing.direction[best_d] > 0) {
+                indices_left.insert(crossing.line_index);
+                indices_right.insert(crossing.line_index);
+            } else if (crossing.direction[best_d] < 0) {
+                assert(indices_right.find(crossing.line_index) != indices_right.end());
+                indices_right.erase(crossing.line_index);
+            } else {
+                indices_left.insert(crossing.line_index);
+            }
         } else {
-            // do both redundantly
-            indices_left.insert(crossing.line_index);
-            indices_right.erase(crossing.line_index);
+            // event is happening right
+            if (crossing.direction[best_d] >= 0) {
+                indices_right.insert(crossing.line_index);
+            }
         }
     }
 
@@ -273,7 +278,7 @@ split_t find_split(const std::vector<math::line<D, T>>& lines,
     }
 
     std::cout << "Split found " << best_d << " " << best_split << "\n";
-    return split_t{best_d, (int)(best_split)};
+    return {split_t{best_d, (int)(best_split)}, best_overlap};
 }
 
 template <dimension D, typename T>
@@ -296,12 +301,19 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
     auto depth = (int)log2(processors);
     assert(1 << depth == processors);
 
+    box_t<D> bounds;
+    for (int d = 0; d < D; ++d) {
+        bounds[d][1] = object_volume.voxels()[d] - 1;
+    }
+
     // container for all the lines intersecting the volume
     std::vector<math::line<D, T>> all_lines;
     for (auto l : geometry) {
-        auto line = math::truncate_to_volume(l, object_volume);
-        if (line) {
-            all_lines.push_back(line.value());
+        auto src = math::to_voxel<D, T>(l.source, object_volume);
+        auto det = math::to_voxel<D, T>(l.detector, object_volume);
+        auto line = math::line<D, T>{src, math::normalize(det - src)};
+        if (math::intersect_bounds<D, T>(line, bounds)) {
+            all_lines.push_back(line);
         }
         // ... else it misses the volume entirely, so we ignore it
     }
@@ -325,13 +337,11 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
     // state should be the correct lines and bounds
     std::stack<subvolume> split_stack;
 
-    box_t<D> bounds;
-    for (int d = 0; d < D; ++d) {
-        bounds[d][1] = object_volume.voxels()[d] - 1;
-    }
-
-    auto complete_volume = subvolume{bounds, nullptr, dir::left, all_lines, 0, processors, max_epsilon};
+    auto complete_volume = subvolume{bounds, nullptr,    dir::left,  all_lines,
+                                     0,      processors, max_epsilon};
     split_stack.push(complete_volume);
+
+    int total_overlap = 0;
 
     while (!split_stack.empty()) {
         const auto& sub = split_stack.top();
@@ -348,8 +358,9 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
         std::vector<math::line<D, T>> right;
 
         // we now have the subvolume, and want to find the best split
-        auto best_split = find_split<D, T>(sub.lines, left, right, sub_bounds,
-                                           ws, sub.epsilon / q);
+        auto [best_split, best_overlap] = find_split<D, T>(
+            sub.lines, left, right, sub_bounds, ws, sub.epsilon / q);
+        total_overlap += best_overlap;
 
         // add the split to the tree
         node* current_node = result.add(sub.parent, sub.direction, best_split);
@@ -359,21 +370,30 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
         // now right and left contain lines for recursion
         // we move these into the 'lower splits'
         if (sub_depth + 1 < depth) {
-            auto max_weight = ((T)1 + sub_epsilon) * (bounds_weight<D, T>(sub_bounds, ws) / sub_p);
+            auto max_weight = ((T)1 + sub_epsilon) *
+                              (bounds_weight<D, T>(sub_bounds, ws) / sub_p);
 
             auto bounds_left = sub_bounds;
             bounds_left[best_split.d][1] = best_split.a;
-            auto eps_left = max_weight / bounds_weight<D, T>(bounds_left, ws) * sub_p / 2 - 1;
+            auto eps_left =
+                max_weight / bounds_weight<D, T>(bounds_left, ws) * sub_p / 2 -
+                1;
             split_stack.push(subvolume{bounds_left, current_node, dir::left,
-                                       std::move(left), sub_depth + 1, sub_p / 2, eps_left});
+                                       std::move(left), sub_depth + 1,
+                                       sub_p / 2, eps_left});
 
             auto bounds_right = sub_bounds;
             bounds_right[best_split.d][0] = best_split.a + 1;
-            auto eps_right = max_weight / bounds_weight<D, T>(bounds_right, ws) * sub_p / 2 - 1;
+            auto eps_right =
+                max_weight / bounds_weight<D, T>(bounds_right, ws) * sub_p / 2 -
+                1;
             split_stack.push(subvolume{bounds_right, current_node, dir::right,
-                                       std::move(right), sub_depth + 1, sub_p / 2, eps_right});
+                                       std::move(right), sub_depth + 1,
+                                       sub_p / 2, eps_right});
         }
     }
+
+    std::cout << "I think it is: " << total_overlap << "\n";
 
     return result;
 }

@@ -71,7 +71,6 @@ class projections {
 
   private:
     const geometry::base<D, T>& geometry_;
-    int projection_count_;
     std::vector<T> data_;
 };
 

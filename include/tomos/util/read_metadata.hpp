@@ -16,6 +16,7 @@ namespace fs = std::experimental::filesystem;
 #include "../geometries/laminography.hpp"
 #include "../geometries/parallel.hpp"
 #include "../geometries/tomosynthesis.hpp"
+#include "../geometries/dual_axis_parallel.hpp"
 #include "../geometry.hpp"
 #include "../projections.hpp"
 #include "../volume.hpp"
@@ -103,7 +104,7 @@ read_vecs(std::shared_ptr<cpptoml::table> parameters, std::string name) {
 template <typename T>
 std::unique_ptr<tomo::geometry::cone_beam<T>>
 read_circular_cone_beam_geometry(std::shared_ptr<cpptoml::table> parameters,
-                                 tomo::volume<3_D, T> v) {
+                                 tomo::volume<3_D, T> v, int k = -1) {
     auto projection_count =
         (int)(*parameters->get_as<int64_t>("projection-count"));
 
@@ -118,6 +119,11 @@ read_circular_cone_beam_geometry(std::shared_ptr<cpptoml::table> parameters,
             "detector tilt does not consist of two vectors");
     }
 
+    if (k > 0) {
+        detector_shape = {k, k};
+        projection_count = k;
+    }
+
     return std::make_unique<tomo::geometry::cone_beam<T>>(
         v, projection_count, detector_size, detector_shape, source_position,
         detector_position, std::array<tomo::math::vec<3_D, T>, 2>{
@@ -127,7 +133,7 @@ read_circular_cone_beam_geometry(std::shared_ptr<cpptoml::table> parameters,
 template <typename T>
 std::unique_ptr<tomo::geometry::helical_cone_beam<T>>
 read_helical_cone_beam_geometry(std::shared_ptr<cpptoml::table> parameters,
-                                tomo::volume<3_D, T> v) {
+                                tomo::volume<3_D, T> v, int k = -1) {
     auto projection_count =
         (int)(*parameters->get_as<int64_t>("projection-count"));
 
@@ -143,6 +149,11 @@ read_helical_cone_beam_geometry(std::shared_ptr<cpptoml::table> parameters,
             "detector tilt does not consist of two vectors");
     }
 
+    if (k > 0) {
+        detector_shape = {k, k};
+        projection_count = k;
+    }
+
     return std::make_unique<tomo::geometry::helical_cone_beam<T>>(
         v, projection_count, detector_size, detector_shape, source_position,
         detector_position, rotations,
@@ -153,14 +164,14 @@ read_helical_cone_beam_geometry(std::shared_ptr<cpptoml::table> parameters,
 template <typename T>
 std::unique_ptr<tomo::geometry::cone_beam<T>>
 read_dynamic_cone_beam_geometry(std::shared_ptr<cpptoml::table> parameters,
-                                tomo::volume<3_D, T> v) {
+                                tomo::volume<3_D, T> v, int k = -1) {
     return nullptr;
 }
 
 template <typename T>
 std::unique_ptr<tomo::geometry::laminography<T>>
 read_laminography_geometry(std::shared_ptr<cpptoml::table> parameters,
-                           tomo::volume<3_D, T> v) {
+                           tomo::volume<3_D, T> v, int k = -1) {
     auto projection_count =
         (int)(*parameters->get_as<int64_t>("projection-count"));
 
@@ -171,6 +182,11 @@ read_laminography_geometry(std::shared_ptr<cpptoml::table> parameters,
     auto source_radius = (T)(*parameters->get_as<double>("source-radius"));
     auto detector_radius = (T)(*parameters->get_as<double>("detector-radius"));
 
+    if (k > 0) {
+        detector_shape = {k, k};
+        projection_count = k;
+    }
+
     return std::make_unique<tomo::geometry::laminography<T>>(
         v, projection_count, detector_size, detector_shape, source_position,
         detector_position, source_radius, detector_radius);
@@ -179,7 +195,7 @@ read_laminography_geometry(std::shared_ptr<cpptoml::table> parameters,
 template <typename T>
 std::unique_ptr<tomo::geometry::tomosynthesis<T>>
 read_tomosynthesis_geometry(std::shared_ptr<cpptoml::table> parameters,
-                            tomo::volume<3_D, T> v) {
+                            tomo::volume<3_D, T> v, int k = -1) {
 
     auto projection_count =
         (int)(*parameters->get_as<int64_t>("projection-count"));
@@ -190,6 +206,11 @@ read_tomosynthesis_geometry(std::shared_ptr<cpptoml::table> parameters,
     auto detector_position = read_vec<3_D, T>(parameters, "detector-position");
     auto source_arc = (T)(*parameters->get_as<double>("source-arc"));
 
+    if (k > 0) {
+        detector_shape = {k, k};
+        projection_count = k;
+    }
+
     return std::make_unique<tomo::geometry::tomosynthesis<T>>(
         v, projection_count, detector_size, detector_shape, source_position,
         detector_position, source_arc);
@@ -199,14 +220,14 @@ read_tomosynthesis_geometry(std::shared_ptr<cpptoml::table> parameters,
 template <typename T>
 std::unique_ptr<tomo::geometry::cone_beam<T>>
 read_double_helix_geometry(std::shared_ptr<cpptoml::table> parameters,
-                           tomo::volume<3_D, T> v) {
+                           tomo::volume<3_D, T> v, int k = -1) {
     return nullptr;
 }
 
 template <tomo::dimension D, typename T>
 std::unique_ptr<tomo::geometry::parallel<D, T>>
 read_parallel_geometry(std::shared_ptr<cpptoml::table> parameters,
-                       tomo::volume<D, T> v) {
+                       tomo::volume<D, T> v, int k = -1) {
     /* TODO:
      * - Extend parallel geometry support
      * - Detector shape is square
@@ -214,30 +235,57 @@ read_parallel_geometry(std::shared_ptr<cpptoml::table> parameters,
      *     tilt, size, position, source position, detector shape, and so on
      */
     auto angle_count = (int)(*parameters->get_as<int64_t>("projection-count"));
+
+    if (k > 0) {
+        angle_count = k;
+        v.set_voxels({k, k, k});
+    }
     return std::make_unique<tomo::geometry::parallel<D, T>>(v, angle_count);
+}
+
+template <tomo::dimension D, typename T>
+std::unique_ptr<tomo::geometry::dual_axis_parallel<D, T>>
+read_dual_parallel_geometry(std::shared_ptr<cpptoml::table> parameters,
+                       tomo::volume<D, T> v, int k = -1) {
+    /* TODO:
+     * - Extend parallel geometry support
+     * - Detector shape is square
+     * - Many fields ignored:
+     *     tilt, size, position, source position, detector shape, and so on
+     */
+    auto angle_count = (int)(*parameters->get_as<int64_t>("projection-count"));
+    if (k > 0) {
+        angle_count = k / 2;
+        v.set_voxels({k, k, k});
+    }
+
+    return std::make_unique<tomo::geometry::dual_axis_parallel<D, T>>(v, angle_count);
 }
 
 template <tomo::dimension D, typename T>
 std::unique_ptr<tomo::geometry::base<D, T>>
 read_geometry(std::string kind, std::shared_ptr<cpptoml::table> parameters,
-              tomo::volume<D, T> v) {
+              tomo::volume<D, T> v, int k = -1) {
     if (kind == "parallel") {
         std::cout << "Loading parallel geometry...\n";
-        return read_parallel_geometry<D, T>(parameters, v);
-    } else if (D != 3_D) {
+        return read_parallel_geometry<D, T>(parameters, v, k);
+    } else if (kind == "dual-parallel") {
+        std::cout << "Loading dual axis parallel geometry...\n";
+        return read_dual_parallel_geometry<D, T>(parameters, v, k);
+    }else if (D != 3_D) {
         throw invalid_geometry_config_error("Only parallel available in 2D");
     } else if (kind == "circular-cone-beam") {
         std::cout << "Loading circular cone beam geometry...\n";
-        return read_circular_cone_beam_geometry<T>(parameters, v);
+        return read_circular_cone_beam_geometry<T>(parameters, v, k);
     } else if (kind == "helical-cone-beam") {
         std::cout << "Loading helical cone beam geometry...\n";
-        return read_helical_cone_beam_geometry<T>(parameters, v);
+        return read_helical_cone_beam_geometry<T>(parameters, v, k);
     } else if (kind == "laminography") {
         std::cout << "Loading laminography geometry...\n";
-        return read_laminography_geometry<T>(parameters, v);
+        return read_laminography_geometry<T>(parameters, v, k);
     } else if (kind == "tomosynthesis") {
         std::cout << "Loading tomosynthesis geometry...\n";
-        return read_tomosynthesis_geometry<T>(parameters, v);
+        return read_tomosynthesis_geometry<T>(parameters, v, k);
     } else {
         throw invalid_geometry_config_error(
             "Invalid or unsupported 'type' supplied for geometry");
@@ -286,7 +334,7 @@ read_projection_stack(std::shared_ptr<cpptoml::table> parameters,
 }
 
 template <tomo::dimension D, typename T>
-reconstruction_problem<D, T> read_configuration(std::string file) {
+reconstruction_problem<D, T> read_configuration(std::string file, int k = -1) {
     using namespace std::string_literals;
 
     auto config = cpptoml::parse_file(file);
@@ -309,7 +357,7 @@ reconstruction_problem<D, T> read_configuration(std::string file) {
     auto v = read_volume<D, T>(config->get_table("volume"));
 
     auto kind = config->get_as<std::string>("type");
-    auto g = read_geometry<D, T>(*kind, config->get_table("parameters"), v);
+    auto g = read_geometry<D, T>(*kind, config->get_table("parameters"), v, k);
 
     assert(g->lines() > 0);
 

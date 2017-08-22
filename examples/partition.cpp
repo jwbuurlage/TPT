@@ -1,7 +1,7 @@
+#include <fstream>
 #include <string>
 #include <utility>
 #include <vector>
-#include <fstream>
 
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
@@ -43,7 +43,6 @@ void partition(std::string meta_file, std::string output_file, int processors,
     if (preview) {
         tomo::util::ext_plotter<D, T> plotter("tcp://localhost:5555",
                                               "PP: " + output_file);
-
         plotter.send_partition_information(part_bisected, processors,
                                            problem.object_volume);
 
@@ -63,11 +62,16 @@ void partition(std::string meta_file, std::string output_file, int processors,
     if (overlap_trivial != 0)
         imp = (overlap_trivial - overlap_bisected) / (T)overlap_trivial;
 
+    auto imbalance = tomo::distributed::load_imbalance(
+        problem.object_volume, part_bisected, *problem.acquisition_geometry);
+
     auto name = fs::path(meta_file).stem();
     table.add_row(name);
     table.add_result(name, "trivial", overlap_trivial);
     table.add_result(name, "binary", overlap_bisected);
     table.add_result(name, "improvement", fmt::format("{:.1f}%", 100 * imp));
+    table.add_result(name, "imbalance", fmt::format("{:.2f}", imbalance));
+    std::cout << "It is actually: " << overlap_bisected << "\n";
 }
 
 void usage(std::string program_name) {

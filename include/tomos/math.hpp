@@ -281,7 +281,7 @@ template <dimension D, typename T>
 vec<D, T> to_voxel(vec<D, T> x, volume<D, T> v) {
     x -= v.origin();
     x /= v.physical_lengths();
-    x *= (v.voxels() - vec<D, int>(1));
+    x *= v.voxels();
     return x;
 }
 
@@ -317,12 +317,13 @@ intersect_bounds(line<D, T> l, std::array<vec2<int>, D> bounds) {
     vec<D, T> bounds_origin{bounds[0][0], bounds[1][0], bounds[2][0]};
 
     vec<D, T> bounds_sides =
-        vec<D, T>{bounds[0][1], bounds[1][1], bounds[2][1]} - bounds_origin;
+        vec<D, T>{bounds[0][1] + 1, bounds[1][1] + 1, bounds[2][1] + 1} - bounds_origin;
 
-    auto for_sure_far_enough = product<D, T>(bounds_sides);
-
+    auto center = bounds_origin + (T)0.5 * bounds_sides;
+    auto for_sure_far_enough = (T)2.0 * distance(l.origin, center); 
+    auto b = l.origin + for_sure_far_enough * l.delta;
     auto result = aabb_intersection<D, T>(
-        l.origin - for_sure_far_enough * l.delta, l.origin + for_sure_far_enough * l.delta,
+        l.origin, b,
         bounds_sides, bounds_origin);
 
     if (result) {

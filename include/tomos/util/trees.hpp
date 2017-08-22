@@ -62,7 +62,7 @@ void add_to_voxel_tree(bulk::util::binary_tree<bulk::util::split>::node* voxel,
                        tree_node<T>* neutral, tomo::volume<3_D, T> v) {
     if (neutral && voxel) {
         voxel->value.d = neutral->d;
-        voxel->value.a = (int)(neutral->a * v.voxels()[neutral->d]);
+        voxel->value.a = (int)(neutral->a * v.voxels()[neutral->d] - 0.5);
         if (neutral->left.get()) {
             voxel->left = std::make_unique<
                 bulk::util::binary_tree<bulk::util::split>::node>(
@@ -115,7 +115,10 @@ void serialize_tree(tree_node<T>& tree, std::string filename) {
 }
 
 template <typename T>
-std::unique_ptr<tree_node<T>> deserialize_node(std::string input) {
+std::unique_ptr<tree_node<T>> deserialize_node(std::string input, int depth) {
+    if (depth <= 0) {
+        return nullptr;
+    }
     if (input.size() < 2 || input[0] != '[') {
         return nullptr;
     }
@@ -161,18 +164,19 @@ std::unique_ptr<tree_node<T>> deserialize_node(std::string input) {
 
     auto spl = split_value(get_part(0));
     auto node = std::make_unique<tree_node<T>>(spl.first, spl.second);
-    node->left = std::move(deserialize_node<T>(get_part(1)));
-    node->right = std::move(deserialize_node<T>(get_part(2)));
+    node->left = std::move(deserialize_node<T>(get_part(1), depth - 1));
+    node->right = std::move(deserialize_node<T>(get_part(2), depth - 1));
 
     return node;
 }
 
 template <typename T>
-std::unique_ptr<tree_node<T>> deserialize_tree(std::string filename) {
+std::unique_ptr<tree_node<T>> deserialize_tree(std::string filename,
+                                               int depth) {
     std::ifstream input(filename, std::ios::in);
     std::string tree_line;
     std::getline(input, tree_line);
-    return deserialize_node<T>(tree_line);
+    return deserialize_node<T>(tree_line, depth);
 }
 
 void print_bulk_node_(bulk::util::binary_tree<bulk::util::split>::node* node,
@@ -217,8 +221,9 @@ void print_neutral_tree(tree_node<T>& node) {
 
 template <typename T>
 std::unique_ptr<bulk::tree_partitioning<3_D>>
-load_partitioning(std::string filename, tomo::volume<3_D, T> v) {
-    auto reloaded = tomo::deserialize_tree<T>(filename);
+load_partitioning(std::string filename, tomo::volume<3_D, T> v,
+                  int depth = -1) {
+    auto reloaded = tomo::deserialize_tree<T>(filename, depth);
     if (!reloaded) {
         std::cout << "Could not deserialize: " << filename << "\n";
         return nullptr;
