@@ -4,6 +4,7 @@
 #include <regex>
 #include <stdexcept>
 #include <string>
+#include <limits>
 
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
@@ -62,6 +63,49 @@ tiff_stack_to_projections(const tomo::geometry::base<D, T>& g,
     }
 
     return result;
+}
+
+template <typename T = default_scalar_type>
+void write_png(tomo::image<2_D, T> x, std::string filename) {
+    auto v = x.get_volume();
+
+    T min = 0.0;
+    for (auto y : x.data()) {
+        if (y < min) {
+            min = y;
+        }
+    }
+    for (auto& y : x.mutable_data()) {
+        y -= min;
+    }
+    T max = 0.0;
+    for (auto y : x.data()) {
+        if (y > max) {
+            max = y;
+        }
+    }
+
+    auto image = cv::Mat(v.voxels()[0], v.voxels()[1], CV_8UC1);
+    for (int i = 0; i < v.voxels()[0]; ++i) {
+        for (int j = 0; j < v.voxels()[1]; ++j) {
+            image.at<unsigned char>(i, j) =
+                (unsigned char)(x[x.index({i, j})] / max *
+                                std::numeric_limits<unsigned char>::max());
+        }
+    }
+
+    std::vector<int> compression_params;
+    compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+    compression_params.push_back(9);
+
+    try {
+        imwrite(filename + ".png", image, compression_params);
+    } catch (std::runtime_error& ex) {
+        fprintf(stderr, "Exception converting image to PNG format: %s\n",
+                ex.what());
+    }
+
+    std::cout << "Saved: " << filename << ".png\n";
 }
 
 } // namespace tomo

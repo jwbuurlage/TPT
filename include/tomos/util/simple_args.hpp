@@ -47,7 +47,7 @@ struct options {
         return x;
     }
 
-    bool required_arguments(std::vector<std::string> args) {
+    bool required_arguments(const std::vector<std::string>& args) {
         for (auto& arg : args) {
             if (!passed(arg)) {
                 return false;
