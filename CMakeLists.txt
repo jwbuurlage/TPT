@@ -142,6 +142,7 @@ if(MPI_CXX_FOUND)
     set(
         MPI_SOURCES
         "simple_distributed.cpp"
+        "run_measurement.cpp"
         )
 
     set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${MPI_COMPILE_FLAGS})
