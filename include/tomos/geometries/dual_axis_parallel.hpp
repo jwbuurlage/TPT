@@ -46,6 +46,7 @@ class dual_axis_parallel : public base<D, T> {
             return true;
         };
         assert(is_cubic(volume));
+        (void)is_cubic;
 
         source_position_ = math::volume_center(volume_);
         source_position_[0] -= (T)2.0 * volume_[0];

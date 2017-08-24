@@ -56,6 +56,7 @@ set(
     "read_tiff.cpp"
     "dose_deposition.cpp"
     "geometry_benchmark.cpp"
+    "reserialize.cpp"
     #"partitioning_tests.cpp"
 )
 

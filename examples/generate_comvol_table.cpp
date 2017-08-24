@@ -1,5 +1,6 @@
 #include <cmath>
 #include <fstream>
+#include <mutex>
 #include <string>
 #include <utility>
 #include <vector>
@@ -20,29 +21,36 @@ namespace td = tomo::distributed;
 
 using T = float;
 
-void compute(std::string tree_file, std::string geometry_file, int a, int b,
-             tomo::util::report& table, bool preview) {
-    (void)geometry_file;
+std::mutex g_result_mutex;
 
-    auto name = fs::path(tree_file).stem().string();
+void compute(std::string tree_dir, std::string geometry_file, int a, int b,
+             tomo::util::report& table, bool preview) {
+
+    auto name = fs::path(geometry_file).stem().string();
     table.add_row(name + " V_b"s);
     table.add_row(name + " V_t"s);
     table.add_row(name + " g"s);
     table.add_row(name + " eps"s);
     for (int p = a; p <= b; p *= 2) {
-        int k = tomo::math::min(p * 4, 512);
-        auto obj_vol = tomo::volume<3_D, T>({k, k, k}, {0, 0, 0}, {1, 1, 1});
-        auto geom = tomo::geometry::cone_beam<T>(obj_vol, 1, {1, 1}, {1, 1},
-                                                 1.0f, 1.0f);
-        auto tree_part = tomo::load_partitioning(tree_file, obj_vol, log2(p));
+        // use tree dir and geometry file to  get tree file
+        // ...
+        auto tree_file =
+            tree_dir + "/" + std::to_string(p) + "/" + name + ".bsp";
+
+        int k = tomo::math::min(512, p * 4);
+        // auto obj_vol = tomo::volume<3_D, T>({k, k, k}, {0, 0, 0}, {1, 1, 1});
         auto problem = tomo::read_configuration<3_D, T>(geometry_file, k);
         auto& geometry = *problem.acquisition_geometry;
-
-        auto part_trivial = tomo::distributed::partition_trivial(
-            *problem.acquisition_geometry, obj_vol, p);
+        auto obj_vol = problem.object_volume;
+        auto tree_part = tomo::load_partitioning(tree_file, obj_vol, log2(p));
 
         auto overlap_bisected =
             td::communication_volume<3_D, T>(geometry, obj_vol, *tree_part);
+
+        auto main_d = tree_part->splits().root->value.d;
+        auto part_trivial = bulk::block_partitioning<3_D, 1>(
+            tomo::math::vec_to_array<3_D, int>(obj_vol.voxels()), {p},
+            {main_d});
         auto overlap_trivial =
             td::communication_volume<3_D, T>(geometry, obj_vol, part_trivial);
 
@@ -53,14 +61,19 @@ void compute(std::string tree_file, std::string geometry_file, int a, int b,
         auto imbalance =
             tomo::distributed::load_imbalance(obj_vol, *tree_part, geometry);
 
-        table.add_result(name + " V_b"s, "p = "s + std::to_string(p),
-                         overlap_bisected);
-        table.add_result(name + " V_t"s, "p = "s + std::to_string(p),
-                         overlap_trivial);
-        table.add_result(name + " g"s, "p = "s + std::to_string(p),
-                         fmt::format("{:.1f}%", 100 * imp));
-        table.add_result(name + " eps"s, "p = "s + std::to_string(p),
-                         fmt::format("{:.2f}", imbalance));
+        {
+            std::lock_guard<std::mutex> guard(g_result_mutex);
+            table.add_result(name + " V_b"s, "p = "s + std::to_string(p),
+                             overlap_bisected);
+            table.add_result(name + " V_t"s, "p = "s + std::to_string(p),
+                             overlap_trivial);
+            table.add_result(name + " g"s, "p = "s + std::to_string(p),
+                             fmt::format("{:.1f}%", 100 * imp));
+            table.add_result(name + " eps"s, "p = "s + std::to_string(p),
+                             fmt::format("{:.2f}", imbalance));
+
+            std::cout << tree_file + " imbalance: " << imbalance << "\n";
+        }
 
         // auto partitioning = from_obj_and_tree(tree, obj_vol, p);
         // split in 'i', make partitioning, compute comvol, add gain and trivial
@@ -75,30 +88,30 @@ void compute(std::string tree_file, std::string geometry_file, int a, int b,
                 "tcp://localhost:5555",
                 "PP: "s + tree_file + " p = "s + std::to_string(p));
             plotter.send_partition_information(*tree_part, p, obj_vol);
-            plotter.send_projection_data(
-                (tomo::geometry::trajectory<3_D, T>&)(geometry),
-                problem.projection_stack, obj_vol);
+            //            plotter.send_projection_data(
+            //                (tomo::geometry::trajectory<3_D, T>&)(geometry),
+            //                problem.projection_stack, obj_vol);
         }
     }
 }
 
 void usage(std::string program_name) {
-    std::cout
-        << "USAGE: " << program_name
-        << " --in TREES --geom GEOM -o TABLE_FILE -a MIN_PROC -b MAX_PROC\n";
+    std::cout << "USAGE: " << program_name << " --in TREE_MAIN_FOLDER --geom "
+                                              "GEOMS -o TABLE_FILE -a MIN_PROC "
+                                              "-b MAX_PROC\n";
 }
 
 int main(int argc, char* argv[]) {
     auto opts = tomo::options{argc, argv};
 
     // the usage should be:
-    // ./genvol --in [trees] --geom [geom] -o [file] -a [minproc] -b [maxproc]
+    // ./comvol --in [trees] --geom [geom] -o [file] -a [minproc] -b [maxproc]
     if (!(opts.required_arguments({"--in", "--geom", "-o", "-a", "-b"}))) {
         usage(argv[0]);
         return -1;
     }
 
-    auto ins = opts.args("--in");
+    auto in_dir = opts.arg("--in");
     auto geoms = opts.args("--geom");
     auto out = opts.arg("-o");
     auto a = opts.arg_as<int>("-a");
@@ -109,11 +122,15 @@ int main(int argc, char* argv[]) {
         table.add_column("p = "s + std::to_string(i));
     }
 
-    assert(ins.size() == geoms.size());
+    std::vector<std::thread> threads;
+    for (auto i = 0u; i < geoms.size(); ++i) {
+        std::cout << in_dir << " " << geoms[i] << "\n";
+        threads.emplace_back(compute, in_dir, geoms[i], a, b, std::ref(table),
+                             opts.passed("--preview"));
+    }
 
-    for (auto i = 0u; i < ins.size(); ++i) {
-        std::cout << ins[i] << " " << geoms[i] << "\n";
-        compute(ins[i], geoms[i], a, b, table, opts.passed("--preview"));
+    for (auto& thread : threads) {
+        thread.join();
     }
 
     table.print();

@@ -13,8 +13,8 @@ namespace distributed {
 
 template <dimension D, typename T>
 long long communication_volume(const geometry::base<D, T>& geometry,
-                         volume<D, T> object_volume,
-                         bulk::partitioning<D>& partitioning) {
+                               volume<D, T> object_volume,
+                               bulk::partitioning<D>& partitioning) {
     long long result = 0;
 
     // TODO comvol is now wrt closest, how do we want to do this
