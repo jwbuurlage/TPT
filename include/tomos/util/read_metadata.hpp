@@ -12,11 +12,11 @@ namespace fs = std::experimental::filesystem;
 
 #include "../common.hpp"
 #include "../geometries/cone.hpp"
+#include "../geometries/dual_axis_parallel.hpp"
 #include "../geometries/helical_cone_beam.hpp"
 #include "../geometries/laminography.hpp"
 #include "../geometries/parallel.hpp"
 #include "../geometries/tomosynthesis.hpp"
-#include "../geometries/dual_axis_parallel.hpp"
 #include "../geometry.hpp"
 #include "../projections.hpp"
 #include "../volume.hpp"
@@ -246,7 +246,7 @@ read_parallel_geometry(std::shared_ptr<cpptoml::table> parameters,
 template <tomo::dimension D, typename T>
 std::unique_ptr<tomo::geometry::dual_axis_parallel<D, T>>
 read_dual_parallel_geometry(std::shared_ptr<cpptoml::table> parameters,
-                       tomo::volume<D, T> v, int k = -1) {
+                            tomo::volume<D, T> v, int k = -1) {
     /* TODO:
      * - Extend parallel geometry support
      * - Detector shape is square
@@ -259,7 +259,8 @@ read_dual_parallel_geometry(std::shared_ptr<cpptoml::table> parameters,
         v.set_voxels({k, k, k});
     }
 
-    return std::make_unique<tomo::geometry::dual_axis_parallel<D, T>>(v, angle_count);
+    return std::make_unique<tomo::geometry::dual_axis_parallel<D, T>>(
+        v, angle_count);
 }
 
 template <tomo::dimension D, typename T>
@@ -272,7 +273,7 @@ read_geometry(std::string kind, std::shared_ptr<cpptoml::table> parameters,
     } else if (kind == "dual-parallel") {
         std::cout << "Loading dual axis parallel geometry...\n";
         return read_dual_parallel_geometry<D, T>(parameters, v, k);
-    }else if (D != 3_D) {
+    } else if (D != 3_D) {
         throw invalid_geometry_config_error("Only parallel available in 2D");
     } else if (kind == "circular-cone-beam") {
         std::cout << "Loading circular cone beam geometry...\n";
@@ -294,7 +295,7 @@ read_geometry(std::string kind, std::shared_ptr<cpptoml::table> parameters,
 }
 
 template <tomo::dimension D, typename T>
-tomo::volume<D, T> read_volume(std::shared_ptr<cpptoml::table> parameters) {
+tomo::volume<D, T> read_volume(std::shared_ptr<cpptoml::table> parameters, int k = -1) {
     auto voxels = read_vec<3_D, int>(parameters, "voxels");
 
     // cpptoml only supports double precision and 64 bit integer parsing,
@@ -310,26 +311,28 @@ tomo::volume<D, T> read_volume(std::shared_ptr<cpptoml::table> parameters) {
     auto min_point = stdvec_to_tomovec<D, T>(*min_array);
     auto max_point = stdvec_to_tomovec<D, T>(*max_array);
 
+    if (k >= 0) {
+        voxels = {k, k, k};
+    }
+
     return tomo::volume<D, T>(voxels, min_point, max_point - min_point);
 }
 
 template <tomo::dimension D, typename T>
-tomo::projections<D, T>
+std::unique_ptr<tomo::projections<D, T>>
 read_projection_stack(std::shared_ptr<cpptoml::table> parameters,
                       tomo::geometry::base<D, T>& g, fs::path root_directory) {
 
     try {
         auto proj_count = *parameters->get_qualified_as<int64_t>(
             "parameters.projection-count");
-        std::cout << "Projection count: " << proj_count << "\n";
         auto filename_pattern =
             *parameters->get_as<std::string>("projection-filename-pattern");
-        return tomo::tiff_stack_to_projections<D, T>(
-            g, filename_pattern, proj_count, root_directory);
+        return std::make_unique<tomo::projections<D, T>>(
+            std::move(tomo::tiff_stack_to_projections<D, T>(
+                g, filename_pattern, proj_count, root_directory)));
     } catch (const std::exception& e) {
-        std::cout << "No projection stack given, resolving to default.\n";
-        auto projs = tomo::projections<D, T>(g);
-        return projs;
+        return nullptr;
     }
 }
 
@@ -354,7 +357,7 @@ reconstruction_problem<D, T> read_configuration(std::string file, int k = -1) {
                                             "dimension");
     }
 
-    auto v = read_volume<D, T>(config->get_table("volume"));
+    auto v = read_volume<D, T>(config->get_table("volume"), k);
 
     auto kind = config->get_as<std::string>("type");
     auto g = read_geometry<D, T>(*kind, config->get_table("parameters"), v, k);

@@ -13,7 +13,7 @@ template <tomo::dimension D, typename T>
 struct reconstruction_problem {
     std::unique_ptr<tomo::geometry::base<D, T>> acquisition_geometry;
     tomo::volume<D, T> object_volume;
-    tomo::projections<D, T> projection_stack;
+    std::unique_ptr<tomo::projections<D, T>> projection_stack;
 };
 
 } // namespace tomo

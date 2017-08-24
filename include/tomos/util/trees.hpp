@@ -1,4 +1,4 @@
-/* This file contains some utilities for working with partitioning trees. */
+/* This ile contains some utilities for working with partitioning trees. */
 
 #include <fstream>
 #include <memory>
@@ -37,7 +37,7 @@ void add_to_tree(tree_node<T>* neutral,
                  tomo::volume<3_D, T> v) {
     if (neutral && original) {
         neutral->d = original->value.d;
-        neutral->a = (T)original->value.a / v.voxels()[neutral->d];
+        neutral->a = (T)(original->value.a + 1) / v.voxels()[neutral->d]; // we save the mathematical split
         if (original->left.get()) {
             neutral->left = std::make_unique<tree_node<T>>();
             add_to_tree(neutral->left.get(), original->left.get(), v);
@@ -62,7 +62,7 @@ void add_to_voxel_tree(bulk::util::binary_tree<bulk::util::split>::node* voxel,
                        tree_node<T>* neutral, tomo::volume<3_D, T> v) {
     if (neutral && voxel) {
         voxel->value.d = neutral->d;
-        voxel->value.a = (int)(neutral->a * v.voxels()[neutral->d] - 0.5);
+        voxel->value.a = (int)((neutral->a + 1 / 512.0) * v.voxels()[neutral->d] + 0.5) - 1;
         if (neutral->left.get()) {
             voxel->left = std::make_unique<
                 bulk::util::binary_tree<bulk::util::split>::node>(
