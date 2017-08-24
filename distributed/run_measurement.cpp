@@ -17,6 +17,7 @@ using namespace experimental;
 #include "tomos/tomos.hpp"
 #include "tomos/util/read_tiff.hpp"
 #include "tomos/util/simple_args.hpp"
+#include "tomos/util/trees.hpp"
 
 #include "overlaps.hpp"
 
@@ -25,8 +26,7 @@ using namespace tomo;
 using T = float;
 
 // Assumes global volume has physical size [0, 1]^3
-template <int G>
-auto calculate_local_volume(bulk::rectangular_partitioning<3, G>& partitioning,
+auto calculate_local_volume(bulk::rectangular_partitioning<3, 1>& partitioning,
                             int s) {
     auto to_vec = [](auto array_like) -> math::vec3<T> {
         math::vec3<T> result;
@@ -88,6 +88,7 @@ compute_contributions(bulk::world& world,
                                   << global_shape[0] << " x " << global_shape[1]
                                   << "\n";
                         assert(false);
+                        exit(-1);
                     }
                     pixels[b * pixel_count + j * global_shape[0] + i].push_back(
                         t);
@@ -161,9 +162,9 @@ void communicate_contributions(bulk::world& world, projections<3_D, T>& projs,
     auto q = bulk::queue<int, T>(world);
     auto share = [&](const auto& xs) {
         for (auto result : xs) {
-		auto target = result.target;
-		auto local = result.local_line;
-		auto remote = result.remote_line;
+            auto target = result.target;
+            auto local = result.local_line;
+            auto remote = result.remote_line;
             q(target).send(remote, projs[local]);
         }
     };
@@ -184,7 +185,8 @@ void communicate_contributions(bulk::world& world, projections<3_D, T>& projs,
 template <int G>
 void collect_orthos(bulk::world& world, tomo::image<3_D, T> x,
                     tomo::volume<3_D, T> global_volume,
-                    bulk::rectangular_partitioning<3, G>& part) {
+                    bulk::rectangular_partitioning<3, G>& part,
+                    std::string name) {
     auto s = world.rank();
     auto voxels = global_volume.voxels();
     auto center = voxels / 2;
@@ -230,121 +232,161 @@ void collect_orthos(bulk::world& world, tomo::image<3_D, T> x,
             tomo::image<2_D, T>(tomo::volume<2_D, T>({voxels[1], voxels[2]}));
 
         for (auto result : xy) {
-	    auto i = std::get<0>(result);
-	    auto j = std::get<1>(result);
-	    auto value = std::get<2>(result);
+            auto i = std::get<0>(result);
+            auto j = std::get<1>(result);
+            auto value = std::get<2>(result);
             slice_xy[slice_xy.index({i, j})] = value;
         }
 
         for (auto result : xz) {
-	    auto i = std::get<0>(result);
-	    auto j = std::get<1>(result);
-	    auto value = std::get<2>(result);
+            auto i = std::get<0>(result);
+            auto j = std::get<1>(result);
+            auto value = std::get<2>(result);
             slice_xz[slice_xz.index({i, j})] = value;
         }
 
         for (auto result : yz) {
-	    auto i = std::get<0>(result);
-	    auto j = std::get<1>(result);
-	    auto value = std::get<2>(result);
+            auto i = std::get<0>(result);
+            auto j = std::get<1>(result);
+            auto value = std::get<2>(result);
             slice_yz[slice_yz.index({i, j})] = value;
         }
 
-        tomo::write_png(slice_xy, "slice_xy");
-        tomo::write_png(slice_xz, "slice_xz");
-        tomo::write_png(slice_yz, "slice_yz");
+        tomo::write_png(slice_xy, name + "_slice_xy");
+        tomo::write_png(slice_xz, name + "_slice_xz");
+        tomo::write_png(slice_yz, name + "_slice_yz");
     }
 }
 
-void run(int k, int iters = 10) {
+void sirt(bulk::world& world,
+          bulk::rectangular_partitioning<3_D, 1>& partitioning,
+          tomo::volume<3_D, T> global_volume,
+          geometry::trajectory<3_D, T>& global_geometry,
+          tomo::util::report& table, std::string name, std::string column,
+          int iters) {
 
+    auto vs = calculate_local_volume(partitioning, world.rank());
+
+    image<3_D, T> phantom(vs);
+    fill_ellipsoids_(phantom, mshl_ellipsoids_<T>(), vs, global_volume);
+
+    auto gs = distributed::restricted_geometry<T>(global_geometry, vs);
+    auto p = projections<3_D, T>(gs);
+
+    using dimmer = dim::joseph<3_D, T>;
+    auto fp = [](const auto& f, const auto& g, const auto& v, auto& q) {
+        auto proj = dimmer(v);
+        int line_number = 0;
+        for (auto line : g) {
+            for (auto elem : proj(line)) {
+                q[line_number] += f[elem.index] * elem.value;
+            }
+            ++line_number;
+        }
+    };
+    fp(phantom, gs, vs, p);
+
+    auto bp = [](const auto& p_, const auto& g, const auto& v, auto& x_) {
+        auto proj = dimmer(v);
+        int line_number = 0;
+        for (auto line : g) {
+            for (auto elem : proj(line)) {
+                x_[elem.index] += p_[line_number] * elem.value;
+            }
+            ++line_number;
+        }
+    };
+
+    auto result = compute_contributions(world, gs);
+    auto& go_forth = result.first;
+    auto& and_back = result.second;
+
+    // communicate row and column sums
+    auto invert = [](auto x) { return (T)1.0 / x; };
+    auto invert_all = [&](auto& xs) {
+        std::transform(xs.begin(), xs.end(), xs.begin(), invert);
+    };
+    auto r = projections<3_D, T>(gs);
+    fp(image<3_D, T>(vs, (T)1.0), gs, vs, r);
+    communicate_contributions(world, r, go_forth, and_back);
+    invert_all(r.mutable_data());
+    auto c = image<3_D, T>(vs);
+    bp(projections<3_D, T>(gs, (T)1.0), gs, vs, c);
+    invert_all(c.mutable_data());
+
+    // buffer proj stack
+    auto q = projections<3_D, T>(gs);
+    auto z = image<3_D, T>(vs);
+    auto x = image<3_D, T>(vs);
+
+    auto stopwatch = bulk::util::timer();
+    for (int iter = 0; iter < iters; ++iter) {
+        fp(x, gs, vs, q);
+        for (int l = 0; l < gs.lines(); ++l) {
+            q[l] = r[l] * (p[l] - q[l]);
+        }
+        communicate_contributions(world, q, go_forth, and_back);
+        bp(q, gs, vs, z);
+        for (int i = 0; i < vs.cells(); ++i) {
+            x[i] += c[i] * z[i];
+        }
+
+        z.clear();
+        q.clear();
+    }
+
+    table.add_result(
+        name, column,
+        fmt::format("{:.2f}", stopwatch.get<std::milli>() / (1000.0 * iters)));
+
+    collect_orthos(world, x, global_volume, partitioning, name + "_" + column);
+}
+
+void run(const std::vector<std::string>& geoms, std::string part_dir, int k,
+         int iters, std::string outfile, tomo::util::report& table) {
     bulk::mpi::environment env;
 
-    // this creates a volume [0, 1]^3, with k voxels in each axis
-    auto global_volume = volume<3_D, T>(k);
-    auto global_geometry =
-        geometry::cone_beam<T>(global_volume, k, {2.0, 2.0}, {k, k}, 2.0, 2.0);
-
     auto processors = env.available_processors();
-    auto partitioning = bulk::block_partitioning<3, 3>({k, k, k}, {1, 1, processors});
-
     std::cout << "Running reconstruction with: " << processors << " procs\n";
 
     env.spawn(processors, [&](auto& world) {
-        auto vs = calculate_local_volume(partitioning, world.rank());
+        auto p = world.active_processors();
 
-        image<3_D, T> phantom(vs);
-        fill_ellipsoids_(phantom, mshl_ellipsoids_<T>(), vs, global_volume);
+        for (auto geom_file : geoms) {
+            auto name = fs::path(geom_file).stem().string();
+            table.add_row(name);
 
-        auto gs = distributed::restricted_geometry<T>(global_geometry, vs);
-        auto p = projections<3_D, T>(gs);
+            // this creates a volume [0, 1]^3, with k voxels in each axis
+            auto problem = tomo::read_configuration<3_D, T>(geom_file, k);
+            auto& global_geometry = *problem.acquisition_geometry;
+            auto global_volume = problem.object_volume;
 
-        using dimmer = dim::closest<3_D, T>;
-        auto fp = [](const auto& f, const auto& g, const auto& v, auto& q) {
-            auto proj = dimmer(v);
-            int line_number = 0;
-            for (auto line : g) {
-                for (auto elem : proj(line)) {
-                    q[line_number] += f[elem.index] * elem.value;
-                }
-                ++line_number;
-            }
-        };
-        fp(phantom, gs, vs, p);
+            auto tree_file = part_dir + "/" + std::to_string(processors) + "/" +
+                             name + ".bsp";
 
-        auto bp = [](const auto& p_, const auto& g, const auto& v, auto& x_) {
-            auto proj = dimmer(v);
-            int line_number = 0;
-            for (auto line : g) {
-                for (auto elem : proj(line)) {
-                    x_[elem.index] += p_[line_number] * elem.value;
-                }
-                ++line_number;
-            }
-        };
+            auto tree_partitioning =
+                tomo::load_partitioning(tree_file, global_volume, log2(p));
 
-        auto result = compute_contributions(world, gs);
-	auto& go_forth = result.first;
-	auto& and_back = result.second;
+            auto main_d = tree_partitioning->splits().root->value.d;
 
-        // communicate row and column sums
-        auto invert = [](auto x) { return (T)1.0 / x; };
-        auto invert_all = [&](auto& xs) {
-            std::transform(xs.begin(), xs.end(), xs.begin(), invert);
-        };
-        auto r = projections<3_D, T>(gs);
-        fp(image<3_D, T>(vs, (T)1.0), gs, vs, r);
-        communicate_contributions(world, r, go_forth, and_back);
-        invert_all(r.mutable_data());
-        auto c = image<3_D, T>(vs);
-        bp(projections<3_D, T>(gs, (T)1.0), gs, vs, c);
-        invert_all(c.mutable_data());
+            // which dimension, the first split decides.....
+            auto block_partitioning = bulk::block_partitioning<3_D, 1>(
+                tomo::math::vec_to_array<3_D, int>(global_volume.voxels()), {p},
+                {main_d});
 
-        // buffer proj stack
-        auto q = projections<3_D, T>(gs);
-        auto z = image<3_D, T>(vs);
-        auto x = image<3_D, T>(vs);
-
-        auto stopwatch = bulk::util::timer();
-        for (int iter = 0; iter < iters; ++iter) {
-            fp(x, gs, vs, q);
-            for (int l = 0; l < gs.lines(); ++l) {
-                q[l] = r[l] * (p[l] - q[l]);
-            }
-            communicate_contributions(world, q, go_forth, and_back);
-            bp(q, gs, vs, z);
-            for (int i = 0; i < vs.cells(); ++i) {
-                x[i] += c[i] * z[i];
-            }
-
-            z.clear();
-            q.clear();
+            sirt(world, block_partitioning, global_volume,
+                 (tomo::geometry::trajectory<3_D, T>&)global_geometry, table,
+                 name, "trivial", iters);
+            sirt(world, *tree_partitioning, global_volume,
+                 (tomo::geometry::trajectory<3_D, T>&)global_geometry, table,
+                 name, "bisected", iters);
         }
+
         if (world.rank() == 0) {
-            world.log("SIRT: %.2f sec", stopwatch.get<std::milli>() / 1000.0);
+            table.print();
+            std::ofstream of(outfile, std::ios::out);
+            table.print(of);
         }
-
-        collect_orthos(world, x, global_volume, partitioning);
     });
 }
 
@@ -355,12 +397,18 @@ void usage(std::string program_name) {
 int main(int argc, char* argv[]) {
     auto opts = options{argc, argv};
 
-    if (!opts.required_arguments({"-k", "-i"})) {
+    if (!opts.required_arguments({"--geom", "--part", "--out", "-k", "-i"})) {
         usage(argv[0]);
         return -1;
     }
 
-    run(opts.arg_as<int>("-k"), opts.arg_as<int>("-i"));
+    auto table = tomo::util::report(
+        "Runtimes " + std::to_string(opts.arg_as<int>("-k")), "geometry");
+    table.add_column("trivial");
+    table.add_column("bisected");
+
+    run(opts.args("--geom"), opts.arg("--part"), opts.arg_as<int>("-k"),
+        opts.arg_as<int>("-i"), opts.arg("--out"), table);
 
     return 0;
 }

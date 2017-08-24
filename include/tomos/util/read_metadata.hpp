@@ -151,7 +151,7 @@ read_helical_cone_beam_geometry(std::shared_ptr<cpptoml::table> parameters,
 
     if (k > 0) {
         detector_shape = {k, k};
-        projection_count = k;
+        projection_count = k / 2;
     }
 
     return std::make_unique<tomo::geometry::helical_cone_beam<T>>(
