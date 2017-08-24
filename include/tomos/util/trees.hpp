@@ -62,7 +62,7 @@ void add_to_voxel_tree(bulk::util::binary_tree<bulk::util::split>::node* voxel,
                        tree_node<T>* neutral, tomo::volume<3_D, T> v) {
     if (neutral && voxel) {
         voxel->value.d = neutral->d;
-        voxel->value.a = (int)((neutral->a + 1 / 512.0) * v.voxels()[neutral->d] + 0.5) - 1;
+        voxel->value.a = (int)(neutral->a * v.voxels()[neutral->d] + 0.5) - 1;
         if (neutral->left.get()) {
             voxel->left = std::make_unique<
                 bulk::util::binary_tree<bulk::util::split>::node>(
