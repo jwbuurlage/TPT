@@ -71,9 +71,8 @@ image<D, T> voxel_weights(const geometry::base<D, T>& geometry,
     auto w = image<D, T>(volume, (T)0.0);
     auto proj = dim::closest<D, T>(volume);
     for (auto line : geometry) {
-        for (auto [idx, value] : proj(line)) {
-            (void)value;
-            w[idx] += 1.0;
+        for (auto melm : proj(line)) {
+            w[melm.index] += 1.0;
         }
     }
 
@@ -358,7 +357,9 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
         std::vector<math::line<D, T>> right;
 
         // we now have the subvolume, and want to find the best split
-        auto [best_split, best_overlap] = find_split<D, T>(
+	split_t best_split;
+	int best_overlap;
+        std::tie(best_split, best_overlap)  = find_split<D, T>(
             sub.lines, left, right, sub_bounds, ws, sub.epsilon / q);
         total_overlap += best_overlap;
 

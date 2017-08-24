@@ -160,21 +160,24 @@ void communicate_contributions(bulk::world& world, projections<3_D, T>& projs,
                                const std::vector<shared_pixel>& results) {
     auto q = bulk::queue<int, T>(world);
     auto share = [&](const auto& xs) {
-        for (auto [target, local, remote] : xs) {
+        for (auto result : xs) {
+		auto target = result.target;
+		auto local = result.local_line;
+		auto remote = result.remote_line;
             q(target).send(remote, projs[local]);
         }
     };
 
     share(contributions);
     world.sync();
-    for (auto [idx, value] : q) {
-        projs[idx] += value;
+    for (auto melem : q) {
+        projs[std::get<0>(melem)] += std::get<1>(melem);
     }
 
     share(results);
     world.sync();
-    for (auto [idx, value] : q) {
-        projs[idx] = value;
+    for (auto melem : q) {
+        projs[std::get<0>(melem)] = std::get<1>(melem);
     }
 }
 
@@ -226,15 +229,24 @@ void collect_orthos(bulk::world& world, tomo::image<3_D, T> x,
         auto slice_yz =
             tomo::image<2_D, T>(tomo::volume<2_D, T>({voxels[1], voxels[2]}));
 
-        for (auto [i, j, value] : xy) {
+        for (auto result : xy) {
+	    auto i = std::get<0>(result);
+	    auto j = std::get<1>(result);
+	    auto value = std::get<2>(result);
             slice_xy[slice_xy.index({i, j})] = value;
         }
 
-        for (auto [i, j, value] : xz) {
+        for (auto result : xz) {
+	    auto i = std::get<0>(result);
+	    auto j = std::get<1>(result);
+	    auto value = std::get<2>(result);
             slice_xz[slice_xz.index({i, j})] = value;
         }
 
-        for (auto [i, j, value] : yz) {
+        for (auto result : yz) {
+	    auto i = std::get<0>(result);
+	    auto j = std::get<1>(result);
+	    auto value = std::get<2>(result);
             slice_yz[slice_yz.index({i, j})] = value;
         }
 
@@ -254,7 +266,9 @@ void run(int k, int iters = 10) {
         geometry::cone_beam<T>(global_volume, k, {2.0, 2.0}, {k, k}, 2.0, 2.0);
 
     auto processors = env.available_processors();
-    auto partitioning = bulk::block_partitioning<3, 3>({k, k, k}, {2, 2, 2});
+    auto partitioning = bulk::block_partitioning<3, 3>({k, k, k}, {1, 1, processors});
+
+    std::cout << "Running reconstruction with: " << processors << " procs\n";
 
     env.spawn(processors, [&](auto& world) {
         auto vs = calculate_local_volume(partitioning, world.rank());
@@ -262,7 +276,7 @@ void run(int k, int iters = 10) {
         image<3_D, T> phantom(vs);
         fill_ellipsoids_(phantom, mshl_ellipsoids_<T>(), vs, global_volume);
 
-        auto gs = distributed::restricted_geometry(global_geometry, vs);
+        auto gs = distributed::restricted_geometry<T>(global_geometry, vs);
         auto p = projections<3_D, T>(gs);
 
         using dimmer = dim::closest<3_D, T>;
@@ -289,7 +303,9 @@ void run(int k, int iters = 10) {
             }
         };
 
-        auto [go_forth, and_back] = compute_contributions(world, gs);
+        auto result = compute_contributions(world, gs);
+	auto& go_forth = result.first;
+	auto& and_back = result.second;
 
         // communicate row and column sums
         auto invert = [](auto x) { return (T)1.0 / x; };

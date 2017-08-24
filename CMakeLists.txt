@@ -18,9 +18,10 @@ include_directories(
     "ext/fmt/"
     "ext/cpptoml/include/"
     "ext/bulk/include"
+    "../glm"
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z -Wall -Wextra -Wshadow -Wno-missing-braces -Wfatal-errors -Werror -pedantic -O3 -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z -Wall -Wextra -Wshadow -Wno-attributes -Wno-missing-braces -Wfatal-errors -Werror -pedantic -O3 -march=native")
 if(FOR_RELEASE)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG")
 else(FOR_RELEASE)
@@ -28,7 +29,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 endif(FOR_RELEASE)
 
 # ignore warnings from external libs
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ../ext/fmt -isystem ../ext/cpptoml/include -isystem ~/.local/include -isystem ../ext/bulk/include -isystem /usr/local/cuda/include")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ../ext/fmt -isystem ../ext/cpptoml/include -isystem ~/.local/include -isystem ../ext/bulk/include -isystem /usr/local/cuda/include -isystem ../../glm/")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
@@ -65,10 +66,8 @@ set(
     "pthread"
     "tomos"
     "boost_program_options"
-    "opencv_core"
-    "opencv_highgui"
-    "opencv_imgcodecs"
     "stdc++fs"
+    "opencv_highgui"
 )
 
 foreach(source_file ${EXAMPLE_SOURCES})
@@ -84,7 +83,6 @@ if(WITH_ZMQ)
         "ext/cppzmq"
         "ext/libzmq/include"
     )
-    set(LIB_NAMES ${LIB_NAMES} "zmq")
     add_executable("external_plotter" "examples/external_plotter.cpp")
     target_link_libraries("external_plotter" ${LIB_NAMES})
 
@@ -132,6 +130,7 @@ endif(WITH_ZMQ)
 # add_subdirectory(../test/build ../test/build)
 
 find_package(MPI QUIET)
+find_package(OpenCV REQUIRED)
 
 if(WITH_MPI AND WITH_ZMQ)
 if(MPI_CXX_FOUND)
@@ -146,15 +145,21 @@ if(MPI_CXX_FOUND)
         "run_measurement.cpp"
         )
 
-    set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${MPI_COMPILE_FLAGS})
-    set(CMAKE_CXX_LINK_FLAGS ${CMAKE_CXX_LINK_FLAGS} ${MPI_LINK_FLAGS})
-    include_directories(${MPI_INCLUDE_PATH})
+message("${MPI_CXX_COMPILE_FLAGS}")
+message("${MPI_CXX_LINK_FLAGS}")
+message("${MPI_CXX_INCLUDE_PATH}")
+message("${MPI_CXX_LIBRARIES}")
+    set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${MPI_CXX_COMPILE_FLAGS})
+    set(CMAKE_CXX_LINK_FLAGS ${CMAKE_CXX_LINK_FLAGS} ${MPI_CXX_LINK_FLAGS})
+    include_directories(${MPI_CXX_INCLUDE_PATH})
+	include_directories( ${OpenCV_INCLUDE_DIRS} )
+
 
     # make distributed example
     foreach(source_file ${MPI_SOURCES})
         string(REPLACE ".cpp" "" source_name ${source_file})
         add_executable(mpi_${source_name} ${MPI_DIR}${source_file})
-        target_link_libraries(mpi_${source_name} ${LIB_NAMES} ${MPI_LIBRARIES})
+        target_link_libraries(mpi_${source_name} ${LIB_NAMES} ${MPI_CXX_LIBRARIES} ${OpenCV_LIBS})
     endforeach(source_file)
 else(MPI_CXX_FOUND)
     message("No MPI installation found.")
