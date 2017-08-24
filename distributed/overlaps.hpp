@@ -60,7 +60,11 @@ void communicate_overlaps(bulk::world& world,
 
     world.sync();
 
-    for (auto && [ xs, proj, shpod ] : q) {
+    for (auto& result : q) {
+	auto xs = std::get<0>(result);
+	auto proj = std::get<1>(result);
+	auto shpod = std::get<2>(result);
+
         auto sh = from_pod(shpod);
         auto local_region = local_geometry.local_shadow(proj);
         auto w = distributed::shadow{sh.min_pt - local_region.min_pt,

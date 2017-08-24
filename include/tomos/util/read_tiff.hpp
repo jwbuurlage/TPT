@@ -9,9 +9,7 @@
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
 
-#include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgcodecs.hpp>
+#include <opencv2/opencv.hpp>
 
 #include "../common.hpp"
 #include "../image.hpp"
@@ -99,7 +97,8 @@ void write_png(tomo::image<2_D, T> x, std::string filename) {
     compression_params.push_back(9);
 
     try {
-        imwrite(filename + ".png", image, compression_params);
+	IplImage tmp = image;
+        cvSaveImage((filename + ".png").c_str(), &tmp);
     } catch (std::runtime_error& ex) {
         fprintf(stderr, "Exception converting image to PNG format: %s\n",
                 ex.what());
