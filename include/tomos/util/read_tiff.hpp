@@ -83,12 +83,14 @@ void write_png(tomo::image<2_D, T> x, std::string filename) {
         }
     }
 
-    auto image = cv::Mat(v.voxels()[0], v.voxels()[1], CV_8UC1);
+    std::cout << min << " " << max << "\n";
+
+    auto image = cv::Mat(v.voxels()[0], v.voxels()[1], CV_16UC1);
     for (int i = 0; i < v.voxels()[0]; ++i) {
         for (int j = 0; j < v.voxels()[1]; ++j) {
-            image.at<unsigned char>(i, j) =
-                (unsigned char)(x[x.index({i, j})] / max *
-                                std::numeric_limits<unsigned char>::max());
+            image.at<unsigned short>(i, j) =
+                (unsigned short)(x[x.index({i, j})] / max *
+                                std::numeric_limits<unsigned short>::max());
         }
     }
 

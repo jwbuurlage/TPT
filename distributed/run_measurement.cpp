@@ -182,19 +182,22 @@ void communicate_contributions(bulk::world& world, projections<3_D, T>& projs,
     }
 }
 
-template <int G>
 void collect_orthos(bulk::world& world, tomo::image<3_D, T> x,
                     tomo::volume<3_D, T> global_volume,
-                    bulk::rectangular_partitioning<3, G>& part,
+                    bulk::rectangular_partitioning<3, 1>& part,
                     std::string name) {
     auto s = world.rank();
+
     auto voxels = global_volume.voxels();
     auto center = voxels / 2;
+    std::cout << "Centers: " << center[0] << " " << center[1] << " "
+              << center[2] << "\n";
     auto xy = bulk::queue<int, int, T>(world);
     auto yz = bulk::queue<int, int, T>(world);
     auto xz = bulk::queue<int, int, T>(world);
 
-    if (part.local_size(s)[0] > center[0] - part.origin(s)[0]) {
+    if (center[0] >= part.origin(s)[0] &&
+        part.local_size(s)[0] > center[0] - part.origin(s)[0]) {
         for (int i = 0; i < part.local_size(s)[1]; ++i) {
             for (int j = 0; j < part.local_size(s)[2]; ++j) {
                 yz(0).send(i + part.origin(s)[1], j + part.origin(s)[2],
@@ -203,7 +206,8 @@ void collect_orthos(bulk::world& world, tomo::image<3_D, T> x,
         }
     }
 
-    if (part.local_size(s)[1] > center[1] - part.origin(s)[1]) {
+    if (center[1] >= part.origin(s)[1] &&
+        part.local_size(s)[1] > center[1] - part.origin(s)[1]) {
         for (int i = 0; i < part.local_size(s)[0]; ++i) {
             for (int j = 0; j < part.local_size(s)[2]; ++j) {
                 xz(0).send(i + part.origin(s)[0], j + part.origin(s)[2],
@@ -212,7 +216,8 @@ void collect_orthos(bulk::world& world, tomo::image<3_D, T> x,
         }
     }
 
-    if (part.local_size(s)[2] > center[2] - part.origin(s)[2]) {
+    if (center[2] >= part.origin(s)[2] &&
+        part.local_size(s)[2] > center[2] - part.origin(s)[2]) {
         for (int i = 0; i < part.local_size(s)[0]; ++i) {
             for (int j = 0; j < part.local_size(s)[1]; ++j) {
                 xy(0).send(i + part.origin(s)[0], j + part.origin(s)[1],
@@ -273,7 +278,7 @@ void sirt(bulk::world& world,
     auto gs = distributed::restricted_geometry<T>(global_geometry, vs);
     auto p = projections<3_D, T>(gs);
 
-    using dimmer = dim::joseph<3_D, T>;
+    using dimmer = dim::closest<3_D, T>;
     auto fp = [](const auto& f, const auto& g, const auto& v, auto& q) {
         auto proj = dimmer(v);
         int line_number = 0;
