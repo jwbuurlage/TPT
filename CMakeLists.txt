@@ -97,6 +97,9 @@ if(WITH_ZMQ)
 
     add_executable("comvol" "examples/generate_comvol_table.cpp")
     target_link_libraries("comvol" ${LIB_NAMES})
+
+    add_executable("preview" "examples/preview.cpp")
+    target_link_libraries("preview" ${LIB_NAMES})
 endif(WITH_ZMQ)
 
 #find_package(CUDA 7.5 QUIET)
