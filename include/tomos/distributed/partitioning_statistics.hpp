@@ -26,8 +26,8 @@ long long communication_volume(const geometry::base<D, T>& geometry,
     for (auto line : geometry) {
         owners.clear();
         for (auto elem : integrator(line)) {
-            auto owner = partitioning.owner(
-                bulk::util::unflatten<D>(voxels, elem.index));
+            auto voxel_idx = bulk::util::unflatten<D>(voxels, elem.index);
+            auto owner = partitioning.owner(voxel_idx);
             owners.insert(owner);
         }
         result += math::max(0, (int)owners.size() - 1);

@@ -38,11 +38,13 @@ class base {
                        std::array<math::vec<D, T>, D - 1> projection_delta,
                        bool parallel = false, math::vec<D - 1, int> pixel = {})
             : projection_shape_(projection_shape),
-              detector_corner_(detector_corner + (T)0.5 * (projection_delta[0] + projection_delta[1])),
+              detector_corner_(detector_corner),
               source_location_(source_location),
               projection_delta_(projection_delta),
-              current_location_(detector_corner_), parallel_(parallel),
-              pixel_(pixel) {}
+              current_location_(
+                  detector_corner_ +
+                  (T)0.5 * (projection_delta[0] + projection_delta[1])),
+              parallel_(parallel), pixel_(pixel) {}
 
         /** Copy-construct an iterator. */
         pixel_iterator(const pixel_iterator& other)
@@ -50,7 +52,7 @@ class base {
               detector_corner_(other.detector_corner_),
               source_location_(other.source_location_),
               projection_delta_(other.projection_delta_),
-              current_location_(other.detector_corner_),
+              current_location_(other.current_location_),
               parallel_(other.parallel_), pixel_(other.pixel_) {}
 
         /** Increase the iterator. */
@@ -72,6 +74,7 @@ class base {
 
         /** Dereference the iterator to obtain the represented line. */
         math::ray<D, T> operator*() const {
+            // FIXME: if statement in critical path makes me very sad :(
             if (!parallel_) {
                 return {source_location_, current_location_};
             } else {
