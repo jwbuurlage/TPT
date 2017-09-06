@@ -185,8 +185,8 @@ bool valid_index(vec<D, int> a, volume<D, T> vol) {
 template <dimension D, typename T>
 bool inside(vec<D, T> a, volume<D, T> vol) {
     for (int dim = 0; dim < D; ++dim) {
-        if (a[dim] < -epsilon<T> ||
-            a[dim] > (T)vol.voxels()[dim] + epsilon<T>) {
+        if (a[dim] < epsilon<T> ||
+            a[dim] > (T)vol.voxels()[dim] - epsilon<T>) {
             return false;
         }
     }
