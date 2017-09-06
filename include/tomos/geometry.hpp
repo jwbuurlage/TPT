@@ -41,10 +41,10 @@ class base {
               detector_corner_(detector_corner),
               source_location_(source_location),
               projection_delta_(projection_delta),
-              current_location_(
-                  detector_corner_ +
-                  (T)0.5 * (projection_delta[0] + projection_delta[1])),
-              parallel_(parallel), pixel_(pixel) {}
+              current_location_(detector_corner_ + (T)0.5 * (projection_delta[0] + projection_delta[1])),
+              parallel_(parallel),
+              pixel_(pixel) {}
+
 
         /** Copy-construct an iterator. */
         pixel_iterator(const pixel_iterator& other)
