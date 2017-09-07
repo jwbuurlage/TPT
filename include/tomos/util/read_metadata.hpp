@@ -316,7 +316,7 @@ template <tomo::dimension D, typename T>
 std::unique_ptr<tomo::projections<D, T>>
 read_projection_stack(std::shared_ptr<cpptoml::table> parameters,
                       tomo::geometry::base<D, T>& g, fs::path root_directory) {
-
+	return nullptr;
     try {
         auto proj_count = *parameters->get_qualified_as<int64_t>(
             "parameters.projection-count");

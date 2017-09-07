@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <numeric>
 
 #include "common.hpp"
@@ -114,7 +115,7 @@ class volume {
      *
      * \returns number of voxels in the volume.
      */
-    int cells() const { return math::product<D, int>(voxels_); }
+    uint64_t cells() const { return math::product<D, int>(voxels_); }
 
     /** Unroll on index, i.e. obtain the multi-index. */
     math::vec<D, int> unroll(int idx) {

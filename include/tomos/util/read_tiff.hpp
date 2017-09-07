@@ -20,26 +20,28 @@ class invalid_tiff_file : public std::runtime_error {
     using runtime_error::runtime_error;
 };
 
-template <dimension D, typename T = default_scalar_type>
-tomo::image<D, T> tiff_to_image(std::string filename) {
-    cv::Mat image = cv::imread(filename, CV_LOAD_IMAGE_ANYDEPTH);
+template <typename T = default_scalar_type>
+tomo::image<2_D, T> tiff_to_image(std::string filename) {
+//    cv::Mat image = cv::imread(filename, CV_LOAD_IMAGE_ANYDEPTH);
+//
+//    if (!image.data)
+//        throw invalid_tiff_file("Could not open or find the image: " +
+//                                filename);
+//
+//    int w = image.cols;
+//    int h = image.rows;
+//
+//    auto v = tomo::volume<D, T>({w, h});
+//    auto result = tomo::image<D, T>(v);
+//    for (int i = 0; i < w; ++i) {
+//        for (int j = 0; j < h; ++j) {
+//            result({i, j}) = (T)image.at<int32_t>(i, j);
+//        }
+//    }
+(void)filename;
 
-    if (!image.data)
-        throw invalid_tiff_file("Could not open or find the image: " +
-                                filename);
-
-    int w = image.cols;
-    int h = image.rows;
-
-    auto v = tomo::volume<D, T>({w, h});
-    auto result = tomo::image<D, T>(v);
-    for (int i = 0; i < w; ++i) {
-        for (int j = 0; j < h; ++j) {
-            result({i, j}) = (T)image.at<int32_t>(i, j);
-        }
-    }
-
-    return result;
+    auto v = tomo::volume<2_D, T>({1, 1});
+    return tomo::image<2_D, T>(v);
 }
 
 template <dimension D, typename T = default_scalar_type>
@@ -56,7 +58,7 @@ tiff_stack_to_projections(const tomo::geometry::base<D, T>& g,
         auto filename =
             std::regex_replace(root_directory.string() + filename_pattern,
                                std::regex("[*]"), std::to_string(i));
-        auto image = tiff_to_image<D - 1, T>(filename);
+        auto image = tiff_to_image<T>(filename);
         result.set_projection(i, image);
     }
 
