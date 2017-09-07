@@ -27,10 +27,10 @@ class closest : public base<D, T> {
         auto current_point = line.origin + (T)0.5 * line.delta;
         while (math::inside<D, T>(current_point, this->volume_)) {
             // convert to vector of integers
-            auto index = this->volume_.index(
+            auto index = (uint64_t)this->volume_.index(
                 math::vec<D, int>(current_point));
             if (index >= 0 && index < this->volume_.cells()) {
-                this->queue_.push_back({index, (T)1.0});
+                this->queue_.push_back({(int)index, (T)1.0});
             }
             current_point += line.delta;
         }

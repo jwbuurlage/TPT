@@ -272,14 +272,29 @@ void sirt(bulk::world& world,
                   global_geometry.lines());
     }
 
+    if (world.rank() == 0) {
+	world.log("%i", __LINE__);
+    }
     auto vs = calculate_local_volume(partitioning, world.rank());
 
+    if (world.rank() == 0) {
+	world.log("%i: vs.cells() = %u, vs = [%i, %i, %i]", __LINE__, vs.cells(), vs.voxels()[0], vs.voxels()[1], vs.voxels()[2]);
+    }
     image<3_D, T> phantom(vs);
+    if (world.rank() == 0) {
+	world.log("%i", __LINE__);
+    }
     fill_ellipsoids_(phantom, mshl_ellipsoids_<T>(), vs, global_volume);
+    if (world.rank() == 0) {
+	world.log("%i", __LINE__);
+    }
 
     auto gs = distributed::restricted_geometry<T>(global_geometry, vs);
     auto p = projections<3_D, T>(gs);
 
+    if (world.rank() == 0) {
+	world.log("%i", __LINE__);
+    }
     using dimmer = dim::closest<3_D, T>;
     auto fp = [&](const auto& f, const auto& g, const auto& v, auto& q) {
         auto proj = dimmer(v);
@@ -297,6 +312,9 @@ void sirt(bulk::world& world,
     }
 
     fp(phantom, gs, vs, p);
+    if (world.rank() == 0) {
+	world.log("%i", __LINE__);
+    }
 
     auto bp = [](const auto& p_, const auto& g, const auto& v, auto& x_) {
         auto proj = dimmer(v);
@@ -349,7 +367,7 @@ void sirt(bulk::world& world,
         }
         communicate_contributions(world, q, go_forth, and_back);
         bp(q, gs, vs, z);
-        for (auto i = 0; i < vs.cells(); ++i) {
+        for (auto i = 0ull; i < vs.cells(); ++i) {
             x[i] += c[i] * z[i];
         }
 
