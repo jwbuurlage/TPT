@@ -311,7 +311,7 @@ tomo::volume<D, T> read_volume(std::shared_ptr<cpptoml::table> parameters, int k
     auto min_point = stdvec_to_tomovec<D, T>(*min_array);
     auto max_point = stdvec_to_tomovec<D, T>(*max_array);
 
-    if (k >= 0) {
+    if (k > 0) {
         voxels = {k, k, k};
     }
 
