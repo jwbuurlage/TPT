@@ -31,9 +31,9 @@ class base {
     /** Obtain an iterator beyond the final voxel that is 'hit'. */
     matrix_iterator end() { return end_(); }
 
+    auto empty() { return queue_.empty(); }
+
     /**
-     * A container that wraps the `begin` and `end` functions of a projector.
-     *
      * This allows for code such as:
      * ```{.cpp}
      * for (auto l : g)
@@ -42,18 +42,7 @@ class base {
      *      }
      * ```
      */
-    class element_container {
-      public:
-        element_container(base& p) : p_(p) {}
-        inline matrix_iterator begin() { return p_.begin(); }
-        inline matrix_iterator end() { return p_.end(); }
-
-      private:
-        base& p_;
-    };
-
-    /** Returns an iterable container for line `line` with this DIM. */
-    element_container operator()(math::ray<D, T> incoming_ray) {
+    auto& operator()(math::ray<D, T> incoming_ray) {
         // truncate to volume here first, then reset
         auto truncated_line = truncate_to_volume(incoming_ray, volume_);
         this->clear_();
@@ -63,7 +52,7 @@ class base {
             this->reset_(line);
             this->line_ = line;
         }
-        return element_container(*this);
+        return *this;
     }
 
     /** Obtain the current line of the DIM. */
