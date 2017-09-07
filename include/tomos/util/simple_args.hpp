@@ -47,6 +47,17 @@ struct options {
         return x;
     }
 
+    template <typename T>
+    T arg_as_or(std::string flag, T alt) {
+        if (!passed(flag)) {
+            return alt;
+        }
+        auto value = std::stringstream(arg(flag));
+        T x = {};
+        value >> x;
+        return x;
+    }
+
     bool required_arguments(const std::vector<std::string>& args) {
         for (auto& arg : args) {
             if (!passed(arg)) {

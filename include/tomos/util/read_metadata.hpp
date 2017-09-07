@@ -151,7 +151,7 @@ read_helical_cone_beam_geometry(std::shared_ptr<cpptoml::table> parameters,
 
     if (k > 0) {
         detector_shape = {k, k};
-        projection_count = k / 2;
+        projection_count = k;
     }
 
     return std::make_unique<tomo::geometry::helical_cone_beam<T>>(
@@ -268,24 +268,18 @@ std::unique_ptr<tomo::geometry::base<D, T>>
 read_geometry(std::string kind, std::shared_ptr<cpptoml::table> parameters,
               tomo::volume<D, T> v, int k = -1) {
     if (kind == "parallel") {
-        std::cout << "Loading parallel geometry...\n";
         return read_parallel_geometry<D, T>(parameters, v, k);
     } else if (kind == "dual-parallel") {
-        std::cout << "Loading dual axis parallel geometry...\n";
         return read_dual_parallel_geometry<D, T>(parameters, v, k);
     } else if (D != 3_D) {
         throw invalid_geometry_config_error("Only parallel available in 2D");
     } else if (kind == "circular-cone-beam") {
-        std::cout << "Loading circular cone beam geometry...\n";
         return read_circular_cone_beam_geometry<T>(parameters, v, k);
     } else if (kind == "helical-cone-beam") {
-        std::cout << "Loading helical cone beam geometry...\n";
         return read_helical_cone_beam_geometry<T>(parameters, v, k);
     } else if (kind == "laminography") {
-        std::cout << "Loading laminography geometry...\n";
         return read_laminography_geometry<T>(parameters, v, k);
     } else if (kind == "tomosynthesis") {
-        std::cout << "Loading tomosynthesis geometry...\n";
         return read_tomosynthesis_geometry<T>(parameters, v, k);
     } else {
         throw invalid_geometry_config_error(

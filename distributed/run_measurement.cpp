@@ -190,8 +190,6 @@ void collect_orthos(bulk::world& world, tomo::image<3_D, T> x,
 
     auto voxels = global_volume.voxels();
     auto center = voxels / 2;
-    std::cout << "Centers: " << center[0] << " " << center[1] << " "
-              << center[2] << "\n";
     auto xy = bulk::queue<int, int, T>(world);
     auto yz = bulk::queue<int, int, T>(world);
     auto xz = bulk::queue<int, int, T>(world);
@@ -257,9 +255,9 @@ void collect_orthos(bulk::world& world, tomo::image<3_D, T> x,
             slice_yz[slice_yz.index({i, j})] = value;
         }
 
-        tomo::write_png(slice_xy, name + "_slice_xy");
-        tomo::write_png(slice_xz, name + "_slice_xz");
-        tomo::write_png(slice_yz, name + "_slice_yz");
+        tomo::write_png(slice_xy, "data/images/" + name + "_slice_xy");
+        tomo::write_png(slice_xz, "data/images/" + name + "_slice_xz");
+        tomo::write_png(slice_yz, "data/images/" + name + "_slice_yz");
     }
 }
 
@@ -269,6 +267,10 @@ void sirt(bulk::world& world,
           geometry::trajectory<3_D, T>& global_geometry,
           tomo::util::report& table, std::string name, std::string column,
           int iters) {
+    if (world.rank() == 0) {
+        world.log("Running SIRT for %s, lines %i", name.c_str(),
+                  global_geometry.lines());
+    }
 
     auto vs = calculate_local_volume(partitioning, world.rank());
 
@@ -279,7 +281,7 @@ void sirt(bulk::world& world,
     auto p = projections<3_D, T>(gs);
 
     using dimmer = dim::closest<3_D, T>;
-    auto fp = [](const auto& f, const auto& g, const auto& v, auto& q) {
+    auto fp = [&](const auto& f, const auto& g, const auto& v, auto& q) {
         auto proj = dimmer(v);
         int line_number = 0;
         for (auto line : g) {
@@ -289,6 +291,11 @@ void sirt(bulk::world& world,
             ++line_number;
         }
     };
+
+    if (world.rank() == 0) {
+        world.log("Simulating experiment for %s", name.c_str());
+    }
+
     fp(phantom, gs, vs, p);
 
     auto bp = [](const auto& p_, const auto& g, const auto& v, auto& x_) {
@@ -302,10 +309,17 @@ void sirt(bulk::world& world,
         }
     };
 
+    if (world.rank() == 0) {
+        world.log("Computing contributions for %s", name.c_str());
+    }
+
     auto result = compute_contributions(world, gs);
     auto& go_forth = result.first;
     auto& and_back = result.second;
 
+    if (world.rank() == 0) {
+        world.log("Computing R and C for %s", name.c_str());
+    }
     // communicate row and column sums
     auto invert = [](auto x) { return (T)1.0 / x; };
     auto invert_all = [&](auto& xs) {
@@ -326,13 +340,16 @@ void sirt(bulk::world& world,
 
     auto stopwatch = bulk::util::timer();
     for (int iter = 0; iter < iters; ++iter) {
+        if (world.rank() == 0) {
+            world.log("Iteration %i for %s", iter, name.c_str());
+        }
         fp(x, gs, vs, q);
-        for (int l = 0; l < gs.lines(); ++l) {
+        for (auto l = 0ull; l < gs.lines(); ++l) {
             q[l] = r[l] * (p[l] - q[l]);
         }
         communicate_contributions(world, q, go_forth, and_back);
         bp(q, gs, vs, z);
-        for (int i = 0; i < vs.cells(); ++i) {
+        for (auto i = 0; i < vs.cells(); ++i) {
             x[i] += c[i] * z[i];
         }
 
@@ -352,10 +369,12 @@ void run(const std::vector<std::string>& geoms, std::string part_dir, int k,
     bulk::mpi::environment env;
 
     auto processors = env.available_processors();
-    std::cout << "Running reconstruction with: " << processors << " procs\n";
 
     env.spawn(processors, [&](auto& world) {
         auto p = world.active_processors();
+        if (world.rank() == 0) {
+            world.log("Running reconstruction with %i processors", p);
+        }
 
         for (auto geom_file : geoms) {
             auto name = fs::path(geom_file).stem().string();
@@ -396,24 +415,25 @@ void run(const std::vector<std::string>& geoms, std::string part_dir, int k,
 }
 
 void usage(std::string program_name) {
-    std::cout << "Usage: " << program_name << " -k SIZE -i ITERS\n";
+    std::cout << "Usage: " << program_name << " --geom GEOMS --part PART_DIR "
+                                              "--out TABLE_FILE [-k SIZE] [-i "
+                                              "ITERS]\n";
 }
 
 int main(int argc, char* argv[]) {
     auto opts = options{argc, argv};
 
-    if (!opts.required_arguments({"--geom", "--part", "--out", "-k", "-i"})) {
+    if (!opts.required_arguments({"--geom", "--part", "--out"})) {
         usage(argv[0]);
         return -1;
     }
 
-    auto table = tomo::util::report(
-        "Runtimes " + std::to_string(opts.arg_as<int>("-k")), "geometry");
+    auto table = tomo::util::report("Runtimes", "geometry");
     table.add_column("trivial");
     table.add_column("bisected");
 
-    run(opts.args("--geom"), opts.arg("--part"), opts.arg_as<int>("-k"),
-        opts.arg_as<int>("-i"), opts.arg("--out"), table);
+    run(opts.args("--geom"), opts.arg("--part"), opts.arg_as_or<int>("-k", -1),
+        opts.arg_as_or<int>("-i", 1), opts.arg("--out"), table);
 
     return 0;
 }
