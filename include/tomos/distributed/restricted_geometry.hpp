@@ -79,8 +79,12 @@ class restricted_geometry : public geometry::base<3, T> {
     }
 
     math::vec<2_D, int> projection_shape(int i) const override {
-        return {shadows_[i].max_pt.x + 1 - shadows_[i].min_pt.x,
-                shadows_[i].max_pt.y + 1 - shadows_[i].min_pt.y};
+        auto dx = shadows_[i].max_pt.x + 1 - shadows_[i].min_pt.x;
+        auto dy = shadows_[i].max_pt.y + 1 - shadows_[i].min_pt.y;
+        if (dx <= 0 || dy <= 0) {
+            return {0, 0};
+        }
+        return {dx, dy};
     }
 
     math::vec<3_D, T> detector_corner(int i) const override {

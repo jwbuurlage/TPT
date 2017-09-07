@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cassert>
+#include <cstdint>
 #include <type_traits>
 #include <vector>
 
@@ -41,10 +42,10 @@ class base {
               detector_corner_(detector_corner),
               source_location_(source_location),
               projection_delta_(projection_delta),
-              current_location_(detector_corner_ + (T)0.5 * (projection_delta[0] + projection_delta[1])),
-              parallel_(parallel),
-              pixel_(pixel) {}
-
+              current_location_(
+                  detector_corner_ +
+                  (T)0.5 * (projection_delta[0] + projection_delta[1])),
+              parallel_(parallel), pixel_(pixel) {}
 
         /** Copy-construct an iterator. */
         pixel_iterator(const pixel_iterator& other)
@@ -119,7 +120,9 @@ class base {
         /** Construct the iterator with a line index and a geometry. */
         projection_iterator(int proj, const base& geometry)
             : proj_(proj), geometry_(geometry), pixels_(first_()),
-              pixels_last_(last_()) {}
+              pixels_last_(last_()) {
+            this->update_();
+        }
 
         /** Copy-construct an iterator. */
         projection_iterator(const projection_iterator& other)
@@ -148,15 +151,20 @@ class base {
         /** Increase the iterator. */
         projection_iterator& operator++() {
             ++pixels_;
-            if (pixels_ == pixels_last_) {
-                proj_++;
-                pixels_ = first_();
-                pixels_last_ = last_();
-            }
+            this->update_();
             return *this;
         }
 
       private:
+        void update_() {
+            while (pixels_ == pixels_last_ &&
+                   proj_ < geometry_.projection_count()) {
+                proj_++;
+                pixels_ = first_();
+                pixels_last_ = last_();
+            }
+        }
+
         inline pixel_iterator first_() {
             if (proj_ >= geometry_.projection_count()) {
                 return pixel_iterator();
@@ -179,7 +187,6 @@ class base {
             auto delta = geometry_.projection_delta(proj_);
             auto parallel = geometry_.parallel();
             math::vec<D - 1, int> outside = {};
-            // TODO check this
             outside[D - 2] = shape[D - 2];
             return pixel_iterator(shape, corner, location, delta, parallel,
                                   outside);
@@ -206,7 +213,7 @@ class base {
     }
 
     /** Obtain the number of lines */
-    int lines() const { return line_count_; }
+    auto lines() const { return line_count_; }
 
     /** Obtain the projection count */
     int projection_count() const { return projection_count_; }
@@ -243,7 +250,7 @@ class base {
     }
 
     int projection_count_ = 0;
-    int line_count_ = 0;
+    uint64_t line_count_ = 0;
     bool parallel_ = false;
 };
 

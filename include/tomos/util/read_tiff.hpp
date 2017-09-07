@@ -83,8 +83,6 @@ void write_png(tomo::image<2_D, T> x, std::string filename) {
         }
     }
 
-    std::cout << min << " " << max << "\n";
-
     auto image = cv::Mat(v.voxels()[0], v.voxels()[1], CV_16UC1);
     for (int i = 0; i < v.voxels()[0]; ++i) {
         for (int j = 0; j < v.voxels()[1]; ++j) {
