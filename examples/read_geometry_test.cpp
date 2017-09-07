@@ -32,17 +32,17 @@ int main(int argc, char* argv[]) {
          */
 
         // std::cout << "done loading, now should downscale\n";
-        proj_plotter.plot(problem.projection_stack.get_projection(0));
+        proj_plotter.plot(problem.projection_stack->get_projection(0));
 
         auto proj = tomo::dim::joseph<D, T>(problem.object_volume);
 
         fmt::print("STARTING SIRT\n");
         auto z = tomo::reconstruction::sirt(
             problem.object_volume, *problem.acquisition_geometry,
-            proj, problem.projection_stack, opt.beta, opt.iterations, {[&](tomo::image<D, T>& image) { plotter.plot(image); }});
+            proj, *problem.projection_stack, opt.beta, opt.iterations, {[&](tomo::image<D, T>& image) { plotter.plot(image); }});
         fmt::print("SIRT\n");
         tomo::ascii_plot(z);
-        proj_plotter.plot(problem.projection_stack.get_projection(0));
+        proj_plotter.plot(problem.projection_stack->get_projection(0));
         plotter.plot(z);
     } catch (const std::exception& e) {
         std::cout << "Reading configuration failed: " << e.what() << "\n";

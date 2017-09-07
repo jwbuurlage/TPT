@@ -300,7 +300,7 @@ optional<line<D, T>> truncate_to_volume(ray<D, T> ray, volume<D, T> v) {
     auto voxel_origin = to_voxel<D, T>(origin.value().first, v);
 
     // have to do this in terms of voxel delta
-    auto steps = round(distance(voxel_source, voxel_origin));
+    auto steps = (T)((int)distance(voxel_source, voxel_origin) + 1);
     auto delta = normalize(voxel_detector - voxel_source);
     auto start = voxel_source + steps * delta;
 
