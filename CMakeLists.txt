@@ -146,6 +146,7 @@ if(MPI_CXX_FOUND)
         MPI_SOURCES
         "simple_distributed.cpp"
         "run_measurement.cpp"
+        "count_messages.cpp"
         )
 
 message("${MPI_CXX_COMPILE_FLAGS}")
