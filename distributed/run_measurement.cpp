@@ -28,8 +28,9 @@ using T = float;
 // Assumes global volume has physical size [0, 1]^3
 auto calculate_local_volume(bulk::rectangular_partitioning<3, 1>& partitioning,
                             int s) {
-    auto to_vec = [](auto array_like) -> math::vec3<T> {
-        math::vec3<T> result;
+
+    auto to_vec = [](const auto& array_like) -> math::vec3<int> {
+        math::vec3<int> result;
         for (int d = 0; d < 3; ++d) {
             result[d] = array_like[d];
         }
@@ -40,8 +41,8 @@ auto calculate_local_volume(bulk::rectangular_partitioning<3, 1>& partitioning,
     auto voxel_size = to_vec(partitioning.local_size(s));
     auto global_voxels = to_vec(partitioning.global_size());
 
-    auto relative_origin = math::vec3<T>(voxel_origin / global_voxels);
-    auto relative_size = math::vec3<T>(voxel_size / global_voxels);
+    auto relative_origin = math::vec3<T>(voxel_origin) / math::vec3<T>(global_voxels);
+    auto relative_size = math::vec3<T>(voxel_size) / math::vec3<T>(global_voxels);
 
     return volume<3_D, T>(voxel_size, relative_origin, relative_size);
 }
@@ -262,39 +263,18 @@ void collect_orthos(bulk::world& world, tomo::image<3_D, T> x,
 }
 
 void sirt(bulk::world& world,
-          bulk::rectangular_partitioning<3_D, 1>& partitioning,
+          bulk::rectangular_partitioning<3, 1>& partitioning,
           tomo::volume<3_D, T> global_volume,
           geometry::trajectory<3_D, T>& global_geometry,
           tomo::util::report& table, std::string name, std::string column,
           int iters) {
-    if (world.rank() == 0) {
-        world.log("Running SIRT for %s, lines %i", name.c_str(),
-                  global_geometry.lines());
-    }
-
-    if (world.rank() == 0) {
-	world.log("%i", __LINE__);
-    }
     auto vs = calculate_local_volume(partitioning, world.rank());
-
-    if (world.rank() == 0) {
-	world.log("%i: vs.cells() = %u, vs = [%i, %i, %i]", __LINE__, vs.cells(), vs.voxels()[0], vs.voxels()[1], vs.voxels()[2]);
-    }
     image<3_D, T> phantom(vs);
-    if (world.rank() == 0) {
-	world.log("%i", __LINE__);
-    }
     fill_ellipsoids_(phantom, mshl_ellipsoids_<T>(), vs, global_volume);
-    if (world.rank() == 0) {
-	world.log("%i", __LINE__);
-    }
 
     auto gs = distributed::restricted_geometry<T>(global_geometry, vs);
     auto p = projections<3_D, T>(gs);
 
-    if (world.rank() == 0) {
-	world.log("%i", __LINE__);
-    }
     using dimmer = dim::closest<3_D, T>;
     auto fp = [&](const auto& f, const auto& g, const auto& v, auto& q) {
         auto proj = dimmer(v);
@@ -307,14 +287,7 @@ void sirt(bulk::world& world,
         }
     };
 
-    if (world.rank() == 0) {
-        world.log("Simulating experiment for %s", name.c_str());
-    }
-
     fp(phantom, gs, vs, p);
-    if (world.rank() == 0) {
-	world.log("%i", __LINE__);
-    }
 
     auto bp = [](const auto& p_, const auto& g, const auto& v, auto& x_) {
         auto proj = dimmer(v);
@@ -327,17 +300,10 @@ void sirt(bulk::world& world,
         }
     };
 
-    if (world.rank() == 0) {
-        world.log("Computing contributions for %s", name.c_str());
-    }
-
     auto result = compute_contributions(world, gs);
     auto& go_forth = result.first;
     auto& and_back = result.second;
 
-    if (world.rank() == 0) {
-        world.log("Computing R and C for %s", name.c_str());
-    }
     // communicate row and column sums
     auto invert = [](auto x) { return (T)1.0 / x; };
     auto invert_all = [&](auto& xs) {
@@ -358,9 +324,6 @@ void sirt(bulk::world& world,
 
     auto stopwatch = bulk::util::timer();
     for (int iter = 0; iter < iters; ++iter) {
-        if (world.rank() == 0) {
-            world.log("Iteration %i for %s", iter, name.c_str());
-        }
         fp(x, gs, vs, q);
         for (auto l = 0ull; l < gs.lines(); ++l) {
             q[l] = r[l] * (p[l] - q[l]);
@@ -390,9 +353,6 @@ void run(const std::vector<std::string>& geoms, std::string part_dir, int k,
 
     env.spawn(processors, [&](auto& world) {
         auto p = world.active_processors();
-        if (world.rank() == 0) {
-            world.log("Running reconstruction with %i processors", p);
-        }
 
         for (auto geom_file : geoms) {
             auto name = fs::path(geom_file).stem().string();
@@ -409,16 +369,16 @@ void run(const std::vector<std::string>& geoms, std::string part_dir, int k,
             auto tree_partitioning =
                 tomo::load_partitioning(tree_file, global_volume, log2(p));
 
-            auto main_d = tree_partitioning->splits().root->value.d;
+           auto main_d = tree_partitioning->splits().root->value.d;
+  
+           // which dimension, the first split decides.....
+           auto block_partitioning = bulk::block_partitioning<3, 1>(
+               tomo::math::vec_to_array<3_D, int>(global_volume.voxels()), {p},
+               {main_d});
 
-            // which dimension, the first split decides.....
-            auto block_partitioning = bulk::block_partitioning<3_D, 1>(
-                tomo::math::vec_to_array<3_D, int>(global_volume.voxels()), {p},
-                {main_d});
-
-            sirt(world, block_partitioning, global_volume,
-                 (tomo::geometry::trajectory<3_D, T>&)global_geometry, table,
-                 name, "trivial", iters);
+          sirt(world, block_partitioning, global_volume,
+               (tomo::geometry::trajectory<3_D, T>&)global_geometry, table,
+               name, "trivial", iters);
             sirt(world, *tree_partitioning, global_volume,
                  (tomo::geometry::trajectory<3_D, T>&)global_geometry, table,
                  name, "bisected", iters);
