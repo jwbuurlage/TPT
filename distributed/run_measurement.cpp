@@ -186,7 +186,7 @@ void communicate_contributions(bulk::world& world, projections<3_D, T>& projs,
 void collect_orthos(bulk::world& world, tomo::image<3_D, T> x,
                     tomo::volume<3_D, T> global_volume,
                     bulk::rectangular_partitioning<3, 1>& part,
-                    std::string name) {
+                    std::string name, std::string output_dir) {
     auto s = world.rank();
 
     auto voxels = global_volume.voxels();
@@ -256,9 +256,9 @@ void collect_orthos(bulk::world& world, tomo::image<3_D, T> x,
             slice_yz[slice_yz.index({i, j})] = value;
         }
 
-        tomo::write_png(slice_xy, "data/images/" + name + "_slice_xy");
-        tomo::write_png(slice_xz, "data/images/" + name + "_slice_xz");
-        tomo::write_png(slice_yz, "data/images/" + name + "_slice_yz");
+        tomo::write_png(slice_xy, output_dir + name + "_slice_xy");
+        tomo::write_png(slice_xz, output_dir + name + "_slice_xz");
+        tomo::write_png(slice_yz, output_dir + name + "_slice_yz");
     }
 }
 
@@ -266,8 +266,13 @@ void sirt(bulk::world& world,
           bulk::rectangular_partitioning<3, 1>& partitioning,
           tomo::volume<3_D, T> global_volume,
           geometry::trajectory<3_D, T>& global_geometry,
-          tomo::util::report& table, std::string name, std::string column,
+          tomo::util::report& table, std::string name, std::string column, std::string image_dir,
           int iters) {
+
+    if (world.rank() == 0) {
+        world.log("Running %s (%s)", name.c_str(), column.c_str());
+    }
+
     auto vs = calculate_local_volume(partitioning, world.rank());
     image<3_D, T> phantom(vs);
     fill_ellipsoids_(phantom, mshl_ellipsoids_<T>(), vs, global_volume);
@@ -342,11 +347,11 @@ void sirt(bulk::world& world,
         name, column,
         fmt::format("{:.2f}", stopwatch.get<std::milli>() / (1000.0 * iters)));
 
-    collect_orthos(world, x, global_volume, partitioning, name + "_" + column);
+    collect_orthos(world, x, global_volume, partitioning, name + "_" + column, image_dir);
 }
 
 void run(const std::vector<std::string>& geoms, std::string part_dir, int k,
-         int iters, std::string outfile, tomo::util::report& table) {
+         int iters, std::string outfile, std::string image_dir, tomo::util::report& table) {
     bulk::mpi::environment env;
 
     auto processors = env.available_processors();
@@ -378,10 +383,10 @@ void run(const std::vector<std::string>& geoms, std::string part_dir, int k,
 
           sirt(world, block_partitioning, global_volume,
                (tomo::geometry::trajectory<3_D, T>&)global_geometry, table,
-               name, "trivial", iters);
-            sirt(world, *tree_partitioning, global_volume,
-                 (tomo::geometry::trajectory<3_D, T>&)global_geometry, table,
-                 name, "bisected", iters);
+               name, "trivial", image_dir, iters);
+          sirt(world, *tree_partitioning, global_volume,
+               (tomo::geometry::trajectory<3_D, T>&)global_geometry, table,
+               name, "bisected", image_dir, iters);
         }
 
         if (world.rank() == 0) {
@@ -394,14 +399,14 @@ void run(const std::vector<std::string>& geoms, std::string part_dir, int k,
 
 void usage(std::string program_name) {
     std::cout << "Usage: " << program_name << " --geom GEOMS --part PART_DIR "
-                                              "--out TABLE_FILE [-k SIZE] [-i "
+                                              "--out TABLE_FILE --images IMAGE_DIR [-k SIZE] [-i "
                                               "ITERS]\n";
 }
 
 int main(int argc, char* argv[]) {
     auto opts = options{argc, argv};
 
-    if (!opts.required_arguments({"--geom", "--part", "--out"})) {
+    if (!opts.required_arguments({"--geom", "--part", "--out", "--images"})) {
         usage(argv[0]);
         return -1;
     }
@@ -411,7 +416,7 @@ int main(int argc, char* argv[]) {
     table.add_column("bisected");
 
     run(opts.args("--geom"), opts.arg("--part"), opts.arg_as_or<int>("-k", -1),
-        opts.arg_as_or<int>("-i", 1), opts.arg("--out"), table);
+        opts.arg_as_or<int>("-i", 1), opts.arg("--out"), opts.arg("--images"), table);
 
     return 0;
 }
