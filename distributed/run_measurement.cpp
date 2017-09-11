@@ -420,7 +420,7 @@ void sirt(bulk::world& world,
 
 void run(const std::vector<std::string>& geoms, std::string part_dir, int k,
          int iters, std::string outfile, std::string image_dir,
-         tomo::util::report& table) {
+         tomo::util::report& table, bool trivial, bool bisected) {
     bulk::mpi::environment env;
 
     auto processors = env.available_processors();
@@ -450,12 +450,16 @@ void run(const std::vector<std::string>& geoms, std::string part_dir, int k,
                 tomo::math::vec_to_array<3_D, int>(global_volume.voxels()), {p},
                 {main_d});
 
-            sirt(world, block_partitioning, global_volume,
-                 (tomo::geometry::trajectory<3_D, T>&)global_geometry, table,
-                 name, "trivial", image_dir, iters);
+            if (trivial) {
+		    sirt(world, block_partitioning, global_volume,
+			 (tomo::geometry::trajectory<3_D, T>&)global_geometry, table,
+			 name, "trivial", image_dir, iters);
+		}
+if (bisected) {
             sirt(world, *tree_partitioning, global_volume,
                  (tomo::geometry::trajectory<3_D, T>&)global_geometry, table,
                  name, "bisected", image_dir, iters);
+}
         }
 
         if (world.rank() == 0) {
@@ -487,7 +491,7 @@ int main(int argc, char* argv[]) {
 
     run(opts.args("--geom"), opts.arg("--part"), opts.arg_as_or<int>("-k", -1),
         opts.arg_as_or<int>("-i", 1), opts.arg("--out"), opts.arg("--images"),
-        table);
+        table, opts.passed("--trivial"), opts.passed("--bisected"));
 
     return 0;
 }
