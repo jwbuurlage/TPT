@@ -134,7 +134,7 @@ endif(WITH_ZMQ)
 
 # add_subdirectory(../test/build ../test/build)
 
-find_package(MPI QUIET)
+find_package(MPI REQUIRED)
 find_package(OpenCV REQUIRED)
 
 if(WITH_MPI AND WITH_ZMQ)
