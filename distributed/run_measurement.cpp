@@ -41,8 +41,10 @@ auto calculate_local_volume(bulk::rectangular_partitioning<3, 1>& partitioning,
     auto voxel_size = to_vec(partitioning.local_size(s));
     auto global_voxels = to_vec(partitioning.global_size());
 
-    auto relative_origin = math::vec3<T>(voxel_origin) / math::vec3<T>(global_voxels);
-    auto relative_size = math::vec3<T>(voxel_size) / math::vec3<T>(global_voxels);
+    auto relative_origin =
+        math::vec3<T>(voxel_origin) / math::vec3<T>(global_voxels);
+    auto relative_size =
+        math::vec3<T>(voxel_size) / math::vec3<T>(global_voxels);
 
     return volume<3_D, T>(voxel_size, relative_origin, relative_size);
 }
@@ -53,7 +55,13 @@ struct shared_pixel {
     int remote_line;
 };
 
-std::pair<std::vector<shared_pixel>, std::vector<shared_pixel>>
+struct pixel_message {
+    int local_line;
+    int remote_line;
+};
+
+std::pair<std::vector<std::vector<pixel_message>>,
+          std::vector<std::vector<pixel_message>>>
 compute_contributions(bulk::world& world,
                       const distributed::restricted_geometry<T>& geometry) {
     auto s = world.rank();
@@ -107,8 +115,12 @@ compute_contributions(bulk::world& world,
         return offset + idx_in_proj;
     };
 
-    auto my_contributions = bulk::queue<shared_pixel>(world);
-    auto my_responsibilities = bulk::queue<shared_pixel>(world);
+    auto a_targets = std::vector<std::vector<int>>(p);
+    auto a_locals = std::vector<std::vector<int>>(p);
+    auto a_remotes = std::vector<std::vector<int>>(p);
+    auto b_targets = std::vector<std::vector<int>>(p);
+    auto b_locals = std::vector<std::vector<int>>(p);
+    auto b_remotes = std::vector<std::vector<int>>(p);
 
     for (int b = 0; b < block_size; ++b) {
         for (int i = 0; i < pixel_count; ++i) {
@@ -136,50 +148,93 @@ compute_contributions(bulk::world& world,
                 auto contributor_line =
                     local_idx(offsets[b * p + t], shadows[b * p + t],
                               gg.projection_shape(0), i);
-                my_contributions(t).send({owner, contributor_line, owner_line});
-                my_responsibilities(owner).send(
-                    {t, owner_line, contributor_line});
+
+                a_targets[t].push_back(owner);
+                a_locals[t].push_back(contributor_line);
+                a_remotes[t].push_back(owner_line);
+
+                b_targets[owner].push_back(t);
+                b_locals[owner].push_back(owner_line);
+                b_remotes[owner].push_back(contributor_line);
             }
         }
     }
 
+    pixels.clear();
+    pixels.shrink_to_fit();
+
+    auto my_contributions = bulk::queue<int[], int[], int[]>(world);
+    auto my_responsibilities = bulk::queue<int[], int[], int[]>(world);
+    for (int t = 0; t < p; ++t) {
+        my_contributions(t).send(std::move(a_targets[t]), std::move(a_locals[t]), std::move(a_remotes[t]));
+        my_responsibilities(t).send(std::move(b_targets[t]), std::move(b_locals[t]), std::move(b_remotes[t]));
+    }
     world.sync();
 
     // 5. store contributors and owners in a vector
-    auto contributions = std::vector<shared_pixel>(my_contributions.size());
-    auto responsibilities =
-        std::vector<shared_pixel>(my_responsibilities.size());
-    std::copy(my_contributions.begin(), my_contributions.end(),
-              contributions.begin());
-    std::copy(my_responsibilities.begin(), my_responsibilities.end(),
-              responsibilities.begin());
+    auto contributions = std::vector<std::vector<pixel_message>>(p);
+    auto responsibilities = std::vector<std::vector<pixel_message>>(p);
+
+    for (auto& xs : my_contributions) {
+        auto& owners = std::get<0>(xs);
+        auto& locals = std::get<1>(xs);
+        auto& remotes = std::get<2>(xs);
+        for (auto i = 0u; i < owners.size(); ++i) {
+            contributions[owners[i]].push_back({locals[i], remotes[i]});
+        }
+    }
+    for (auto xs : my_responsibilities) {
+        auto& owners = std::get<0>(xs);
+        auto& locals = std::get<1>(xs);
+        auto& remotes = std::get<2>(xs);
+        for (auto i = 0u; i < owners.size(); ++i) {
+            responsibilities[owners[i]].push_back({locals[i], remotes[i]});
+        }
+    }
 
     return {std::move(contributions), std::move(responsibilities)};
 }
 
-void communicate_contributions(bulk::world& world, projections<3_D, T>& projs,
-                               const std::vector<shared_pixel>& contributions,
-                               const std::vector<shared_pixel>& results) {
-    auto q = bulk::queue<int, T>(world);
-    auto share = [&](const auto& xs) {
-        for (auto result : xs) {
-            auto target = result.target;
-            auto local = result.local_line;
-            auto remote = result.remote_line;
-            q(target).send(remote, projs[local]);
+void communicate_contributions(
+    bulk::world& world, projections<3_D, T>& projs,
+    const std::vector<std::vector<pixel_message>>& contributions,
+    const std::vector<std::vector<pixel_message>>& results) {
+    std::vector<int> remotes_buf;
+    std::vector<T> values_buf;
+    int p = world.active_processors();
+    auto q = bulk::queue<int[], T[]>(world);
+    auto share = [&, p](const auto& xs) {
+        for (int t = 0; t < p; ++t) {
+            remotes_buf.clear();
+            values_buf.clear();
+            for (auto result : xs[t]) {
+                auto local = result.local_line;
+                auto remote = result.remote_line;
+                remotes_buf.push_back(remote);
+                values_buf.push_back(projs[local]);
+            }
+            q(t).send(remotes_buf, values_buf);
         }
+        world.sync();
     };
 
     share(contributions);
-    world.sync();
-    for (auto melem : q) {
-        projs[std::get<0>(melem)] += std::get<1>(melem);
+    {
+        auto& work = *q.begin();
+        auto& remotes = std::get<0>(work);
+        auto& values = std::get<1>(work);
+        for (auto i = 0u; i < remotes.size(); ++i) {
+            projs[remotes[i]] += values[i];
+        }
     }
-
     share(results);
-    world.sync();
-    for (auto melem : q) {
-        projs[std::get<0>(melem)] = std::get<1>(melem);
+    {
+        auto& work = *q.begin();
+        auto& remotes = std::get<0>(work);
+        auto& values = std::get<1>(work);
+        for (auto i = 0u; i < remotes.size(); ++i) {
+            projs[remotes[i]] = values[i];
+        }
     }
 }
 
@@ -266,8 +321,8 @@ void sirt(bulk::world& world,
           bulk::rectangular_partitioning<3, 1>& partitioning,
           tomo::volume<3_D, T> global_volume,
           geometry::trajectory<3_D, T>& global_geometry,
-          tomo::util::report& table, std::string name, std::string column, std::string image_dir,
-          int iters) {
+          tomo::util::report& table, std::string name, std::string column,
+          std::string image_dir, int iters) {
 
     if (world.rank() == 0) {
         world.log("Running %s (%s)", name.c_str(), column.c_str());
@@ -292,6 +347,9 @@ void sirt(bulk::world& world,
         }
     };
 
+    if (world.rank() == 0) {
+        world.log("Running experiment %s (%s)", name.c_str(), column.c_str());
+    }
     fp(phantom, gs, vs, p);
 
     auto bp = [](const auto& p_, const auto& g, const auto& v, auto& x_) {
@@ -304,12 +362,18 @@ void sirt(bulk::world& world,
             ++line_number;
         }
     };
-
+    if (world.rank() == 0) {
+        world.log("Computing contributions %s (%s)", name.c_str(),
+                  column.c_str());
+    }
     auto result = compute_contributions(world, gs);
     auto& go_forth = result.first;
     auto& and_back = result.second;
 
     // communicate row and column sums
+    if (world.rank() == 0) {
+        world.log("Compute R and C %s (%s)", name.c_str(), column.c_str());
+    }
     auto invert = [](auto x) { return (T)1.0 / x; };
     auto invert_all = [&](auto& xs) {
         std::transform(xs.begin(), xs.end(), xs.begin(), invert);
@@ -327,6 +391,9 @@ void sirt(bulk::world& world,
     auto z = image<3_D, T>(vs);
     auto x = image<3_D, T>(vs);
 
+    if (world.rank() == 0) {
+        world.log("SIRT %s (%s)", name.c_str(), column.c_str());
+    }
     auto stopwatch = bulk::util::timer();
     for (int iter = 0; iter < iters; ++iter) {
         fp(x, gs, vs, q);
@@ -347,11 +414,13 @@ void sirt(bulk::world& world,
         name, column,
         fmt::format("{:.2f}", stopwatch.get<std::milli>() / (1000.0 * iters)));
 
-    collect_orthos(world, x, global_volume, partitioning, name + "_" + column, image_dir);
+    collect_orthos(world, x, global_volume, partitioning, name + "_" + column,
+                   image_dir);
 }
 
 void run(const std::vector<std::string>& geoms, std::string part_dir, int k,
-         int iters, std::string outfile, std::string image_dir, tomo::util::report& table) {
+         int iters, std::string outfile, std::string image_dir,
+         tomo::util::report& table) {
     bulk::mpi::environment env;
 
     auto processors = env.available_processors();
@@ -374,19 +443,19 @@ void run(const std::vector<std::string>& geoms, std::string part_dir, int k,
             auto tree_partitioning =
                 tomo::load_partitioning(tree_file, global_volume, log2(p));
 
-           auto main_d = tree_partitioning->splits().root->value.d;
-  
-           // which dimension, the first split decides.....
-           auto block_partitioning = bulk::block_partitioning<3, 1>(
-               tomo::math::vec_to_array<3_D, int>(global_volume.voxels()), {p},
-               {main_d});
+            auto main_d = tree_partitioning->splits().root->value.d;
 
-          sirt(world, block_partitioning, global_volume,
-               (tomo::geometry::trajectory<3_D, T>&)global_geometry, table,
-               name, "trivial", image_dir, iters);
-          sirt(world, *tree_partitioning, global_volume,
-               (tomo::geometry::trajectory<3_D, T>&)global_geometry, table,
-               name, "bisected", image_dir, iters);
+            // which dimension, the first split decides.....
+            auto block_partitioning = bulk::block_partitioning<3, 1>(
+                tomo::math::vec_to_array<3_D, int>(global_volume.voxels()), {p},
+                {main_d});
+
+            sirt(world, block_partitioning, global_volume,
+                 (tomo::geometry::trajectory<3_D, T>&)global_geometry, table,
+                 name, "trivial", image_dir, iters);
+            sirt(world, *tree_partitioning, global_volume,
+                 (tomo::geometry::trajectory<3_D, T>&)global_geometry, table,
+                 name, "bisected", image_dir, iters);
         }
 
         if (world.rank() == 0) {
@@ -398,9 +467,10 @@ void run(const std::vector<std::string>& geoms, std::string part_dir, int k,
 }
 
 void usage(std::string program_name) {
-    std::cout << "Usage: " << program_name << " --geom GEOMS --part PART_DIR "
-                                              "--out TABLE_FILE --images IMAGE_DIR [-k SIZE] [-i "
-                                              "ITERS]\n";
+    std::cout << "Usage: " << program_name
+              << " --geom GEOMS --part PART_DIR "
+                 "--out TABLE_FILE --images IMAGE_DIR [-k SIZE] [-i "
+                 "ITERS]\n";
 }
 
 int main(int argc, char* argv[]) {
@@ -416,7 +486,8 @@ int main(int argc, char* argv[]) {
     table.add_column("bisected");
 
     run(opts.args("--geom"), opts.arg("--part"), opts.arg_as_or<int>("-k", -1),
-        opts.arg_as_or<int>("-i", 1), opts.arg("--out"), opts.arg("--images"), table);
+        opts.arg_as_or<int>("-i", 1), opts.arg("--out"), opts.arg("--images"),
+        table);
 
     return 0;
 }
