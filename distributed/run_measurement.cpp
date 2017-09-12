@@ -224,8 +224,7 @@ void communicate_contributions(
 
     share(contributions);
     world.sync();
-    {
-        auto& work = *q.begin();
+    for (auto& work : q) {
         auto& idxs = std::get<0>(work);
         auto& values = std::get<1>(work);
         for (auto i = 0u; i < idxs.size(); ++i) {
@@ -234,8 +233,7 @@ void communicate_contributions(
     }
     share(results);
     world.sync();
-    {
-        auto& work = *q.begin();
+    for (auto& work : q) {
         auto& idxs = std::get<0>(work);
         auto& values = std::get<1>(work);
         for (auto i = 0u; i < idxs.size(); ++i) {
@@ -418,10 +416,8 @@ void sirt(bulk::world& world,
 
         if (world.rank() == 0) {
             auto t = stopwatch.get<std::milli>();
-            world.log(
-                "SIRT %i: %s", iter,
-                fmt::format("{:.2f} s",  (t - prev_t) / 1000.0)
-                    .c_str());
+            world.log("SIRT %i: %s", iter,
+                      fmt::format("{:.2f} s", (t - prev_t) / 1000.0).c_str());
             prev_t = t;
         }
     }
