@@ -165,6 +165,9 @@ template <typename T>
 std::unique_ptr<tomo::geometry::cone_beam<T>>
 read_dynamic_cone_beam_geometry(std::shared_ptr<cpptoml::table> parameters,
                                 tomo::volume<3_D, T> v, int k = -1) {
+    (void)parameters;
+    (void)v;
+    (void)k;
     return nullptr;
 }
 
@@ -221,6 +224,9 @@ template <typename T>
 std::unique_ptr<tomo::geometry::cone_beam<T>>
 read_double_helix_geometry(std::shared_ptr<cpptoml::table> parameters,
                            tomo::volume<3_D, T> v, int k = -1) {
+    (void)parameters;
+    (void)v;
+    (void)k;
     return nullptr;
 }
 
