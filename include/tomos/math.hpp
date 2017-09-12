@@ -112,6 +112,7 @@ auto rotate(vec<3_D, T> v, vec<3_D, T> normal, T angle) {
 /** Rotate a 2D vector */
 template <typename T>
 auto rotate(vec<2_D, T> v, [[maybe_unused]] vec<2_D, T> normal, T angle) {
+    (void)normal;
     return glm::rotate(v, angle);
 }
 

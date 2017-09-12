@@ -1,3 +1,4 @@
+#define NDEBUG
 /*
  * FIXME:
  * - Can we group sends together? this should greatly reduce data size
@@ -166,8 +167,12 @@ compute_contributions(bulk::world& world,
     auto my_contributions = bulk::queue<int[], int[], int[]>(world);
     auto my_responsibilities = bulk::queue<int[], int[], int[]>(world);
     for (int t = 0; t < p; ++t) {
-        my_contributions(t).send(std::move(a_targets[t]), std::move(a_locals[t]), std::move(a_remotes[t]));
-        my_responsibilities(t).send(std::move(b_targets[t]), std::move(b_locals[t]), std::move(b_remotes[t]));
+        my_contributions(t).send(std::move(a_targets[t]),
+                                 std::move(a_locals[t]),
+                                 std::move(a_remotes[t]));
+        my_responsibilities(t).send(std::move(b_targets[t]),
+                                    std::move(b_locals[t]),
+                                    std::move(b_remotes[t]));
     }
     world.sync();
 
@@ -215,25 +220,26 @@ void communicate_contributions(
             }
             q(t).send(remotes_buf, values_buf);
         }
-        world.sync();
     };
 
     share(contributions);
+    world.sync();
     {
         auto& work = *q.begin();
-        auto& remotes = std::get<0>(work);
+        auto& idxs = std::get<0>(work);
         auto& values = std::get<1>(work);
-        for (auto i = 0u; i < remotes.size(); ++i) {
-            projs[remotes[i]] += values[i];
+        for (auto i = 0u; i < idxs.size(); ++i) {
+            projs[idxs[i]] += values[i];
         }
     }
     share(results);
+    world.sync();
     {
         auto& work = *q.begin();
-        auto& remotes = std::get<0>(work);
+        auto& idxs = std::get<0>(work);
         auto& values = std::get<1>(work);
-        for (auto i = 0u; i < remotes.size(); ++i) {
-            projs[remotes[i]] = values[i];
+        for (auto i = 0u; i < idxs.size(); ++i) {
+            projs[idxs[i]] = values[i];
         }
     }
 }
@@ -395,6 +401,7 @@ void sirt(bulk::world& world,
         world.log("SIRT %s (%s)", name.c_str(), column.c_str());
     }
     auto stopwatch = bulk::util::timer();
+    float prev_t = 0.0f;
     for (int iter = 0; iter < iters; ++iter) {
         fp(x, gs, vs, q);
         for (auto l = 0ull; l < gs.lines(); ++l) {
@@ -408,11 +415,20 @@ void sirt(bulk::world& world,
 
         z.clear();
         q.clear();
+
+        if (world.rank() == 0) {
+            auto t = stopwatch.get<std::milli>();
+            world.log(
+                "SIRT %i: %s", iter,
+                fmt::format("{:.2f} s",  (t - prev_t) / 1000.0)
+                    .c_str());
+            prev_t = t;
+        }
     }
 
-    table.add_result(
-        name, column,
-        fmt::format("{:.2f}", stopwatch.get<std::milli>() / (1000.0 * iters)));
+    table.add_result(name, column,
+                     fmt::format("{:.2f} s", stopwatch.get<std::milli>() /
+                                                 (1000.0 * iters)));
 
     collect_orthos(world, x, global_volume, partitioning, name + "_" + column,
                    image_dir);
@@ -451,15 +467,15 @@ void run(const std::vector<std::string>& geoms, std::string part_dir, int k,
                 {main_d});
 
             if (trivial) {
-		    sirt(world, block_partitioning, global_volume,
-			 (tomo::geometry::trajectory<3_D, T>&)global_geometry, table,
-			 name, "trivial", image_dir, iters);
-		}
-if (bisected) {
-            sirt(world, *tree_partitioning, global_volume,
-                 (tomo::geometry::trajectory<3_D, T>&)global_geometry, table,
-                 name, "bisected", image_dir, iters);
-}
+                sirt(world, block_partitioning, global_volume,
+                     (tomo::geometry::trajectory<3_D, T>&)global_geometry,
+                     table, name, "trivial", image_dir, iters);
+            }
+            if (bisected) {
+                sirt(world, *tree_partitioning, global_volume,
+                     (tomo::geometry::trajectory<3_D, T>&)global_geometry,
+                     table, name, "bisected", image_dir, iters);
+            }
         }
 
         if (world.rank() == 0) {
