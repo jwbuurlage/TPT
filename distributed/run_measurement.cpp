@@ -400,12 +400,18 @@ void sirt(bulk::world& world,
     }
     auto stopwatch = bulk::util::timer();
     float prev_t = 0.0f;
+    auto total_comm_time = 0.0f;
     for (int iter = 0; iter < iters; ++iter) {
         fp(x, gs, vs, q);
         for (auto l = 0ull; l < gs.lines(); ++l) {
             q[l] = r[l] * (p[l] - q[l]);
         }
+
+        auto t = stopwatch.get<std::milli>();
         communicate_contributions(world, q, go_forth, and_back);
+        auto dt = (stopwatch.get<std::milli>() - t);
+        total_comm_time += dt;
+
         bp(q, gs, vs, z);
         for (auto i = 0ull; i < vs.cells(); ++i) {
             x[i] += c[i] * z[i];
@@ -415,16 +421,19 @@ void sirt(bulk::world& world,
         q.clear();
 
         if (world.rank() == 0) {
-            auto t = stopwatch.get<std::milli>();
+            auto ti = stopwatch.get<std::milli>();
             world.log("SIRT %i: %s", iter,
-                      fmt::format("{:.2f} s", (t - prev_t) / 1000.0).c_str());
-            prev_t = t;
+                      fmt::format("{:.2f} s", (ti - prev_t) / 1000.0).c_str());
+            prev_t = ti;
         }
     }
 
     table.add_result(name, column,
                      fmt::format("{:.2f} s", stopwatch.get<std::milli>() /
                                                  (1000.0 * iters)));
+    table.add_result(
+        name, column + " (com)",
+        fmt::format("{:.2f} s", total_comm_time / (1000.0 * iters)));
 
     collect_orthos(world, x, global_volume, partitioning, name + "_" + column,
                    image_dir);
@@ -499,7 +508,9 @@ int main(int argc, char* argv[]) {
 
     auto table = tomo::util::report("Runtimes", "geometry");
     table.add_column("trivial");
+    table.add_column("trivial (com)");
     table.add_column("bisected");
+    table.add_column("bisected (com)");
 
     run(opts.args("--geom"), opts.arg("--part"), opts.arg_as_or<int>("-k", -1),
         opts.arg_as_or<int>("-i", 1), opts.arg("--out"), opts.arg("--images"),
