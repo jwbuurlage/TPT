@@ -52,6 +52,7 @@ set(
 set(
     EXAMPLE_SOURCES
     "minimal_example.cpp"
+    "generate_mtx.cpp"
     "reconstruction.cpp"
     "read_tiff.cpp"
     "dose_deposition.cpp"
