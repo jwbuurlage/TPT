@@ -339,7 +339,7 @@ void sirt(bulk::world& world,
     auto gs = distributed::restricted_geometry<T>(global_geometry, vs);
     auto p = projections<3_D, T>(gs);
 
-    using dimmer = dim::closest<3_D, T>;
+    using dimmer = dim::joseph<3_D, T>;
     auto fp = [&](const auto& f, const auto& g, const auto& v, auto& q) {
         auto proj = dimmer(v);
         int line_number = 0;
@@ -407,8 +407,11 @@ void sirt(bulk::world& world,
             q[l] = r[l] * (p[l] - q[l]);
         }
 
+	// add two syncs to measure accurately comm time
+	world.sync();
         auto t = stopwatch.get<std::milli>();
         communicate_contributions(world, q, go_forth, and_back);
+	world.sync();
         auto dt = (stopwatch.get<std::milli>() - t);
         total_comm_time += dt;
 
