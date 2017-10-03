@@ -30,7 +30,7 @@ template <dimension D, typename T>
 std::vector<float> pack_image(image<D, T> f) {
     std::vector<float> grayscale_image(f.get_volume().cells());
 
-    for (int k = 0; k < f.get_volume().cells(); ++k) {
+    for (auto k = 0u; k < f.get_volume().cells(); ++k) {
         grayscale_image[k] = (float)f[k];
     }
 

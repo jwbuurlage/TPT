@@ -267,12 +267,12 @@ void run(util::args options) {
         auto x = image<3_D, T>(vs);
         for (int iter = 0; iter < 10; ++iter) {
             fp(x, gs, vs, q);
-            for (int l = 0; l < gs.lines(); ++l) {
+            for (auto l = 0u; l < gs.lines(); ++l) {
                 q[l] = r[l] * (p[l] - q[l]);
             }
             communicate_contributions(world, q, go_forth, and_back);
             bp(q, gs, vs, z);
-            for (int i = 0; i < vs.cells(); ++i) {
+            for (auto i = 0u; i < vs.cells(); ++i) {
                 x[i] += c[i] * z[i];
             }
 

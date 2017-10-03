@@ -52,10 +52,13 @@ image<D, T> sirt(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
         ++line_idx;
     }
 
-    for (auto& r : R)
+    for (auto& r : R) {
         r = (math::abs(r) > math::epsilon<T>) ? ((T)1.0 / r) : (T)0.0;
-    for (auto& bc : bC)
+    }
+
+    for (auto& bc : bC) {
         bc = (math::abs(bc) > math::epsilon<T>) ? ((T)beta / bc) : (T)0.0;
+    }
 
     projections<D, T> s1(g);
     image<D, T> s2(v);
@@ -72,7 +75,7 @@ image<D, T> sirt(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
         }
 
         // compute R(p - Wx)
-        for (int j = 0; j < g.lines(); ++j) {
+        for (auto j = 0u; j < g.lines(); ++j) {
             s1[j] = (p[j] - s1[j]) * R[j];
         }
 
@@ -89,7 +92,7 @@ image<D, T> sirt(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
         }
 
         // update image while scaling with beta * C
-        for (int j = 0; j < v.cells(); ++j) {
+        for (auto j = 0u; j < v.cells(); ++j) {
             f[j] += bC[j] * s2[j];
         }
 

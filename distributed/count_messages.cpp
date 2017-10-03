@@ -8,8 +8,8 @@
 #include <cassert>
 #include <sstream>
 
-#include "bulk/backends/mpi/mpi.hpp"
-#include "bulk/bulk.hpp"
+#include <bulk/backends/mpi/mpi.hpp>
+#include <bulk/bulk.hpp>
 
 namespace bulk {
 using namespace experimental;
@@ -180,10 +180,7 @@ compute_contributions(bulk::world& world,
     auto contributions = std::vector<std::vector<pixel_message>>(p);
     auto responsibilities = std::vector<std::vector<pixel_message>>(p);
 
-    for (auto& xs : my_contributions) {
-        auto& owners = std::get<0>(xs);
-        auto& locals = std::get<1>(xs);
-        auto& remotes = std::get<2>(xs);
+    for (auto& [owners, locals, remotes] : my_contributions) {
         for (auto i = 0u; i < owners.size(); ++i) {
             contributions[owners[i]].push_back({locals[i], remotes[i]});
         }

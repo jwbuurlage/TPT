@@ -54,7 +54,7 @@ image<D, T> downscale(const image<D, T>& f, math::vec<D, int> new_size) {
     auto voxels = f.get_volume().voxels();
     auto stride = math::vec3<T>(voxels) / math::vec3<T>(new_size);
 
-    for (int i = 0; i < new_volume.cells(); ++i) {
+    for (auto i = 0u; i < new_volume.cells(); ++i) {
         g[i] = f(math::vec3<T>(new_volume.unroll(i)) * stride);
     }
 
@@ -127,7 +127,7 @@ void ascii_plot(const image<2_D, T>& f, T max = -1) {
 template <typename T>
 void ascii_plot(const image<3_D, T>& f, int slices = 4, int axis = 0) {
     T max = (T)0;
-    for (int k = 0; k < f.get_volume().cells(); ++k)
+    for (auto k = 0u; k < f.get_volume().cells(); ++k)
         if (f[k] > max)
             max = f[k];
 
@@ -158,9 +158,11 @@ void ascii_plot_output(ImageLike& image, math::vec2<int> dimensions,
     std::reverse(chars.begin(), chars.end());
 
     if (max < 0) {
-        for (int k = 0; k < image.get_volume().cells(); ++k)
-            if (image[k] > max)
+        for (auto k = 0u; k < image.get_volume().cells(); ++k) {
+            if (image[k] > max) {
                 max = image[k];
+            }
+        }
     }
 
     std::cout << max << " (max) \n";
