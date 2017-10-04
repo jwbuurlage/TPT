@@ -62,12 +62,8 @@ class restricted_geometry : public geometry::base<3, T> {
     restricted_geometry(geometry::trajectory<3_D, T>& geometry,
                         volume<3_D, T> local_volume)
         : geometry::base<3, T>(geometry.projection_count(), false),
-          geometry_(geometry), local_volume_(local_volume),
-          pixels_(geometry.projection_count() + 1) {
+          geometry_(geometry), local_volume_(local_volume) {
         project();
-        std::transform(shadows_.begin(), shadows_.end(), pixels_.begin() + 1,
-                       [&](auto shadow) { return pixels(shadow); });
-        std::partial_sum(pixels_.begin(), pixels_.end(), pixels_.begin());
         this->compute_lines_();
     }
 
@@ -104,11 +100,22 @@ class restricted_geometry : public geometry::base<3, T> {
     auto local_shadow(int i) const { return shadows_[i]; }
     const auto& global_geometry() const { return geometry_; }
 
+    uint64_t global_index(int projection, uint64_t local_index) {
+        local_index -= this->offset(projection);
+        int pixel_x = local_index % projection_shape(projection)[0];
+        int pixel_y = local_index / projection_shape(projection)[0];
+        int global_pixel_x = pixel_x + shadows_[projection].min_pt[0];
+        int global_pixel_y = pixel_y + shadows_[projection].min_pt[1];
+
+        return geometry_.offset(projection) +
+               global_pixel_y * geometry_.projection_shape(projection)[0] +
+               global_pixel_x;
+    }
+
   private:
     geometry::trajectory<3_D, T>& geometry_;
     volume<3_D, T> local_volume_;
     std::vector<shadow> shadows_;
-    std::vector<int> pixels_;
 };
 
 } // namespace distributed

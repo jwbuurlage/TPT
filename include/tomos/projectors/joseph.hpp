@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../projector.hpp"
 #include "../math.hpp"
+#include "../projector.hpp"
 
 namespace tomo {
 namespace dim {
@@ -19,6 +19,32 @@ class joseph : public base<D, T> {
         auto dims = this->volume_.voxels();
         auto max_width = tomo::math::max_element<D, int>(dims);
         this->queue_.reserve((int)(2 * max_width));
+    }
+
+    T matrix_value(math::ray<D, T> ray, math::vec<D, int> voxel) {
+        auto truncated_line = math::truncate_to_volume(ray, this->volume_);
+        if (!truncated_line) {
+            return (T)0;
+        }
+        auto& line = truncated_line.value();
+        int axis = math::max_index<D, T>(math::abs(line.delta));
+        auto step = line.delta / math::abs(line.delta[axis]);
+
+        // do I care about this?
+        auto voxel_index = math::restrict<D, int>(voxel, axis);
+        auto voxel_center =
+            math::vec<D - 1, T>(voxel_index) + math::vec<D - 1, T>((T)0.5);
+
+        auto current_location =
+            line.origin +
+            math::abs((voxel[axis] + (T)0.5) - line.origin[axis]) * step;
+
+        auto in_slice = math::restrict<D, T>(current_location, axis);
+
+        auto value = math::product<D - 1, T>(math::max(
+            math::vec<D - 1, T>(0),
+            math::vec<D - 1, T>((T)1) - math::abs(in_slice - voxel_center)));
+        return value;
     }
 
   private:

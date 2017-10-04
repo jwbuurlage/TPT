@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstdint>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "math.hpp"
@@ -146,11 +147,14 @@ class base {
         }
 
         /** Dereference the iterator to obtain the represented line. */
-        math::ray<D, T> operator*() const { return *pixels_; }
+        std::tuple<uint64_t, uint64_t, math::ray<D, T>> operator*() const {
+            return {proj_, line_number_, *pixels_};
+        }
 
         /** Increase the iterator. */
         projection_iterator& operator++() {
             ++pixels_;
+            ++line_number_;
             this->update_();
             return *this;
         }
@@ -192,6 +196,7 @@ class base {
                                   outside);
         }
 
+        uint64_t line_number_ = 0;
         int proj_ = 0;
         const base& geometry_;
         pixel_iterator pixels_;
