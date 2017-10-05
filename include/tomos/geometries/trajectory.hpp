@@ -39,9 +39,9 @@ template <dimension D, typename T>
 class trajectory : public base<D, T> {
   public:
     /** Construct the geometry with a given number of lines. */
-    trajectory(volume<3_D, T> volume, int projection_count,
-               math::vec<2_D, T> detector_size,
-               math::vec<2_D, int> detector_shape)
+    trajectory(volume<D, T> volume, int projection_count,
+               math::vec<D - 1, T> detector_size,
+               math::vec<D - 1, int> detector_shape)
         : base<D, T>(projection_count), volume_(volume),
           detector_size_(detector_size), detector_shape_(detector_shape) {
         this->compute_lines_();
@@ -60,9 +60,11 @@ class trajectory : public base<D, T> {
     virtual math::vec<D, T> detector_location(int i) const = 0;
 
     math::vec<D, T> detector_corner(int i) const override {
-        return detector_location(i) -
-               (T)0.5 * (detector_size_[0] * detector_tilt(i)[0] +
-                         detector_size_[1] * detector_tilt(i)[1]);
+        math::vec<D, T> result = detector_location(i);
+        for (int d = 0; d < D - 1; ++d) {
+            result -= (T)0.5 * (detector_size_[d] * detector_tilt(i)[d]);
+        }
+        return result;
     }
 
     math::vec<D - 1, int> projection_shape(int) const override {
@@ -76,10 +78,14 @@ class trajectory : public base<D, T> {
 
     std::array<math::vec<D, T>, D - 1> projection_delta(int i) const override {
         auto axes = detector_tilt(i);
-        auto relative =
-            math::vec<D - 1, T>(detector_size_[0] / this->detector_shape_[0],
-                                detector_size_[1] / this->detector_shape_[1]);
-        return {relative[0] * axes[0], relative[1] * axes[1]};
+        std::array<math::vec<D, T>, D - 1> result;
+
+        for (int d = 0; d < D - 1; ++d) {
+            result[d] =
+                (detector_size_[d] / this->detector_shape_[d]) * axes[d];
+        }
+
+        return result;
     }
 
   protected:
@@ -87,8 +93,8 @@ class trajectory : public base<D, T> {
 
     volume<D, T> volume_;
 
-    math::vec<2_D, T> detector_size_;
-    math::vec<2_D, int> detector_shape_;
+    math::vec<D - 1, T> detector_size_;
+    math::vec<D - 1, int> detector_shape_;
 };
 
 } // namespace geometry
