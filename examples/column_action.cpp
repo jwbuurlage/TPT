@@ -1,35 +1,45 @@
 #include "tomos/tomos.hpp"
+#include "tomos/util/column_iterator.hpp"
+#include "tomos/util/simple_args.hpp"
 using namespace tomo;
 
-int main() {
+#include <random>
+
+using namespace std::string_literals;
+
+int main(int argc, char* argv[]) {
     using T = float;
 
-    constexpr dimension D = 3_D;
+    auto opts = tomo::options{argc, argv};
 
-    int size = 32;
-    int sweeps = 10;
+    constexpr dimension D = 2_D;
+
+    auto size = opts.arg_as_or<int>("-s", 32);
+    auto sweeps = opts.arg_as_or<int>("-i", 10);
+    auto beta = opts.arg_as_or<T>("--beta", (T)1);
+
     auto volume = tomo::volume<D, T>(size);
     auto phantom = tomo::modified_shepp_logan_phantom<T>(volume);
     tomo::ascii_plot(phantom);
 
-    auto geometry = tomo::geometry::cone_beam<T>(volume, size, {(T)2, (T)2},
-                                                 {size, size}, 2.0, 2.0);
+    auto geometry = tomo::geometry::fan_beam<T>(
+        volume, size, math::vec<D, T>(2.5), math::vec<D, int>(size), 5.0, 5.0);
     auto kernel = tomo::dim::joseph<D, T>(volume);
     auto b = tomo::forward_projection(phantom, geometry, kernel);
+
+    //    auto p = tomo::forward_projection<D, T>(phantom, geometry, kernel);
+    //    auto x = tomo::reconstruction::sirt(volume, geometry, kernel, p);
+    //
+    //    tomo::ascii_plot(x);
+    //    tomo::write_png(x, "fan_beam");
+
+    auto column = tomo::column<D, T>(geometry, kernel);
 
     auto cs = tomo::image<D, T>(volume);
     for (auto j = 0u; j < volume.cells(); ++j) {
         auto voxel_index = volume.unroll(j);
-        auto voxel_volume = tomo::volume<D, T>(
-            {1, 1, 1},
-            math::vec<D, T>(voxel_index) / math::vec<D, T>(volume.voxels()),
-            math::vec<D, T>(1.0) / math::vec<D, T>(volume.voxels()));
-        auto voxel_rays =
-            tomo::distributed::restricted_geometry(geometry, voxel_volume);
-        for (auto[proj, local_i, ray] : voxel_rays) {
-            (void)proj;
-            (void)local_i;
-            auto value = kernel.matrix_value(ray, voxel_index);
+        for (auto[line_idx, value] : column(voxel_index)) {
+            (void)line_idx;
             cs[j] += value * value;
         }
     }
@@ -37,36 +47,36 @@ int main() {
     auto x = tomo::image<D, T>(volume);
     auto r = b;
 
+    auto js = std::vector<uint64_t>(volume.cells());
+    std::iota(js.begin(), js.end(), 0);
+
+//    std::random_device rd;
+//    std::mt19937 g(rd());
+//    std::shuffle(js.begin(), js.end(), g);
+
     // sequential cyclic
     for (auto k = 0; k < sweeps; ++k) {
-        for (auto j = 0u; j < volume.cells(); ++j) {
-            if (cs[j] < tomo::math::epsilon<T>) {
+        for (auto q = 0u; q < volume.cells(); ++q) {
+            auto j = js[q];
+            auto voxel_index = volume.unroll(j);
+            if (cs[j] < math::epsilon<T>) {
                 continue;
             }
-            auto voxel_index = volume.unroll(j);
-            auto voxel_volume = tomo::volume<D, T>(
-                {1, 1, 1},
-                math::vec<D, T>(voxel_index) / math::vec<D, T>(volume.voxels()),
-                math::vec<D, T>(1.0) / math::vec<D, T>(volume.voxels()));
-            auto voxel_rays =
-                tomo::distributed::restricted_geometry(geometry, voxel_volume);
             auto delta = (T)0;
-            for (auto[proj, local_i, ray] : voxel_rays) {
-                auto i = voxel_rays.global_index(proj, local_i);
-                auto value = kernel.matrix_value(ray, voxel_index);
-                delta += value * r[i];
+            for (auto[line_idx, value] : column(voxel_index)) {
+                delta += value * r[line_idx];
             }
             delta /= cs[j];
-            for (auto[proj, local_i, ray] : voxel_rays) {
-                auto i = voxel_rays.global_index(proj, local_i);
-                auto value = kernel.matrix_value(ray, voxel_index);
-                r[i] -= value * delta;
+            delta *= beta;
+            for (auto[line_idx, value] : column) {
+                r[line_idx] -= value * delta;
             }
             x[j] += delta;
         }
+        tomo::write_png(x, "fan_beam_"s + std::to_string(k));
+        std::cout << "residual norm (" << k << "): " << math::norm(r) << "\n";
     }
 
     // print result
     tomo::ascii_plot(x);
-    tomo::write_png(tomo::slice<T>(x, size / 2, 2), "central_slice");
 }

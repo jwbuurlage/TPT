@@ -11,22 +11,6 @@ namespace tomo {
 namespace geometry {
 
 /**
- * Relevant data when requesting projection 'i'
- *
- * when we have this projection, we can make a subprojection by specifying:
- * - base pixel
- * - subprojection size
- */
-template <dimension D, typename T>
-struct projection {
-    math::vec<D, T> source_location;
-    math::vec<D, T> detector_location;
-    math::vec<D - 1, T> detector_size;
-    std::array<math::vec<D, T>, D - 1> detector_tilt;
-    math::vec<D - 1, int> detector_shape;
-};
-
-/**
  * A geometry defined by trajectories of the source and the detector (array)
  *
  * The detector and the source move in projections along some trajectory, which
@@ -72,8 +56,12 @@ class trajectory : public base<D, T> {
     }
 
     projection<D, T> get_projection(int idx) {
-        return {this->source_location(idx), this->detector_location(idx),
-                detector_size_, detector_tilt(idx), this->detector_shape_};
+        return {this->source_location(idx),
+                this->detector_location(idx),
+                detector_size_,
+                detector_tilt(idx),
+                this->detector_shape_,
+                false};
     }
 
     std::array<math::vec<D, T>, D - 1> projection_delta(int i) const override {

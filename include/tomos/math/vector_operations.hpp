@@ -1,7 +1,7 @@
 #pragma once
 
-#include "vector.hpp"
 #include "constants.hpp"
+#include "vector.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
@@ -129,6 +129,16 @@ T norm(vec<D, T> vec) {
         squared_sum += vec[d] * vec[d];
     }
     return sqrt(squared_sum);
+}
+
+template <typename VecLike>
+typename VecLike::value_type norm(VecLike x) {
+    using T = typename VecLike::value_type;
+    T result = (T)0;
+    for (auto i = 0u; i < x.size(); ++i) {
+        result += x[i] * x[i];
+    }
+    return sqrt(result);
 }
 
 /** Compute the square root of an object of type T. */

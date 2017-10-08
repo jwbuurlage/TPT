@@ -61,6 +61,8 @@ class base {
     /** Obtain the scanned volume. */
     volume<D, T> get_volume() const { return volume_; }
 
+    virtual T matrix_value(math::ray<D, T> ray, math::vec<D, int> voxel) = 0;
+
   protected:
     virtual ~base() = default;
 

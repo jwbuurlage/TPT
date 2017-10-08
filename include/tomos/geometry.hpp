@@ -13,6 +13,23 @@ namespace tomo {
 namespace geometry {
 
 /**
+ * Relevant data when requesting projection 'i'
+ *
+ * when we have this projection, we can make a subprojection by specifying:
+ * - base pixel
+ * - subprojection size
+ */
+template <dimension D, typename T>
+struct projection {
+    math::vec<D, T> source_location;
+    math::vec<D, T> detector_location;
+    math::vec<D - 1, T> detector_size;
+    std::array<math::vec<D, T>, D - 1> detector_tilt;
+    math::vec<D - 1, int> detector_shape;
+    bool parallel;
+};
+
+/**
  * A description of the geometry of the acquisition.
  *
  * The geometry is a glorified container, which describes all the rays that are
@@ -127,7 +144,9 @@ class base {
 
         /** Copy-construct an iterator. */
         projection_iterator(const projection_iterator& other)
-            : proj_(other.proj_), geometry_(other.geometry_) {}
+            : proj_(other.proj_), geometry_(other.geometry_),
+              line_number_(other.line_number_), pixels_(other.pixels_),
+              pixels_last_(other.pixels_last_) {}
 
         /** Increase the iterator. */
         projection_iterator& operator++(int) {
@@ -232,6 +251,8 @@ class base {
     virtual std::array<math::vec<D, T>, D - 1>
     projection_delta(int i) const = 0;
     int offset(int idx) const { return offsets_[idx]; }
+
+    virtual projection<D, T> get_projection(int idx) = 0;
 
   protected:
     std::vector<int> offsets_;

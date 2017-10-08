@@ -3,8 +3,8 @@
 #include <functional>
 #include <vector>
 
-#include "../projector.hpp"
 #include "../geometry.hpp"
+#include "../projector.hpp"
 
 namespace tomo {
 namespace reconstruction {
@@ -43,13 +43,12 @@ image<D, T> sirt(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
     std::vector<T> R(g.lines());
     std::vector<T> bC(v.cells());
 
-    int line_idx = 0;
-    for (auto line : g) {
+    for (auto[proj, idx, line] : g) {
+        (void)proj;
         for (auto elem : kernel(line)) {
-            R[line_idx] += elem.value;
+            R[idx] += elem.value;
             bC[elem.index] += elem.value;
         }
-        ++line_idx;
     }
 
     for (auto& r : R) {
@@ -66,12 +65,11 @@ image<D, T> sirt(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
         s1.clear();
 
         // compute Wx
-        int line_number = 0;
-        for (auto line : g) {
+        for (auto [proj, idx, line] : g) {
             for (auto elem : kernel(line)) {
-                s1[line_number] += f[elem.index] * elem.value;
+                (void)proj;
+                s1[idx] += f[elem.index] * elem.value;
             }
-            ++line_number;
         }
 
         // compute R(p - Wx)
@@ -83,12 +81,11 @@ image<D, T> sirt(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
         s2.clear();
 
         // multiply with W^T
-        int row = 0;
-        for (auto line : g) {
+        for (auto [proj, idx, line] : g) {
             for (auto elem : kernel(line)) {
-                s2[elem.index] += elem.value * s1[row];
+                (void)proj;
+                s2[elem.index] += elem.value * s1[idx];
             }
-            ++row;
         }
 
         // update image while scaling with beta * C

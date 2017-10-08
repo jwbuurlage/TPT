@@ -145,8 +145,8 @@ bool is_power_of_two(T x) {
 }
 
 /**
- * Compute the intersection of the line \f$p \rightarrow p2\f$, with the line
- * \f$q \rightarrow q2\f$.
+ * Compute the intersection of the line *segment* \f$p \rightarrow p2\f$, with
+ * the line *segment* \f$q \rightarrow q2\f$.
  *
  * \returns an optional containing a 2-dimensional vector if there is an
  * intersection, and no value otherwise.
@@ -169,6 +169,22 @@ optional<vec2<T>> intersection(vec2<T> p, vec2<T> p2, vec2<T> q, vec2<T> q2) {
     return optional<vec2<T>>();
 }
 
+template <typename T>
+optional<vec2<T>> line_intersection(vec2<T> p, vec2<T> p2, vec2<T> q,
+                                    vec2<T> q2) {
+    auto r = p2 - p;
+    auto s = q2 - q;
+
+    auto r_cross_s = cross<T>(r, s);
+
+    if (abs(r_cross_s) < epsilon<T>) {
+        return optional<vec2<T>>();
+    }
+
+    auto t = cross<T>(q - p, s) / r_cross_s;
+    return p + t * r;
+}
+
 /** Checks whether a *voxel-coordinate* is a valid index (is 'inside') the
  * volume. */
 template <dimension D, typename T>
@@ -187,8 +203,7 @@ bool valid_index(vec<D, int> a, volume<D, T> vol) {
 template <dimension D, typename T>
 bool inside(vec<D, T> a, volume<D, T> vol) {
     for (int dim = 0; dim < D; ++dim) {
-        if (a[dim] < epsilon<T> ||
-            a[dim] > (T)vol.voxels()[dim] - epsilon<T>) {
+        if (a[dim] < epsilon<T> || a[dim] > (T)vol.voxels()[dim] - epsilon<T>) {
             return false;
         }
     }
@@ -319,20 +334,39 @@ intersect_bounds(line<D, T> l, std::array<vec2<int>, D> bounds) {
     vec<D, T> bounds_origin{bounds[0][0], bounds[1][0], bounds[2][0]};
 
     vec<D, T> bounds_sides =
-        vec<D, T>{bounds[0][1] + 1, bounds[1][1] + 1, bounds[2][1] + 1} - bounds_origin;
+        vec<D, T>{bounds[0][1] + 1, bounds[1][1] + 1, bounds[2][1] + 1} -
+        bounds_origin;
 
     auto center = bounds_origin + (T)0.5 * bounds_sides;
-    auto for_sure_far_enough = (T)2.0 * distance(l.origin, center); 
+    auto for_sure_far_enough = (T)2.0 * distance(l.origin, center);
     auto b = l.origin + for_sure_far_enough * l.delta;
-    auto result = aabb_intersection<D, T>(
-        l.origin, b,
-        bounds_sides, bounds_origin);
+    auto result =
+        aabb_intersection<D, T>(l.origin, b, bounds_sides, bounds_origin);
 
     if (result) {
         return std::pair<vec<D, T>, vec<D, T>>{result.value().first,
                                                result.value().second};
     }
 
+    return result;
+}
+
+/**
+ * For intervals I_1, I_2, ... , I_D, computes I_1 x I_2 x ... x I_D
+ */
+template <dimension D, typename T>
+std::array<math::vec<D, T>, math::pow(2, D)>
+cartesian_product(std::array<std::array<T, 2>, D> indices) {
+    /* This cartesian product uses bit shifts to compute it efficiently, we can
+     * do this because each set only has two elements. Note: requires D < 32,
+     * which we should never exceed. */
+
+    std::array<math::vec<D, T>, math::pow(2, D)> result;
+    for (int k = 0; k < (1 << D); ++k) {
+        for (int i = 0; i < D; ++i) {
+            result[k][i] = indices[i][(k & (1 << i)) != 0];
+        }
+    }
     return result;
 }
 
@@ -349,20 +383,7 @@ void interpolate(vec<D, T> a, volume<D, T> v,
     for (int i = 0; i < D; ++i) {
         cells_indices[i] = {b[i] - 1, b[i]};
     }
-
-    /* This cartesian product uses bit shifts to compute it efficiently, we can
-     * do this because each set only has two elements. Note: requires D < 32,
-     * which we should never exceed, ever. */
-    auto cartesian_product = [](std::array<std::array<int, 2>, D> indices) {
-        std::array<vec<D, int>, pow(2, D)> result;
-        for (int k = 0; k < (1 << D); ++k) {
-            for (int i = 0; i < D; ++i) {
-                result[k][i] = indices[i][(k & (1 << i)) != 0];
-            }
-        }
-        return result;
-    };
-    auto cells = cartesian_product(cells_indices);
+    auto cells = cartesian_product<D, int>(cells_indices);
 
     // Next we do a general interpolation
     for (auto cell : cells) {

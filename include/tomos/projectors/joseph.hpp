@@ -21,7 +21,7 @@ class joseph : public base<D, T> {
         this->queue_.reserve((int)(2 * max_width));
     }
 
-    T matrix_value(math::ray<D, T> ray, math::vec<D, int> voxel) {
+    T matrix_value(math::ray<D, T> ray, math::vec<D, int> voxel) override {
         auto truncated_line = math::truncate_to_volume(ray, this->volume_);
         if (!truncated_line) {
             return (T)0;
@@ -30,7 +30,6 @@ class joseph : public base<D, T> {
         int axis = math::max_index<D, T>(math::abs(line.delta));
         auto step = line.delta / math::abs(line.delta[axis]);
 
-        // do I care about this?
         auto voxel_index = math::restrict<D, int>(voxel, axis);
         auto voxel_center =
             math::vec<D - 1, T>(voxel_index) + math::vec<D - 1, T>((T)0.5);
@@ -40,6 +39,10 @@ class joseph : public base<D, T> {
             math::abs((voxel[axis] + (T)0.5) - line.origin[axis]) * step;
 
         auto in_slice = math::restrict<D, T>(current_location, axis);
+//        std::cout << math::to_string<D, T>(line.origin) << " + \\"
+//                  << math::to_string<D, T>(line.delta) << " crossing "
+//                  << math::to_string<D, int>(voxel) << "\n";
+//        std::cout << in_slice[0] << " vs " << voxel_center[0] << "\n";
 
         auto value = math::product<D - 1, T>(math::max(
             math::vec<D - 1, T>(0),
