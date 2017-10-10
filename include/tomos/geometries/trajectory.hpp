@@ -55,7 +55,7 @@ class trajectory : public base<D, T> {
         return detector_shape_;
     }
 
-    projection<D, T> get_projection(int idx) {
+    projection<D, T> get_projection(int idx) const {
         return {this->source_location(idx),
                 this->detector_location(idx),
                 detector_size_,

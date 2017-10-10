@@ -1,3 +1,4 @@
+#include "tomos/algorithms/column_action.hpp"
 #include "tomos/tomos.hpp"
 #include "tomos/util/column_iterator.hpp"
 #include "tomos/util/simple_args.hpp"
@@ -17,66 +18,58 @@ int main(int argc, char* argv[]) {
     auto size = opts.arg_as_or<int>("-s", 32);
     auto sweeps = opts.arg_as_or<int>("-i", 10);
     auto beta = opts.arg_as_or<T>("--beta", (T)1);
+    auto count = opts.arg_as_or<uint64_t>("-c", size / 4);
 
     auto volume = tomo::volume<D, T>(size);
     auto phantom = tomo::modified_shepp_logan_phantom<T>(volume);
     tomo::ascii_plot(phantom);
 
     auto geometry = tomo::geometry::fan_beam<T>(
-        volume, size, math::vec<D, T>(2.5), math::vec<D, int>(size), 5.0, 5.0);
+        volume, size, math::vec<D, T>(2.5), math::vec<D, int>(size), 4.0, 4.0);
     auto kernel = tomo::dim::joseph<D, T>(volume);
     auto b = tomo::forward_projection(phantom, geometry, kernel);
 
-    //    auto p = tomo::forward_projection<D, T>(phantom, geometry, kernel);
-    //    auto x = tomo::reconstruction::sirt(volume, geometry, kernel, p);
-    //
-    //    tomo::ascii_plot(x);
-    //    tomo::write_png(x, "fan_beam");
-
-    auto column = tomo::column<D, T>(geometry, kernel);
-
-    auto cs = tomo::image<D, T>(volume);
-    for (auto j = 0u; j < volume.cells(); ++j) {
-        auto voxel_index = volume.unroll(j);
-        for (auto[line_idx, value] : column(voxel_index)) {
-            (void)line_idx;
-            cs[j] += value * value;
-        }
+    if (opts.passed("--cyclic")) {
+        // sequential cyclic
+        auto x = tomo::reconstruction::column_action_cyclic(
+            volume, geometry, kernel, b, beta, sweeps);
+        tomo::ascii_plot(x);
     }
 
-    auto x = tomo::image<D, T>(volume);
-    auto r = b;
+    if (opts.passed("--block")) {
+        // std::vector<uint64_t> indices(volume.cells());
+        // auto block_size = volume.cells() / count;
+        // std::iota(indices.begin(), indices.end(), 0);
 
-    auto js = std::vector<uint64_t>(volume.cells());
-    std::iota(js.begin(), js.end(), 0);
+        // std::random_device rd;
+        // std::mt19937 g(rd());
 
-//    std::random_device rd;
-//    std::mt19937 g(rd());
-//    std::shuffle(js.begin(), js.end(), g);
+        // for (auto i = 0u; i < block_size; ++i) {
+        //     std::shuffle(indices.begin() + i * count,
+        //                  indices.begin() + (i + 1) * count, g);
+        // }
 
-    // sequential cyclic
-    for (auto k = 0; k < sweeps; ++k) {
-        for (auto q = 0u; q < volume.cells(); ++q) {
-            auto j = js[q];
-            auto voxel_index = volume.unroll(j);
-            if (cs[j] < math::epsilon<T>) {
-                continue;
+        // auto block = [&](uint64_t index) -> std::vector<uint64_t> {
+        //     auto result = std::vector<uint64_t>(block_size);
+        //     for (auto i = 0u; i < block_size; ++i) {
+        //         result[i] = indices[index + i * count];
+        //     }
+        //     return result;
+        // };
+
+        auto block_size = volume.cells() / count;
+
+        auto block = [&](uint64_t index) -> std::vector<uint64_t> {
+            auto result = std::vector<uint64_t>(block_size);
+            for (auto i = 0u; i < block_size; ++i) {
+                result[i] = i + index * block_size;
             }
-            auto delta = (T)0;
-            for (auto[line_idx, value] : column(voxel_index)) {
-                delta += value * r[line_idx];
-            }
-            delta /= cs[j];
-            delta *= beta;
-            for (auto[line_idx, value] : column) {
-                r[line_idx] -= value * delta;
-            }
-            x[j] += delta;
-        }
-        tomo::write_png(x, "fan_beam_"s + std::to_string(k));
-        std::cout << "residual norm (" << k << "): " << math::norm(r) << "\n";
+            return result;
+        };
+
+        // block
+        auto y = tomo::reconstruction::column_action_block(
+            volume, geometry, kernel, b, block, count, beta, sweeps);
+        tomo::ascii_plot(y);
     }
-
-    // print result
-    tomo::ascii_plot(x);
 }

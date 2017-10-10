@@ -252,7 +252,7 @@ class base {
     projection_delta(int i) const = 0;
     int offset(int idx) const { return offsets_[idx]; }
 
-    virtual projection<D, T> get_projection(int idx) = 0;
+    virtual projection<D, T> get_projection(int idx) const = 0;
 
   protected:
     std::vector<int> offsets_;

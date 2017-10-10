@@ -12,7 +12,7 @@ namespace tomo {
 template <dimension D, typename T>
 class column {
   public:
-    column(geometry::base<D, T>& geometry, dim::base<D, T>& kernel)
+    column(const geometry::base<D, T>& geometry, dim::base<D, T>& kernel)
         : geometry_(geometry), kernel_(kernel), volume_(kernel_.get_volume()) {}
 
     const auto& operator()(math::vec<D, int> voxel) {
@@ -132,7 +132,7 @@ class column {
         }
     }
 
-    geometry::base<D, T>& geometry_;
+    const geometry::base<D, T>& geometry_;
     dim::base<D, T>& kernel_;
     tomo::volume<D, T> volume_;
 
