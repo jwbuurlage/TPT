@@ -1,3 +1,4 @@
+#include "../math/vector.hpp"
 #include "../math.hpp"
 
 #include <glm/gtx/string_cast.hpp>

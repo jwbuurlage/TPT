@@ -69,6 +69,9 @@ class projections {
 
     auto size() const { return geometry_.lines(); }
 
+    auto begin() { return data_.begin(); }
+    auto end() { return data_.end(); }
+
   private:
     const geometry::base<D, T>& geometry_;
     std::vector<T> data_;

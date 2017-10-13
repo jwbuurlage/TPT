@@ -141,6 +141,16 @@ typename VecLike::value_type norm(VecLike x) {
     return sqrt(result);
 }
 
+template <typename VecLike>
+typename VecLike::value_type dot(VecLike x, VecLike y) {
+    using T = typename VecLike::value_type;
+    T result = (T)0;
+    for (auto i = 0u; i < x.size(); ++i) {
+        result += x[i] * y[i];
+    }
+    return result;
+}
+
 /** Compute the square root of an object of type T. */
 template <typename T>
 constexpr auto sqrt(T obj) {

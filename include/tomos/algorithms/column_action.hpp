@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 
 #include "../common.hpp"
@@ -20,8 +21,12 @@ template <dimension D, typename T>
 image<D, T>
 column_action_cyclic(volume<D, T>& v, const tomo::geometry::base<D, T>& g,
                      tomo::dim::base<D, T>& kernel, const projections<D, T>& b,
-                     double beta = 0.5, int sweeps = 10) {
-    auto x = tomo::image<D, T>(v);
+                     double beta = 0.5, int sweeps = 10,
+                     std::optional<tomo::image<D, T>> x0 = {}) {
+    auto x = x0.value_or(tomo::image<D, T>(v, 0));
+
+    tomo::write_png(x, "fan_beam_initial");
+
     auto r = b;
     auto column = tomo::column<D, T>(g, kernel);
 

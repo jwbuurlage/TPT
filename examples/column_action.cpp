@@ -1,7 +1,9 @@
 #include "tomos/algorithms/column_action.hpp"
 #include "tomos/tomos.hpp"
 #include "tomos/util/column_iterator.hpp"
+#include "tomos/util/matrix_sums.hpp"
 #include "tomos/util/simple_args.hpp"
+
 using namespace tomo;
 
 #include <random>
@@ -31,8 +33,25 @@ int main(int argc, char* argv[]) {
 
     if (opts.passed("--cyclic")) {
         // sequential cyclic
+        auto rs = tomo::row_sums(geometry, kernel);
+        auto cs = tomo::column_sums(geometry, kernel);
+
+        auto t = tomo::math::dot(rs, b) / tomo::math::dot(rs, rs);
+        auto x0 = tomo::image<D, T>(volume,
+                                    opts.passed("--init-constant") ? t : (T)0);
+        if (opts.passed("--init-sirt")) {
+            for (auto& r : rs) {
+                r = (math::abs(r) > math::epsilon<T>) ? ((T)1.0 / r) : (T)0.0;
+            }
+            for (auto& bc : cs) {
+                bc = (math::abs(bc) > math::epsilon<T>) ? ((T)beta / bc) : (T)0.0;
+            }
+            tomo::reconstruction::iterate::sirt(x0, geometry, kernel, b, rs,
+                                                cs);
+        }
+
         auto x = tomo::reconstruction::column_action_cyclic(
-            volume, geometry, kernel, b, beta, sweeps);
+            volume, geometry, kernel, b, beta, sweeps, {std::move(x0)});
         tomo::ascii_plot(x);
     }
 
