@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../image.hpp"
+#include "../projections.hpp"
 #include "../math.hpp"
 
 namespace tomo {
@@ -65,6 +66,17 @@ image<D, T> operator*(T lhs, const image<D, T>& rhs) {
     auto result = rhs;
     for (auto& x : result.mutable_data()) {
         x *= lhs;
+    }
+    return result;
+}
+
+template <tomo::dimension D, typename T>
+projections<D, T> operator-(const projections<D, T>& lhs, const projections<D, T>& rhs) {
+    assert(lhs.size() == rhs.size());
+    auto result = lhs;
+    int idx = 0;
+    for (auto& x : result.mutable_data()) {
+        x -= rhs[idx++];
     }
     return result;
 }

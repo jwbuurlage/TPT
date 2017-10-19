@@ -36,6 +36,20 @@ int main(int argc, char* argv[]) {
         auto rs = tomo::row_sums(geometry, kernel);
         auto cs = tomo::column_sums(geometry, kernel);
 
+        index_space* idxs = nullptr;
+        if (opts.passed("--idxs-reverse")) {
+            idxs = new reverse_index_space{(int)volume.cells()};
+        } else if (opts.passed("--idxs-back-forth")) {
+            idxs = new back_forth_index_space{(int)volume.cells()};
+        } else if (opts.passed("--idxs-random")) {
+            idxs = new random_index_space{(int)volume.cells()};
+        } else if (opts.passed("--idxs-hilbert")) {
+            // TODO
+            idxs = new index_space();
+        } else {
+            idxs = new index_space();
+        }
+
         auto t = tomo::math::dot(rs, b) / tomo::math::dot(rs, rs);
         auto x0 = tomo::image<D, T>(volume,
                                     opts.passed("--init-constant") ? t : (T)0);
@@ -44,15 +58,19 @@ int main(int argc, char* argv[]) {
                 r = (math::abs(r) > math::epsilon<T>) ? ((T)1.0 / r) : (T)0.0;
             }
             for (auto& bc : cs) {
-                bc = (math::abs(bc) > math::epsilon<T>) ? ((T)beta / bc) : (T)0.0;
+                bc = (math::abs(bc) > math::epsilon<T>) ? ((T)beta / bc)
+                                                        : (T)0.0;
             }
             tomo::reconstruction::iterate::sirt(x0, geometry, kernel, b, rs,
                                                 cs);
         }
 
         auto x = tomo::reconstruction::column_action_cyclic(
-            volume, geometry, kernel, b, beta, sweeps, {std::move(x0)});
+            volume, geometry, kernel, b, beta, sweeps,
+            opts.passed("--save-convergence"), {std::move(x0)}, {idxs});
         tomo::ascii_plot(x);
+
+        delete idxs;
     }
 
     if (opts.passed("--block")) {
@@ -90,5 +108,24 @@ int main(int argc, char* argv[]) {
         auto y = tomo::reconstruction::column_action_block(
             volume, geometry, kernel, b, block, count, beta, sweeps);
         tomo::ascii_plot(y);
+    }
+
+    if (opts.passed("--generate-ata")) {
+        int n = (int)volume.cells();
+        auto ata = tomo::image<D, T>({n});
+
+        // do something
+        for (auto[proj, idx, line] : geometry) {
+            (void)proj;
+            (void)idx;
+            for (auto i : kernel(line)) {
+                for (auto j : kernel) {
+                    ata({i.index, j.index}) += i.value * j.value;
+                }
+            }
+        }
+
+        tomo::ascii_plot(ata);
+        tomo::write_png(ata, "ata");
     }
 }
