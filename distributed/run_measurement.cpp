@@ -342,12 +342,10 @@ void sirt(bulk::world& world,
     using dimmer = dim::joseph<3_D, T>;
     auto fp = [&](const auto& f, const auto& g, const auto& v, auto& q) {
         auto proj = dimmer(v);
-        int line_number = 0;
-        for (auto line : g) {
+        for (auto [line_idx, line] : g) {
             for (auto elem : proj(line)) {
-                q[line_number] += f[elem.index] * elem.value;
+                q[line_idx] += f[elem.index] * elem.value;
             }
-            ++line_number;
         }
     };
 
@@ -358,12 +356,10 @@ void sirt(bulk::world& world,
 
     auto bp = [](const auto& p_, const auto& g, const auto& v, auto& x_) {
         auto proj = dimmer(v);
-        int line_number = 0;
-        for (auto line : g) {
+        for (auto [line_idx, line] : g) {
             for (auto elem : proj(line)) {
-                x_[elem.index] += p_[line_number] * elem.value;
+                x_[elem.index] += p_[line_idx] * elem.value;
             }
-            ++line_number;
         }
     };
     if (world.rank() == 0) {

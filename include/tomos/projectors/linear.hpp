@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <iostream>
 
 #include "../projector.hpp"
 #include "../volume.hpp"
@@ -19,6 +20,13 @@ class linear : public base<D, T> {
     linear(volume<D, T> vol) : base<D, T>(vol) {
         auto max_width = math::max_element<D, T>(vol.voxels());
         this->queue_.reserve((int)(math::sqrt<T>(D) * math::pow(D, 2) * max_width));
+    }
+
+    T matrix_value(math::ray<D, T> ray, math::vec<D, int> voxel) {
+        (void)ray;
+        (void)voxel;
+        std::cout << "Warning: `linear::matrix_value` not implemented\n";
+        return (T)0;
     }
 
   private:

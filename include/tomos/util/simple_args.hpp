@@ -10,8 +10,7 @@ struct options {
     char** argv;
 
     bool passed(std::string flag) {
-        return std::find(argv, argv + argc, flag) !=
-               (argv + argc);
+        return std::find(argv, argv + argc, flag) != (argv + argc);
     }
 
     std::string arg(std::string flag) {
@@ -31,7 +30,7 @@ struct options {
             return result;
         }
         pos++;
-        while(pos != argv + argc && *pos[0] != '-') {
+        while (pos != argv + argc && *pos[0] != '-') {
             result.push_back(std::string(*pos));
             pos++;
         }
@@ -56,6 +55,13 @@ struct options {
         T x = {};
         value >> x;
         return x;
+    }
+
+    std::string arg_or(std::string flag, std::string alt) {
+        if (!passed(flag)) {
+            return alt;
+        }
+        return arg(flag);
     }
 
     bool required_arguments(const std::vector<std::string>& args) {

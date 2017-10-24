@@ -43,7 +43,7 @@ template <typename T>
 vec<2_D, int> project_hyxel(vec3<T> x, geometry::projection<3_D, T> p) {
     auto geometric_point = ray_plane_intersection<T>(
         p.source_location, x - p.source_location, p.detector_location,
-        cross<T>(p.detector_tilt[0], p.detector_tilt[1]));
+        math::cross<T>(p.detector_tilt[0], p.detector_tilt[1]));
     assert(geometric_point);
     auto pt = geometric_point.value();
     // detector location is the *center* of the detector, so we adjust

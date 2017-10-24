@@ -112,6 +112,12 @@ class restricted_geometry : public geometry::base<3, T> {
                global_pixel_x;
     }
 
+    tomo::geometry::projection<3_D, T> get_projection(int idx) const {
+        return {geometry_.source_location(idx), geometry_.detector_corner(idx),
+                geometry_.detector_size(),   geometry_.detector_tilt(idx),
+                this->projection_shape(idx),  false};
+    }
+
   private:
     geometry::trajectory<3_D, T>& geometry_;
     volume<3_D, T> local_volume_;

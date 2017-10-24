@@ -223,12 +223,10 @@ void run(util::args options) {
         using dimmer = dim::joseph<3_D, T>;
         auto fp = [](const auto& f, const auto& g, const auto& v, auto& q) {
             auto proj = dimmer(v);
-            int line_number = 0;
-            for (auto line : g) {
+            for (auto [idx, line] : g) {
                 for (auto elem : proj(line)) {
-                    q[line_number] += f[elem.index] * elem.value;
+                    q[idx] += f[elem.index] * elem.value;
                 }
-                ++line_number;
             }
         };
         fp(phantom, gs, vs, p);
@@ -237,12 +235,10 @@ void run(util::args options) {
 
         auto bp = [](const auto& p_, const auto& g, const auto& v, auto& x_) {
             auto proj = dimmer(v);
-            int line_number = 0;
-            for (auto line : g) {
+            for (auto [idx, line] : g) {
                 for (auto elem : proj(line)) {
-                    x_[elem.index] += p_[line_number] * elem.value;
+                    x_[elem.index] += p_[idx] * elem.value;
                 }
-                ++line_number;
             }
         };
 

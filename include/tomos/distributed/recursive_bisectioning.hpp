@@ -70,7 +70,8 @@ image<D, T> voxel_weights(const geometry::base<D, T>& geometry,
                           const volume<D, T>& volume) {
     auto w = image<D, T>(volume, (T)0.0);
     auto proj = dim::closest<D, T>(volume);
-    for (auto line : geometry) {
+    for (auto [idx, line] : geometry) {
+        (void)idx;
         for (auto melm : proj(line)) {
             w[melm.index] += 1.0;
         }
@@ -147,7 +148,7 @@ std::pair<split_t, int> find_split(const std::vector<math::line<D, T>>& lines,
     // we want to tag each line with an entry point and exit point
     // the priority queue depends on the dimension!
     // first intersect each line with the bounds
-    std::size_t idx = 0;
+    size_t idx = 0;
     for (auto line : lines) {
         auto intersections = math::intersect_bounds<D, T>(line, bounds);
         if (intersections) {
@@ -308,7 +309,8 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
 
     // container for all the lines intersecting the volume
     std::vector<math::line<D, T>> all_lines;
-    for (auto l : geometry) {
+    for (auto [idx, l] : geometry) {
+        (void)idx;
         auto src = math::to_voxel<D, T>(l.source, object_volume);
         auto det = math::to_voxel<D, T>(l.detector, object_volume);
         auto line = math::line<D, T>{src, math::normalize(det - src)};

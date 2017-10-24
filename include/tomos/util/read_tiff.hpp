@@ -13,6 +13,7 @@ namespace fs = std::experimental::filesystem;
 
 #include "../common.hpp"
 #include "../image.hpp"
+#include "../utilities.hpp"
 
 namespace tomo {
 
@@ -107,6 +108,14 @@ void write_png(tomo::image<2_D, T> x, std::string filename) {
     }
 
     std::cout << "Saved: " << filename << ".png\n";
+}
+
+
+template <typename T = default_scalar_type>
+void write_png(tomo::image<3_D, T> x, std::string filename) {
+    write_png(tomo::slice(x, x.get_volume()[0] / 2, 0), filename + "_x");
+    write_png(tomo::slice(x, x.get_volume()[1] / 2, 1), filename + "_y");
+    write_png(tomo::slice(x, x.get_volume()[2] / 2, 2), filename + "_z"); 
 }
 
 } // namespace tomo

@@ -20,8 +20,7 @@ projections<D, T> forward_projection(Image& f, const geometry::base<D, T>& g,
                                      dim::base<D, T>& proj) {
     auto sino = projections<D, T>(g);
 
-    for (auto [projection, line_number, line] : g) {
-        (void)projection;
+    for (auto [line_number, line] : g) {
         for (auto elem : proj(line)) {
             sino[line_number] += f[elem.index] * elem.value;
         }
@@ -37,8 +36,7 @@ image<D, T> back_projection(const projections<D, T>& sino,
                             dim::base<D, T>& proj, volume<D, T> v) {
     auto f = image<D, T>(v);
 
-    for (auto [projection, line_number, line] : g) {
-        (void)projection;
+    for (auto [line_number, line] : g) {
         for (auto elem : proj(line)) {
             f[elem.index] += sino[line_number] * elem.value;
         }

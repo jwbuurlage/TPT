@@ -81,5 +81,16 @@ projections<D, T> operator-(const projections<D, T>& lhs, const projections<D, T
     return result;
 }
 
+template <tomo::dimension D, typename T>
+image<D, T> operator-(const image<D, T>& lhs, const image<D, T>& rhs) {
+    assert(lhs.size() == rhs.size());
+    auto result = lhs;
+    int idx = 0;
+    for (auto& x : result.mutable_data()) {
+        x -= rhs[idx++];
+    }
+    return result;
+}
+
 } // namespace img
 } // namespace tomo

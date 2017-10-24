@@ -33,17 +33,14 @@ image<D, T> art(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
 
     // compute $w_i \cdot w_i$
     std::vector<T> w_norms(g.lines());
-    int line_number = 0;
-    for (auto line : g) {
+    for (auto [line_number, line] : g) {
         for (auto elem : kernel(line)) {
             w_norms[line_number] += elem.value * elem.value;
         }
-        ++line_number;
     }
 
     for (int k = 0; k < iterations; ++k) {
-        int row = 0;
-        for (auto line : g) {
+        for (auto [row, line] : g) {
             T alpha = 0.0;
             for (auto elem : kernel(line))
                 alpha += f[elem.index] * elem.value;
@@ -51,8 +48,6 @@ image<D, T> art(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
             auto factor = beta * ((p[row] - alpha) / w_norms[row]);
             for (auto elem : kernel)
                 f[elem.index] += factor * elem.value;
-
-            ++row;
         }
     }
 

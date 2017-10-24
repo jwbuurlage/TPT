@@ -166,8 +166,8 @@ class base {
         }
 
         /** Dereference the iterator to obtain the represented line. */
-        std::tuple<uint64_t, uint64_t, math::ray<D, T>> operator*() const {
-            return {proj_, line_number_, *pixels_};
+        std::tuple<uint64_t, math::ray<D, T>> operator*() const {
+            return {line_number_, *pixels_};
         }
 
         /** Increase the iterator. */

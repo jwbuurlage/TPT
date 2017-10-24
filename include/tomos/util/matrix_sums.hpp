@@ -12,8 +12,7 @@ tomo::image<D, T> column_sums(const tomo::geometry::base<D, T>& geom,
                               tomo::dim::base<D, T>& kernel) {
     auto v = kernel.get_volume();
     auto result = image<D, T>(v);
-    for (auto[proj, idx, line] : geom) {
-        (void)proj;
+    for (auto[idx, line] : geom) {
         (void)idx;
         for (auto elem : kernel(line)) {
             result[elem.index] += elem.value;
@@ -27,8 +26,7 @@ template <dimension D, typename T>
 tomo::projections<D, T> row_sums(const tomo::geometry::base<D, T>& geom,
                                  tomo::dim::base<D, T>& kernel) {
     auto result = projections<D, T>(geom);
-    for (auto[proj, idx, line] : geom) {
-        (void)proj;
+    for (auto[idx, line] : geom) {
         for (auto elem : kernel(line)) {
             result[idx] += elem.value;
         }

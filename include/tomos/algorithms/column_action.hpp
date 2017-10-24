@@ -73,16 +73,13 @@ namespace reconstruction {
 using namespace std::string_literals;
 
 template <dimension D, typename T>
-image<D, T> column_action_cyclic(volume<D, T>& v,
-                                 const tomo::geometry::base<D, T>& g,
-                                 tomo::dim::base<D, T>& kernel,
-                                 const projections<D, T>& b, double beta = 0.5,
-                                 int sweeps = 10, bool show_residuals = false,
-                                 std::optional<image<D, T>> x0 = {},
-                                 std::optional<index_space*> idxs = {}) {
-    auto residuals = std::vector<T>();
-    residuals.reserve(sweeps + 1);
-
+image<D, T> column_action_cyclic(
+    volume<D, T>& v, const tomo::geometry::base<D, T>& g,
+    tomo::dim::base<D, T>& kernel, const projections<D, T>& b,
+    double beta = 0.5, int sweeps = 10,
+    std::optional<image<D, T>> x0 = {}, std::optional<index_space*> idxs = {},
+    std::function<void(const image<D, T>&, int, const projections<D, T>&)>
+        callback = {}) {
     auto x = x0.value_or(tomo::image<D, T>(v, 0));
 
     tomo::write_png(x, "fan_beam_initial");
@@ -100,7 +97,6 @@ image<D, T> column_action_cyclic(volume<D, T>& v,
         }
     }
 
-    residuals.push_back(math::norm(r));
     for (auto k = 0; k < sweeps; ++k) {
         for (auto q = 0u; q < v.cells(); ++q) {
             auto j = q;
@@ -122,14 +118,9 @@ image<D, T> column_action_cyclic(volume<D, T>& v,
             }
             x[j] += delta;
         }
-        residuals.push_back(math::norm(r));
-        tomo::write_png(x, "fan_beam_"s + std::to_string(k));
-    }
 
-    if (show_residuals) {
-        std::cout << "residuals: \n";
-        for (auto res : residuals) {
-            std::cout << "  " << res << "\n";
+        if (callback) {
+            callback(x, k, r);
         }
     }
 
@@ -185,9 +176,6 @@ column_action_block(volume<D, T>& v, const tomo::geometry::base<D, T>& g,
                 x[j] += delta[idx];
             }
         }
-
-        tomo::write_png(x, "fan_beam_"s + std::to_string(k));
-        std::cout << "residual norm (" << k << "): " << math::norm(r) << "\n";
     }
 
     return x;

@@ -21,7 +21,8 @@ long long communication_volume(const geometry::base<D, T>& geometry,
     auto voxels = math::vec_to_array<D, int>(object_volume.voxels());
 
     std::set<int> owners;
-    for (auto line : geometry) {
+    for (auto [idx, line] : geometry) {
+        (void)idx;
         owners.clear();
         for (auto elem : integrator(line)) {
             auto voxel_idx = bulk::util::unflatten<D>(voxels, elem.index);

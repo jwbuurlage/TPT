@@ -12,7 +12,8 @@ int main() {
     auto dose = tomo::image<2_D, T>(v);
 
     for (int i = 0; i < 10; ++i) {
-        for (auto line : g) {
+        for (auto [idx, line] : g) {
+            (void)idx;
             auto linear_attenuation = (T)0.0;
             auto intensity = (T)1.0;
             for (auto attenuation_point : proj(line)) {

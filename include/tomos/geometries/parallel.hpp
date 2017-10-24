@@ -94,6 +94,12 @@ class parallel : public base<D, T> {
         return result;
     }
 
+    projection<D, T> get_projection(int idx) const {
+        return {this->source_location(idx), this->detector_corner(idx),
+                this->detector_size(idx),   this->detector_tilt(idx),
+                this->projection_shape(idx),  true};
+    }
+
   private:
     volume<D, T> volume_;
     std::vector<T> angles_;

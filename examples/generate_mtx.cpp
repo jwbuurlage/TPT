@@ -13,7 +13,8 @@ int main() {
     auto p = tomo::forward_projection<D, T>(f, g, k);
 
     int nzs = 0;
-    for (auto line : g) {
+    for (auto [idx, line] : g) {
+        (void)idx;
         for (auto elem : k(line)) {
             (void)elem;
             nzs++;
@@ -22,12 +23,11 @@ int main() {
 
     std::cout << "%%MatrixMarket matrix coordinate integer general\n";
     std::cout << g.lines() << " " << v.cells() << " " << nzs << "\n";
-    auto line_number = 0;
-    for (auto line : g) {
+    for (auto [idx, line] : g) {
+        (void)idx;
         for (auto elem : k(line)) {
-            std::cout << line_number << " " << elem.index << " 0\n";
+            std::cout << idx << " " << elem.index << " 0\n";
         }
-        ++line_number;
     }
 
     //    auto x = tomo::reconstruction::sirt(v, g, k, p);

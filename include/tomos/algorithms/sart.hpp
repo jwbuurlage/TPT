@@ -37,12 +37,10 @@ image<D, T> sart(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
 
     // compute $w_i \cdot w_i$
     std::vector<T> w_norms(g.lines());
-    int line_number = 0;
-    for (auto line : g) {
+    for (auto [line_number, line] : g) {
         for (auto elem : kernel(line)) {
             w_norms[line_number] += elem.value * elem.value;
         }
-        ++line_number;
     }
 
     auto f_next = f;
@@ -51,8 +49,7 @@ image<D, T> sart(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
         int s = k;
         int t = 0;
 
-        int row = 0;
-        for (auto line : g) {
+        for (auto [row, line] : g) {
             if (s == k) {
                 // we now update the image
                 if (t > 0) {
@@ -73,7 +70,6 @@ image<D, T> sart(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
                     f_next[elem.index] += factor * elem.value;
             }
 
-            ++row;
             ++s;
         }
     }

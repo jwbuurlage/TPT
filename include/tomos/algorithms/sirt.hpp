@@ -37,8 +37,7 @@ sirt(tomo::image<D, T>& x, const tomo::geometry::base<D, T>& geometry,
     }
 
     // compute Wx
-    for (auto[proj, idx, line] : geometry) {
-        (void)proj;
+    for (auto[idx, line] : geometry) {
         for (auto elem : kernel(line)) {
             (*b1)[idx] += x[elem.index] * elem.value;
         }
@@ -50,8 +49,7 @@ sirt(tomo::image<D, T>& x, const tomo::geometry::base<D, T>& geometry,
     }
 
     // multiply with W^T
-    for (auto[proj, idx, line] : geometry) {
-        (void)proj;
+    for (auto[idx, line] : geometry) {
         for (auto elem : kernel(line)) {
             (*b2)[elem.index] += elem.value * (*b1)[idx];
         }
