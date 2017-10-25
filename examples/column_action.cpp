@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
 
     auto opts = tomo::options{argc, argv};
 
-    constexpr dimension D = 3_D;
+    constexpr dimension D = 2_D;
 
     auto size = opts.arg_as_or<int>("-s", 32);
     auto sweeps = opts.arg_as_or<int>("-i", 10);
@@ -28,8 +28,9 @@ int main(int argc, char* argv[]) {
     auto phantom = tomo::modified_shepp_logan_phantom<T>(volume);
     tomo::ascii_plot(phantom);
 
-    auto geometry = tomo::geometry::cone_beam<T>(
-        volume, size, math::vec<D, T>(2.5), math::vec<D, int>((int)(1.5 * size)), 4.0, 4.0);
+    auto geometry = tomo::geometry::fan_beam<T>(
+        volume, size, math::vec<D, T>(2.5),
+        math::vec<D, int>((int)(1.5 * size)), 4.0, 4.0);
     auto kernel = tomo::dim::joseph<D, T>(volume);
     auto b = tomo::forward_projection(phantom, geometry, kernel);
 
@@ -45,8 +46,16 @@ int main(int argc, char* argv[]) {
     } else if (opts.passed("--idxs-random")) {
         idxs = new random_index_space{(int)volume.cells()};
     } else if (opts.passed("--idxs-hilbert")) {
-        // TODO
-        idxs = new index_space();
+        idxs = new hilbert_index_space(size);
+
+        std::vector<int> results;
+        for (auto i = 0u; i < volume.cells(); ++i) {
+            results.push_back((*idxs)(0, i));
+        }
+        std::sort(results.begin(), results.end());
+        std::vector<int> results2(volume.cells());
+        std::iota(results2.begin(), results2.end(), 0);
+        assert(results == results2);
     } else {
         idxs = new index_space();
     }

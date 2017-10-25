@@ -13,6 +13,7 @@
 #include "../util/column_iterator.hpp"
 #include "../util/image_processing.hpp"
 #include "../util/read_tiff.hpp"
+#include "../util/space_filling.hpp"
 #include "../volume.hpp"
 
 using namespace tomo::img;
@@ -62,10 +63,23 @@ struct random_index_space : index_space {
     int operator()(int s, int i) override {
         if (prev_s != s) {
             reset();
+            prev_s = s;
         }
-        prev_s = s;
         return indices[i];
     }
+};
+
+struct hilbert_index_space : index_space {
+    hilbert_index_space(int g) : g_(g), curve_({g, g}) {}
+
+    int operator()(int s, int i) override {
+        (void)s;
+        auto x = curve_.from(i);
+        return x[1] * g_ + x[0];
+    }
+
+    int g_;
+    util::hilbert_curve curve_;
 };
 
 namespace reconstruction {
@@ -76,8 +90,8 @@ template <dimension D, typename T>
 image<D, T> column_action_cyclic(
     volume<D, T>& v, const tomo::geometry::base<D, T>& g,
     tomo::dim::base<D, T>& kernel, const projections<D, T>& b,
-    double beta = 0.5, int sweeps = 10,
-    std::optional<image<D, T>> x0 = {}, std::optional<index_space*> idxs = {},
+    double beta = 0.5, int sweeps = 10, std::optional<image<D, T>> x0 = {},
+    std::optional<index_space*> idxs = {},
     std::function<void(const image<D, T>&, int, const projections<D, T>&)>
         callback = {}) {
     auto x = x0.value_or(tomo::image<D, T>(v, 0));

@@ -85,6 +85,12 @@ auto log(T obj) {
     return glm::log(obj);
 }
 
+/** Take the logarithm of an object of type T. */
+template <typename T>
+auto log2(T obj) {
+    return glm::log2(obj);
+}
+
 /** Round an object of type T to the nearest integer. */
 template <typename T>
 auto round(T obj) {
