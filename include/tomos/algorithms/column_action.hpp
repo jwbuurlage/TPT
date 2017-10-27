@@ -142,15 +142,18 @@ image<D, T> column_action_cyclic(
 }
 
 template <dimension D, typename T>
-image<D, T>
-column_action_block(volume<D, T>& v, const tomo::geometry::base<D, T>& g,
-                    tomo::dim::base<D, T>& kernel, const projections<D, T>& b,
-                    std::function<std::vector<uint64_t>(uint64_t)> block,
-                    uint64_t block_count, double beta = 0.5, int sweeps = 10) {
-    auto x = tomo::image<D, T>(v);
-    auto r = b;
-    auto column = tomo::column<D, T>(g, kernel);
+image<D, T> column_action_block(
+    volume<D, T>& v, const tomo::geometry::base<D, T>& g,
+    tomo::dim::base<D, T>& kernel, const projections<D, T>& b,
+    std::function<std::vector<uint64_t>(uint64_t)> block, uint64_t block_count,
+    double beta = 0.5, int sweeps = 10, std::optional<image<D, T>> x0 = {},
+    std::function<void(const image<D, T>&, int, const projections<D, T>&)>
+        callback = {}) {
+    auto x = x0.value_or(tomo::image<D, T>(v, 0));
+    auto ax = tomo::forward_projection(x, g, kernel);
+    auto r = b - ax;
 
+    auto column = tomo::column<D, T>(g, kernel);
     auto cs = tomo::image<D, T>(v);
     for (auto j = 0u; j < v.cells(); ++j) {
         auto voxel_index = v.unroll(j);
@@ -165,9 +168,10 @@ column_action_block(volume<D, T>& v, const tomo::geometry::base<D, T>& g,
         for (auto i = 0u; i < block_count; ++i) {
             auto vals = block(i);
             delta.clear();
-            delta.resize(vals.size());
+            auto ni = vals.size();
+            delta.resize(ni);
 
-            for (auto idx = 0u; idx < vals.size(); ++idx) {
+            for (auto idx = 0u; idx < ni; ++idx) {
                 auto j = vals[idx];
                 delta[idx] = (T)0;
                 auto voxel_index = v.unroll(j);
@@ -189,6 +193,9 @@ column_action_block(volume<D, T>& v, const tomo::geometry::base<D, T>& g,
                 }
                 x[j] += delta[idx];
             }
+        }
+        if (callback) {
+            callback(x, k, r);
         }
     }
 

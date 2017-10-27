@@ -101,7 +101,7 @@ template <dimension D, typename T>
 image<D, T> sirt(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
                  tomo::dim::base<D, T>& kernel, const projections<D, T>& p,
                  double beta = 0.5, int iterations = 10,
-                 std::function<void(image<D, T>&)> callback = {}) {
+                 std::function<void(image<D, T>&, int)> callback = {}) {
     image<D, T> f(v);
 
     // first we compute R and C
@@ -122,7 +122,7 @@ image<D, T> sirt(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
         iterate::sirt(f, g, kernel, p, R, bC, &s1, &s2);
 
         if (callback) {
-            callback(f);
+            callback(f, k);
         }
     }
 

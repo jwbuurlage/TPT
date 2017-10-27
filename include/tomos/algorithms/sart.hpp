@@ -27,17 +27,20 @@ namespace reconstruction {
  * \returns An image object representing the reconstructed object.
  */
 template <dimension D, typename T>
-image<D, T> sart(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
-                 tomo::dim::base<D, T>& kernel, const projections<D, T>& p,
-                 double beta = 0.5, int iterations = 10) {
+image<D, T>
+sart(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
+     tomo::dim::base<D, T>& kernel, const projections<D, T>& p,
+     double beta = 0.5, int iterations = 10,
+     std::function<void(const image<D, T>&, int)>
+         callback = {}) {
     image<D, T> f(v);
 
     // the size of a single block
-    int k = math::reduce<D -1>(g.projection_shape(0));
+    int k = math::reduce<D - 1>(g.projection_shape(0));
 
     // compute $w_i \cdot w_i$
     std::vector<T> w_norms(g.lines());
-    for (auto [line_number, line] : g) {
+    for (auto[line_number, line] : g) {
         for (auto elem : kernel(line)) {
             w_norms[line_number] += elem.value * elem.value;
         }
@@ -49,7 +52,7 @@ image<D, T> sart(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
         int s = k;
         int t = 0;
 
-        for (auto [row, line] : g) {
+        for (auto[row, line] : g) {
             if (s == k) {
                 // we now update the image
                 if (t > 0) {
@@ -71,6 +74,10 @@ image<D, T> sart(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
             }
 
             ++s;
+        }
+
+        if (callback) {
+            callback(f_next, iter); 
         }
     }
 
