@@ -11,67 +11,6 @@
 namespace tomo {
 namespace reconstruction {
 
-namespace iterate {
-
-template <dimension D, typename T>
-tomo::image<D, T>&
-sirt(tomo::image<D, T>& x, const tomo::geometry::base<D, T>& geometry,
-     tomo::dim::base<D, T>& kernel, const tomo::projections<D, T>& b,
-     tomo::projections<D, T>& rs, tomo::image<D, T>& bcs,
-     tomo::projections<D, T>* b1 = nullptr, tomo::image<D, T>* b2 = nullptr) {
-    auto v = kernel.get_volume();
-
-    bool clean_up_1 = false;
-    bool clean_up_2 = false;
-    if (!b1) {
-        b1 = new tomo::projections<D, T>(geometry, (T)0);
-        clean_up_1 = true;
-    } else {
-        b1->clear();
-    }
-    if (!b2) {
-        b2 = new tomo::image<D, T>(v, (T)0);
-        clean_up_2 = true;
-    } else {
-        b2->clear();
-    }
-
-    // compute Wx
-    for (auto[idx, line] : geometry) {
-        for (auto elem : kernel(line)) {
-            (*b1)[idx] += x[elem.index] * elem.value;
-        }
-    }
-
-    // compute R(p - Wx)
-    for (auto j = 0u; j < geometry.lines(); ++j) {
-        (*b1)[j] = (b[j] - (*b1)[j]) * rs[j];
-    }
-
-    // multiply with W^T
-    for (auto[idx, line] : geometry) {
-        for (auto elem : kernel(line)) {
-            (*b2)[elem.index] += elem.value * (*b1)[idx];
-        }
-    }
-
-    // update image while scaling with beta * C
-    for (auto j = 0u; j < v.cells(); ++j) {
-        x[j] += bcs[j] * (*b2)[j];
-    }
-
-    if (clean_up_1) {
-        delete b1;
-    }
-    if (clean_up_2) {
-        delete b2;
-    }
-
-    return x;
-}
-
-} // namespace iterate
-
 /**
  * The Simultaneous Iterative Reconstruction Technique (SIRT), is a
  * tomographic
@@ -100,26 +39,56 @@ sirt(tomo::image<D, T>& x, const tomo::geometry::base<D, T>& geometry,
 template <dimension D, typename T>
 image<D, T> sirt(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
                  tomo::dim::base<D, T>& kernel, const projections<D, T>& p,
-                 double beta = 0.5, int iterations = 10,
-                 std::function<void(image<D, T>&, int)> callback = {}) {
+                 double beta = 1.0, int iterations = 10,
+                 std::function<void(image<D, T>&, int)> callback = {},
+                 bool box_constraint = false, T box_min = -1, T box_max = 1) {
     image<D, T> f(v);
 
     // first we compute R and C
-    auto R = tomo::row_sums<D, T>(g, kernel);
-    auto bC = tomo::column_sums<D, T>(g, kernel);
+    auto rs = tomo::row_sums<D, T>(g, kernel);
+    auto bcs = tomo::column_sums<D, T>(g, kernel);
 
-    for (auto& r : R) {
+    for (auto& r : rs) {
         r = (math::abs(r) > math::epsilon<T>) ? ((T)1.0 / r) : (T)0.0;
     }
 
-    for (auto& bc : bC) {
+    for (auto& bc : bcs) {
         bc = (math::abs(bc) > math::epsilon<T>) ? ((T)beta / bc) : (T)0.0;
     }
 
     projections<D, T> s1(g);
     image<D, T> s2(v);
     for (int k = 0; k < iterations; ++k) {
-        iterate::sirt(f, g, kernel, p, R, bC, &s1, &s2);
+        // compute Wx
+        for (auto[idx, line] : g) {
+            for (auto elem : kernel(line)) {
+                s1[idx] += f[elem.index] * elem.value;
+            }
+        }
+
+        // compute R(p - Wx)
+        for (auto j = 0u; j < g.lines(); ++j) {
+            s1[j] = (p[j] - s1[j]) * rs[j];
+        }
+
+        // multiply with W^T
+        for (auto[idx, line] : g) {
+            for (auto elem : kernel(line)) {
+                s2[elem.index] += elem.value * s1[idx];
+            }
+        }
+
+        // update image while scaling with beta * C
+        for (auto j = 0u; j < v.cells(); ++j) {
+            f[j] += bcs[j] * s2[j];
+        }
+
+        s1.clear();
+        s2.clear();
+
+        if (box_constraint) {
+            math::box(f, box_min, box_max);
+        }
 
         if (callback) {
             callback(f, k);

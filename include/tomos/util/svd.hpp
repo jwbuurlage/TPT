@@ -55,7 +55,8 @@ truncated_svd(geometry::base<D, T>& g, dim::base<D, T>& k, volume<D, T> v,
             auto x = tomo::back_projection<D, T>(p, g, k, v);
             return tomo::forward_projection<D, T>(x, g, k);
         };
-        AOmega.push_back(bandf(bandf(y)));
+        (void)bandf;
+        AOmega.push_back(y);
     }
 
     // 3) Turn AOmega into a Eigen matrix Y
@@ -98,11 +99,11 @@ truncated_svd(geometry::base<D, T>& g, dim::base<D, T>& k, volume<D, T> v,
     U = Q * U;
 
     for (int i = 0; i < r; ++i) {
-        for (auto j = 0u; j < v.cells(); ++j) {
+        for (auto j = 0u; j < g.lines(); ++j) {
             AOmega[i][j] = U(j, i);
         }
         sigma[i] = S[i];
-        for (auto j = 0u; j < g.lines(); ++j) {
+        for (auto j = 0u; j < v.cells(); ++j) {
             Omega[i][j] = V(j, i);
         }
     }

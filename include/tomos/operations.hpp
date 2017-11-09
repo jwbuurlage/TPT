@@ -13,14 +13,14 @@ namespace tomo {
 
 /**
  * Perform a forward-projection of a given image.
- * TODO: image should be const ref.
  * */
-template <dimension D, typename T, class Image>
-projections<D, T> forward_projection(Image& f, const geometry::base<D, T>& g,
+template <dimension D, typename T>
+projections<D, T> forward_projection(const tomo::image<D, T>& f,
+                                     const geometry::base<D, T>& g,
                                      dim::base<D, T>& proj) {
     auto sino = projections<D, T>(g);
 
-    for (auto [line_number, line] : g) {
+    for (auto[line_number, line] : g) {
         for (auto elem : proj(line)) {
             sino[line_number] += f[elem.index] * elem.value;
         }
@@ -36,7 +36,7 @@ image<D, T> back_projection(const projections<D, T>& sino,
                             dim::base<D, T>& proj, volume<D, T> v) {
     auto f = image<D, T>(v);
 
-    for (auto [line_number, line] : g) {
+    for (auto[line_number, line] : g) {
         for (auto elem : proj(line)) {
             f[elem.index] += sino[line_number] * elem.value;
         }

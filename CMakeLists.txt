@@ -23,7 +23,7 @@ include_directories(
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -Wno-missing-braces -Wfatal-errors -Werror -pedantic -O3 -march=native")
 if(FOR_RELEASE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG")
 else(FOR_RELEASE)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 endif(FOR_RELEASE)

@@ -157,6 +157,36 @@ typename VecLike::value_type dot(VecLike x, VecLike y) {
     return result;
 }
 
+
+template <typename VecLike>
+typename VecLike::value_type min_value(VecLike x) {
+    using T = typename VecLike::value_type;
+    T result = std::numeric_limits<T>::max();
+    for (auto i = 0u; i < x.size(); ++i) {
+        result = min<T>(x[i], result);
+    }
+    return result;
+}
+
+template <typename VecLike>
+typename VecLike::value_type max_value(VecLike x) {
+    using T = typename VecLike::value_type;
+    T result = std::numeric_limits<T>::min();
+    for (auto i = 0u; i < x.size(); ++i) {
+        result = max<T>(x[i], result);
+    }
+    return result;
+}
+
+template <typename VecLike, typename T = typename VecLike::value_type>
+VecLike& box(VecLike& xs, T min_value, T max_value) {
+    for (auto& x : xs) {
+        x = max<T>(x, min_value);
+        x = min<T>(x, max_value);
+    }
+    return xs;
+}
+
 /** Compute the square root of an object of type T. */
 template <typename T>
 constexpr auto sqrt(T obj) {

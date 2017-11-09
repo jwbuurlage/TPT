@@ -157,6 +157,13 @@ void ascii_plot_output(ImageLike& image, math::vec2<int> dimensions,
                  "\\|()1{}[]?-_+~<>i!lI;:,\"^`'. "s;
     std::reverse(chars.begin(), chars.end());
 
+    T min = std::numeric_limits<T>::max();
+    for (auto k = 0u; k < image.get_volume().cells(); ++k) {
+        if (image[k] < min) {
+            min = image[k];
+        }
+    }
+
     if (max < 0) {
         for (auto k = 0u; k < image.get_volume().cells(); ++k) {
             if (image[k] > max) {
@@ -165,14 +172,17 @@ void ascii_plot_output(ImageLike& image, math::vec2<int> dimensions,
         }
     }
 
+    std::cout << min << " (min) \n";
     std::cout << max << " (max) \n";
+
+    max -= min;
 
     int cur = 0;
     for (int j = 0; j < dimensions[1]; ++j) {
         for (int i = 0; i < dimensions[0]; ++i) {
-            auto idx =
-                (std::size_t)(math::sqrt(std::max(image[cur++], (T)0.0) / max) *
-                              chars.size());
+            auto idx = (std::size_t)(
+                math::sqrt(std::max(image[cur++] - min, (T)0.0) / max) *
+                chars.size());
             if (idx >= chars.size())
                 idx = chars.size() - 1;
             std::cout << chars[idx] << " ";
