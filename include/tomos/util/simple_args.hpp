@@ -5,6 +5,19 @@
 
 namespace tomo {
 
+std::vector<std::string> split(std::string s, std::string delim) {
+    std::vector<std::string> result;
+    size_t pos = 0;
+    std::string token;
+    while ((pos = s.find(delim)) != std::string::npos) {
+        token = s.substr(0, pos);
+        result.push_back(token);
+        s.erase(0, pos + delim.length());
+    }
+    result.push_back(s);
+    return result;
+}
+
 struct options {
     int argc;
     char** argv;
@@ -44,6 +57,20 @@ struct options {
         T x = {};
         value >> x;
         return x;
+    }
+
+    template <typename T>
+    std::vector<T> args_as(std::string flag) {
+        auto parts = split(arg(flag), ",");
+        std::vector<T> xs;
+        for (auto part : parts) {
+            auto value = std::stringstream(part);
+            T x = {};
+            value >> x;
+            xs.push_back(x);
+        }
+
+        return xs;
     }
 
     template <typename T>

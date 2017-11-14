@@ -1,4 +1,3 @@
-#define NDEBUG
 /*
  * FIXME:
  * - Can we group sends together? this should greatly reduce data size
