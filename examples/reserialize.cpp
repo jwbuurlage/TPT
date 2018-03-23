@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "tomos/tomos.hpp"
-#include "tomos/util/plotter.hpp"
 #include "tomos/util/simple_args.hpp"
 #include "tomos/util/trees.hpp"
 

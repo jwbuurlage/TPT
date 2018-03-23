@@ -28,6 +28,14 @@ class projections {
     projections(const geometry::base<D, T>& geometry, T value)
         : geometry_(geometry), data_(geometry.lines(), value) {}
 
+    /** Copy constructor */
+    projections(const projections<D, T>& other)
+        : geometry_(other.geometry_), data_(other.data_) {}
+
+    /** Move constructor */
+    projections(projections<D, T>&& other)
+        : geometry_(other.geometry_), data_(std::move(other.data_)) {}
+
     /**
      * Obtain a reference to the i-th measurement, corresponding to the i-th
      * line.

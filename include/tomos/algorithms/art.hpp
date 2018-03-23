@@ -28,19 +28,20 @@ namespace reconstruction {
 template <dimension D, typename T>
 image<D, T> art(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
                 tomo::dim::base<D, T>& kernel, const projections<D, T>& p,
-                double beta = 0.5, int iterations = 10) {
+                double beta = 0.5, int iterations = 10,
+                std::function<void(const image<D, T>&, int)> callback = {}) {
     image<D, T> f(v);
 
     // compute $w_i \cdot w_i$
     std::vector<T> w_norms(g.lines());
-    for (auto [line_number, line] : g) {
+    for (auto[line_number, line] : g) {
         for (auto elem : kernel(line)) {
             w_norms[line_number] += elem.value * elem.value;
         }
     }
 
     for (int k = 0; k < iterations; ++k) {
-        for (auto [row, line] : g) {
+        for (auto[row, line] : g) {
             T alpha = 0.0;
             for (auto elem : kernel(line))
                 alpha += f[elem.index] * elem.value;
@@ -48,6 +49,10 @@ image<D, T> art(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
             auto factor = beta * ((p[row] - alpha) / w_norms[row]);
             for (auto elem : kernel)
                 f[elem.index] += factor * elem.value;
+        }
+
+        if (callback) {
+            callback(f, k); 
         }
     }
 

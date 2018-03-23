@@ -14,7 +14,7 @@ using namespace tomo::img;
 int main(int argc, char* argv[]) {
     using T = double;
     constexpr dimension D = 2_D;
-    using DIM = tomo::dim::linear<D, T>;
+    using DIM = tomo::dim::joseph<D, T>;
 
     // ------------------------------------------------------------------------
     // SETUP THE PROBLEM
@@ -38,9 +38,13 @@ int main(int argc, char* argv[]) {
 
     // LOCAL VOLUME
     // 1. MAKE LOCAL VOLUME
-    auto lv = tomo::volume<D, T>(math::vec<D, int>((T)size / 5, (T)size / 5),
-                                 math::vec<D, T>((T)0.4, (T)0.1),
-                                 math::vec<D, T>((T)0.2, (T)0.2));
+    auto lv = tomo::volume<D, T>(math::vec<D, int>((T)size / 8, (T)size / 8),
+                                 math::vec<D, T>((T)0.44, (T)0.1),
+                                 math::vec<D, T>((T)0.125, (T)0.125));
+    //    auto lv = tomo::volume<D, T>(math::vec<D, int>((T)size / 2, (T)size /
+    //    2),
+    //                                 math::vec<D, T>((T)0.25, (T)0.25),
+    //                                 math::vec<D, T>((T)0.5, (T)0.5));
 
     // 2. MASK THE RECONSTRUCTION ON THE LOCAL VOLUME
     auto mask = [&](tomo::image<D, T> img) -> tomo::image<D, T> {
@@ -78,9 +82,9 @@ int main(int argc, char* argv[]) {
 
     if (opts.passed("--baseline")) {
         auto lx = tomo::reconstruction::sirt(lv, g, lk, b, 1.0, iter, {}, true,
-                                             (T)-1, (T)1);
+                                             (T)-0.3, (T)1);
         tomo::ascii_plot(lx);
-        tomo::write_png(lx, output_base + "baseline"s);
+        tomo::write_png(circle(lx), output_base + "baseline"s);
     }
 
     // -----------------------------------------------------------------------
@@ -93,18 +97,19 @@ int main(int argc, char* argv[]) {
         auto lb = b - tomo::forward_projection<D, T>(xout, g, k);
 
         auto lx = tomo::reconstruction::sirt(lv, g, lk, lb, 1.0, iter, {}, true,
-                                             (T)-1, (T)1);
+                                             (T)-0.3, (T)1);
         tomo::ascii_plot(lx);
-        tomo::write_png(lx, output_base + "constant"s);
+        tomo::write_png(circle(lx), output_base + "constant"s);
     }
 
     // ------------------------------------------------------------------------
     // SVD APPROACH
     if (opts.passed("--svd")) {
         auto rs = opts.args_as<int>("-r");
+        auto reproj = opts.arg_as_or<int>("--reprojections", 2);
 
         for (auto r : rs) {
-            auto[U, S, V] = tomo::util::truncated_svd(g, k, v, r);
+            auto[U, S, V] = tomo::util::truncated_svd(g, k, v, r, lv, reproj);
 
             for (auto& s : S) {
                 s = (T)1 / s;
@@ -127,16 +132,27 @@ int main(int argc, char* argv[]) {
             auto err = math::norm(f);
             auto derr = math::norm(f - result);
             std::cout << "Rel Error: " << derr / err << "\n";
-            auto residual =
-                math::norm(b - tomo::forward_projection<D, T>(result, g, k));
+            auto ax = tomo::forward_projection<D, T>(result, g, k);
+            auto residual = math::norm(b - ax);
             std::cout << "Rel Residual: " << residual / math::norm(b) << "\n";
+
+            // here we scale f
+            if (opts.passed("--scale-svd")) {
+                result =
+                    (tomo::math::dot(ax, b) / tomo::math::dot(ax, ax)) * result;
+                auto scale_derr = math::norm(f - result);
+                std::cout << "Scaled Rel Error: " << scale_derr / err << "\n";
+                auto scale_residual = math::norm(
+                    b - tomo::forward_projection<D, T>(result, g, k));
+                std::cout << "Scaled Rel Residual: "
+                          << scale_residual / math::norm(b) << "\n";
+            }
 
             auto lb = b - tomo::forward_projection<D, T>(mask(result), g, k);
             auto lx = tomo::reconstruction::sirt(lv, g, lk, lb, 1.0, iter, {},
-                                                 true, (T)-1, (T)1);
+                                                 true, (T)-0.3, (T)1);
             tomo::ascii_plot(lx);
-            tomo::write_png(lx,
-                            output_base + "with_svd_"s + std::to_string(r));
+            tomo::write_png(circle(lx), output_base + "with_svd_"s + std::to_string(r));
         }
     }
     // -------------------------------------------------------------------------
@@ -152,11 +168,10 @@ int main(int argc, char* argv[]) {
 
             auto lb = b - tomo::forward_projection<D, T>(mask(cx), g, ck);
             auto lx = tomo::reconstruction::sirt(lv, g, lk, lb, 1.0, iter, {},
-                                                 true, (T)-1, (T)1);
+                                                 true, (T)-0.3, (T)1);
             tomo::ascii_plot(lx);
-            tomo::write_png(lx,
-                            output_base + "with_multigrid_"s +
-                                std::to_string(c));
+            tomo::write_png(
+                circle(lx), output_base + "with_multigrid_"s + std::to_string(c));
         }
     }
 

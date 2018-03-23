@@ -29,9 +29,26 @@ template <dimension D, typename T>
 std::tuple<std::vector<projections<D, T>>, std::vector<T>,
            std::vector<image<D, T>>>
 truncated_svd(geometry::base<D, T>& g, dim::base<D, T>& k, volume<D, T> v,
-              int r) {
+              int r, tomo::volume<D, T> lv, int reprojections = 2) {
+    (void)reprojections;
+    assert(reprojections == 2);
+
     // desired rank must be positive
     assert(r > 0);
+
+    // 2. MASK THE RECONSTRUCTION ON THE LOCAL VOLUME
+    auto mask = [&](tomo::image<D, T> img) -> tomo::image<D, T> {
+        auto imgsize = img.get_volume().voxels()[0];
+        for (int i = lv.origin()[0] * imgsize;
+             i < (lv.origin()[0] + lv.physical_lengths()[0]) * imgsize; ++i) {
+            for (int j = lv.origin()[1] * imgsize;
+                 j < (lv.origin()[1] + lv.physical_lengths()[1]) * imgsize;
+                 ++j) {
+                img({i, j}) = (T)0;
+            }
+        }
+        return img;
+    };
 
     std::vector<T> sigma(r);
 
@@ -50,13 +67,12 @@ truncated_svd(geometry::base<D, T>& g, dim::base<D, T>& k, volume<D, T> v,
     // 2) project everything in Omega to get a vector of projections
     // corresponding to Y
     for (auto& img : Omega) {
-        auto y = tomo::forward_projection<D, T>(img, g, k);
+        auto y = tomo::forward_projection<D, T>(mask(img), g, k);
         auto bandf = [&](const auto& p) {
-            auto x = tomo::back_projection<D, T>(p, g, k, v);
-            return tomo::forward_projection<D, T>(x, g, k);
+            auto x = mask(tomo::back_projection<D, T>(p, g, k, v));
+            return tomo::forward_projection<D, T>(mask(x), g, k);
         };
-        (void)bandf;
-        AOmega.push_back(y);
+        AOmega.push_back(bandf(bandf(y)));
     }
 
     // 3) Turn AOmega into a Eigen matrix Y
