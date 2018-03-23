@@ -16,7 +16,9 @@ int main(int argc, char** argv) {
     auto beta = opts.arg_as_or<T>("-b", (T)1.0);
     auto iterations = opts.arg_as_or<int>("-i", 1);
     auto size = opts.arg_as_or<int>("-s", 128);
-    auto output_base = opts.arg_or("--output", "convergence_" + method + "_");
+    auto output_dir = opts.arg_or("--dir", "/home/jw/data/berlin");
+    auto output_base =
+        opts.arg_or("--output", output_dir + "/convergence_" + method + "_");
 
     auto v = tomo::volume<D, T>(size);
     auto g = tomo::geometry::fan_beam<T>(v, size, math::vec<D, T>(2.5),
@@ -29,17 +31,18 @@ int main(int argc, char** argv) {
     auto rfout = std::ofstream(output_base + "residuals.csv");
     auto efout = std::ofstream(output_base + "rel_errors.csv");
 
-    auto cb = [&](const image<D, T>& xk, int iter, const projections<D, T>& rk) {
+    auto cb = std::function([&](image<D, T>& xk, int iter) {
         tomo::write_png(xk, output_base + std::to_string(iter));
         if (iter != 0) {
             efout << ", ";
             rfout << ", ";
         }
-        rfout << math::norm(rk) << "\n";
+        auto rk = tomo::forward_projection(xk, g, k);
+        rfout << math::norm(p - rk);
         auto derr = math::norm(f - xk);
-        efout << derr / err << "\n";
+        efout << derr / err;
         std::cout << iter << " " << derr / err << "\n";
-    };
+    });
 
     auto x = tomo::image<D, T>(v);
     if (method == "art") {
@@ -48,7 +51,12 @@ int main(int argc, char** argv) {
         x = tomo::reconstruction::sart(v, g, k, p, beta, iterations, cb);
     } else if (method == "sirt") {
         x = tomo::reconstruction::sirt(v, g, k, p, beta, iterations, cb);
+    } else if (method == "cgls") {
+        x = tomo::reconstruction::cgls(v, g, k, p, iterations, cb);
     }
+
+    efout << "\n";
+    rfout << "\n";
 
     tomo::write_png(x, "test");
 }

@@ -40,10 +40,12 @@
 #include "util/tomo_args.hpp"
 #include "util/read_metadata.hpp"
 #include "util/read_tiff.hpp"
+#include "util/image_processing.hpp"
 
 #include "algorithms/art.hpp"
 #include "algorithms/sart.hpp"
 #include "algorithms/sirt.hpp"
+#include "algorithms/cgls.hpp"
 
 #include "distributed/recursive_bisectioning.hpp"
 #include "distributed/trivial_partitioning.hpp"

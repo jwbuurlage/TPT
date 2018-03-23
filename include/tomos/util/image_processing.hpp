@@ -71,6 +71,15 @@ image<D, T> operator*(T lhs, const image<D, T>& rhs) {
 }
 
 template <tomo::dimension D, typename T>
+projections<D, T> operator*(T lhs, const projections<D, T>& rhs) {
+    auto result = rhs;
+    for (auto& x : result.mutable_data()) {
+        x *= lhs;
+    }
+    return result;
+}
+
+template <tomo::dimension D, typename T>
 projections<D, T> operator-(const projections<D, T>& lhs, const projections<D, T>& rhs) {
     assert(lhs.size() == rhs.size());
     auto result = lhs;
@@ -79,6 +88,16 @@ projections<D, T> operator-(const projections<D, T>& lhs, const projections<D, T
         x -= rhs[idx++];
     }
     return result;
+}
+
+template <tomo::dimension D, typename T>
+projections<D, T>& operator-=(projections<D, T>& lhs, const projections<D, T>& rhs) {
+    assert(lhs.size() == rhs.size());
+    int idx = 0;
+    for (auto& x : lhs.mutable_data()) {
+        x -= rhs[idx++];
+    }
+    return lhs;
 }
 
 template <tomo::dimension D, typename T>
