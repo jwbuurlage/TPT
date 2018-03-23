@@ -98,5 +98,57 @@ image<D, T> sirt(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
     return f;
 }
 
+template <dimension D, typename T>
+image<D, T> landweber(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
+                 tomo::dim::base<D, T>& kernel, const projections<D, T>& p,
+                 double beta = 1.0, int iterations = 10,
+                 std::function<void(image<D, T>&, int)> callback = {},
+                 bool box_constraint = false, T box_min = -1, T box_max = 1) {
+    image<D, T> f(v);
+
+    projections<D, T> s1(g);
+    image<D, T> s2(v);
+    for (int k = 0; k < iterations; ++k) {
+        // compute Wx
+        for (auto[idx, line] : g) {
+            for (auto elem : kernel(line)) {
+                s1[idx] += f[elem.index] * elem.value;
+            }
+        }
+
+        // compute p - Wx
+        for (auto j = 0u; j < g.lines(); ++j) {
+            s1[j] = p[j] - s1[j];
+        }
+
+        // multiply with W^T
+        for (auto[idx, line] : g) {
+            for (auto elem : kernel(line)) {
+                s2[elem.index] += elem.value * s1[idx];
+            }
+        }
+
+        // update image
+        for (auto j = 0u; j < v.cells(); ++j) {
+            f[j] += s2[j] * beta;
+        }
+
+        s1.clear();
+        s2.clear();
+
+        if (box_constraint) {
+            math::box(f, box_min, box_max);
+        }
+
+        if (callback) {
+            callback(f, k);
+        }
+    }
+
+    return f;
+}
+
+
+
 } // namespace reconstruction
 } // namespace tomo
