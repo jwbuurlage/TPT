@@ -236,6 +236,11 @@ class base {
         return projection_iterator(projection_count_, *this);
     }
 
+    /** Obtain an iterator to $i$th projection of the geometry. */
+    projection_iterator iter_proj(int i) const {
+        return projection_iterator(i, *this);
+    }
+
     /** Obtain the number of lines */
     auto lines() const { return line_count_; }
 

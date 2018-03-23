@@ -49,11 +49,22 @@ int main(int argc, char** argv) {
         x = tomo::reconstruction::art(v, g, k, p, beta, iterations, cb);
     } else if (method == "sart") {
         x = tomo::reconstruction::sart(v, g, k, p, beta, iterations, cb);
+    } else if (method == "sart_cg") {
+        x = tomo::reconstruction::sart_cg(v, g, k, p, iterations, beta, cb);
     } else if (method == "sirt") {
         x = tomo::reconstruction::sirt(v, g, k, p, beta, iterations, cb);
+    } else if (method == "landweber") {
+        x = tomo::reconstruction::landweber(v, g, k, p, beta, iterations, cb);
     } else if (method == "cgls") {
         x = tomo::reconstruction::cgls(v, g, k, p, iterations, cb);
+    } else if (method == "cgls2") {
+        x = tomo::reconstruction::cgls2(v, g, k, p, iterations, cb);
+    } else if (method == "cg") {
+        x = tomo::reconstruction::cg(v, g, k, p, iterations, cb);
+    } else {
+        std::cout << "INVALID METHOD\n";
     }
+
 
     efout << "\n";
     rfout << "\n";

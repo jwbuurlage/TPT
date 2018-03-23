@@ -51,6 +51,17 @@ image<D, T> operator+(const image<D, T>& lhs, const image<D, T>& rhs) {
 }
 
 template <tomo::dimension D, typename T>
+image<D, T> operator*(const image<D, T>& lhs, const image<D, T>& rhs) {
+    assert(lhs.size() == rhs.size());
+    auto result = lhs;
+    int idx = 0;
+    for (auto& x : result.mutable_data()) {
+        x *= rhs[idx++];
+    }
+    return result;
+}
+
+template <tomo::dimension D, typename T>
 image<D, T> operator/(const image<D, T>& lhs, const image<D, T>& rhs) {
     assert(lhs.size() == rhs.size());
     auto result = lhs;
@@ -68,6 +79,16 @@ image<D, T> operator*(T lhs, const image<D, T>& rhs) {
         x *= lhs;
     }
     return result;
+}
+
+template <tomo::dimension D, typename T>
+image<D, T>& operator+=(image<D, T>& lhs, const image<D, T>& rhs) {
+    assert(lhs.size() == rhs.size());
+    int idx = 0;
+    for (auto& x : lhs.mutable_data()) {
+        x += rhs[idx++];
+    }
+    return lhs;
 }
 
 template <tomo::dimension D, typename T>
@@ -109,6 +130,24 @@ image<D, T> operator-(const image<D, T>& lhs, const image<D, T>& rhs) {
         x -= rhs[idx++];
     }
     return result;
+}
+
+template <tomo::dimension D, typename T>
+projections<D, T>& operator+=(projections<D, T>& lhs, const projections<D, T>& rhs) {
+    assert(lhs.size() == rhs.size());
+    int idx = 0;
+    for (auto& x : lhs.mutable_data()) {
+        x += rhs[idx++];
+    }
+    return lhs;
+}
+
+template <tomo::dimension D, typename T>
+projections<D, T>& operator*=(projections<D, T>& lhs, T rhs) {
+    for (auto& x : lhs.mutable_data()) {
+        x *= rhs;
+    }
+    return lhs;
 }
 
 } // namespace img

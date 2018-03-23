@@ -82,5 +82,98 @@ image<D, T> sart(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
     return f;
 }
 
+// SART with CG as precon
+template <dimension D, typename T>
+image<D, T> sart_cg(const volume<D, T>& v, const tomo::geometry::base<D, T>& g,
+                    tomo::dim::base<D, T>& kernel, const projections<D, T>& b,
+                    int iterations = 10, T stepsize = 1.0,
+                    std::function<void(image<D, T>&, int)> callback = {}) {
+    std::vector<T> w_norms(g.lines());
+    for (auto[line_number, line] : g) {
+        for (auto elem : kernel(line)) {
+            w_norms[line_number] += elem.value * elem.value;
+        }
+    }
+
+    auto x = image<D, T>(v);
+    int block_size = math::reduce<D - 1>(g.projection_shape(0));
+
+    auto xb = image<D, T>(v);
+    auto yb = std::vector<T>(block_size);
+    auto zb = std::vector<T>(block_size);
+
+    auto fp_block = [&](int block, image<D, T>& z) -> std::vector<T>& {
+        std::fill(yb.begin(), yb.end(), 0);
+
+        for (auto it = g.iter_proj(block); it != g.iter_proj(block + 1); ++it) {
+            auto[row, line] = *it;
+            for (auto elem : kernel(line)) {
+                yb[row] += z[elem.index] * elem.value;
+            }
+        }
+
+        return yb;
+    };
+    auto bp_block = [&](int block, std::vector<T>& y) -> image<D, T>& {
+        std::fill(xb.begin(), xb.end(), 0);
+
+        for (auto it = g.iter_proj(block); it != g.iter_proj(block + 1); ++it) {
+            auto[row, line] = *it;
+            for (auto elem : kernel(line)) {
+                xb[elem.index] += y[row] * elem.value;
+            }
+        }
+
+        return xb;
+    };
+
+    auto cg = [&](int block, std::vector<T>& bb, int initer) {
+        auto y = std::vector<T>(block_size);
+        auto r = bb;
+        auto p = r;
+
+        for (int k = 0; k < initer; ++k) {
+            auto gamma = math::dot(r, r);
+            auto bpp = bp_block(block, p);
+            auto alpha = gamma / math::dot(bpp, bpp);
+            for (int i = 0; i < block_size; ++i) {
+                y[i] += alpha * p[i];
+            }
+            for (int i = 0; i < block_size; ++i) {
+                auto t = fp_block(block, bpp);
+                r[i] -= alpha * t[i];
+            }
+            auto beta = math::dot(r, r) / gamma;
+            for (int i = 0; i < block_size; ++i) {
+                p[i] = r[i] + beta * p[i];
+            }
+        }
+
+        return y;
+    };
+
+    for (int k = 0; k < iterations; ++k) {
+        for (int block = 0; block < g.projection_count(); ++block) {
+            // compute residual for this block
+            auto& alphas = fp_block(block, x);
+            for (int i = 0; i < block_size; ++i) {
+                alphas[i] = b[block * block_size + i] - alphas[i];
+            }
+            // perform some iterations of CG (i.e. finding how to adjust x to
+            // reduce the residual for this block)
+            auto yl = cg(block, alphas, 1);
+
+            // Update the image
+            x += stepsize * bp_block(block, yl);
+        }
+
+        if (callback) {
+            callback(x, k);
+        }
+    }
+
+    return x;
+}
+
 } // namespace reconstruction
 } // namespace tomo
