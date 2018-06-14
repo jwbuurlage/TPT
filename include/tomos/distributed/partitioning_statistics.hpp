@@ -64,5 +64,14 @@ T load_imbalance(tomo::volume<D, T> v,
     return eps;
 }
 
+
+template <dimension D, typename T>
+long long regularizer_volume(const geometry::base<D, T>& geometry,
+                               volume<D, T> object_volume,
+                               bulk::rectangular_partitioning<D>& partitioning) {
+    long long result = 0;
+    return result;
+}
+
 } // namespace distributed
 } // namespace tomo

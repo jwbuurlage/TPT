@@ -15,12 +15,12 @@ link_directories("~/.local/lib")
 
 include_directories(
     "include"
-    "ext/fmt/"
+    "ext/fmt/include/"
     "ext/cpptoml/include/"
     "ext/bulk/include"
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z -Wall -Wextra -Wshadow -Wno-missing-braces -Wfatal-errors -Werror -pedantic -O3 -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -Wno-missing-braces -Wfatal-errors -Werror -pedantic -O3 -march=native")
 if(FOR_RELEASE)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG")
 else(FOR_RELEASE)
@@ -28,7 +28,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 endif(FOR_RELEASE)
 
 # ignore warnings from external libs
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ../ext/fmt -isystem ../ext/cpptoml/include -isystem ~/.local/include -isystem ../ext/bulk/include -isystem /usr/local/cuda/include")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ../ext/fmt/include -DFMT_HEADER_ONLY -isystem ../ext/cpptoml/include -isystem ~/.local/include -isystem ../ext/bulk/include -isystem /usr/local/cuda/include")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
@@ -39,7 +39,6 @@ set(LIB_NAME "tomos")
 set(
     LIB_SOURCES
     "src/phantoms.cpp"
-    "ext/fmt/fmt/format.cc"
 )
 
 add_library( ${LIB_NAME} SHARED ${LIB_SOURCES} )
@@ -57,8 +56,7 @@ set(
     "read_tiff.cpp"
     "dose_deposition.cpp"
     "geometry_benchmark.cpp"
-    "reserialize.cpp"
-    #"partitioning_tests.cpp"
+    "partitioning_tests.cpp"
 )
 
 set(
@@ -94,6 +92,9 @@ if(WITH_ZMQ)
 
     #    add_executable("read_legoscan_test" "examples/read_legoscan_test.cpp")
     #    target_link_libraries("read_legoscan_test" ${LIB_NAMES})
+
+    add_executable("reserialize" "examples/reserialize.cpp")
+    target_link_libraries("reserialize" ${LIB_NAMES})
 
     add_executable("partition" "examples/partition.cpp")
     target_link_libraries("partition" ${LIB_NAMES})
@@ -164,5 +165,3 @@ else(MPI_CXX_FOUND)
     message("No MPI installation found.")
 endif(MPI_CXX_FOUND)
 endif(WITH_MPI AND WITH_ZMQ)
-
-add_subdirectory(test/build test/build)

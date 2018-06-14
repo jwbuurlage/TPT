@@ -31,11 +31,12 @@ void compute(std::string tree_dir, std::string geometry_file, int a, int b,
     table.add_row(name + " V_t"s);
     table.add_row(name + " g"s);
     table.add_row(name + " eps"s);
+    table.add_row(name + " eps_triv"s);
     for (int p = a; p <= b; p *= 2) {
         // use tree dir and geometry file to  get tree file
         // ...
         auto tree_file =
-            tree_dir + "/" + std::to_string(p) + "/" + name + ".bsp";
+            tree_dir + "/" + name + ".bsp";
 
         int k = tomo::math::min(512, p * 4);
         // auto obj_vol = tomo::volume<3_D, T>({k, k, k}, {0, 0, 0}, {1, 1, 1});
@@ -60,6 +61,8 @@ void compute(std::string tree_dir, std::string geometry_file, int a, int b,
 
         auto imbalance =
             tomo::distributed::load_imbalance(obj_vol, *tree_part, geometry);
+        auto triv_imbalance =
+            tomo::distributed::load_imbalance(obj_vol, part_trivial, geometry);
 
         {
             std::lock_guard<std::mutex> guard(g_result_mutex);
@@ -71,6 +74,8 @@ void compute(std::string tree_dir, std::string geometry_file, int a, int b,
                              fmt::format("{:.1f}%", 100 * imp));
             table.add_result(name + " eps"s, "p = "s + std::to_string(p),
                              fmt::format("{:.2f}", imbalance));
+            table.add_result(name + " eps_triv"s, "p = "s + std::to_string(p),
+                             fmt::format("{:.2f}", triv_imbalance));
 
             std::cout << tree_file + " imbalance: " << imbalance << "\n";
         }

@@ -8,6 +8,7 @@
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
+
 #include "fmt/format.h"
 
 #include "tomos/tomos.hpp"
