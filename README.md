@@ -2,12 +2,12 @@
 
 ![](doc/images/logo.png)
 
-Tomos is a library with many tools for tomographic reconstruction. Its features, and advantages over other 'tomography toolboxes', include:
+Tomos is a library with many tools for tomographic reconstruction, with the following features:
 
 - Modular system, where projectors, geometries, volumes and algorithmic skeletons are all independent and can be mixed and matched.
 - Tomos supports a general model for distributed computing, enabling the resulting algorithms to run on clusters
 - It is not bound to CUDA, MATLAB, or Python, although Python bindings and GPU computing are supported
-- Written in modern C++, with OO / generic programming style like STL, enabling familiar abstractions without performance penalties.
+- Written in modern C++, with OO / generic programming style like STL, enabling abstractions without performance penalties.
 - It has efficient CPU implementations for the algorithms.
 - Support for 2D, 3D or higher dimensional reconstructions.
 
@@ -50,12 +50,12 @@ Provided as submodules
 - [fmt](https://github.com/fmtlib/fmt) as an iostream replacement
 - [bulk](https://github.com/jwbuurlage/Bulk) for distributed computing
 - [cpptoml](https://github.com/skystrife/cpptoml) for reading specification and configuration files
-- (optional) [slicevis](https://github.com/jwbuurlage/slicevis) as an visualization server
+- (optional) [RECAST3D](https://github.com/cicwi/RECAST3D) as an visualization server
 - (optional) [pybind11](https://github.com/pybind/pybind11) to generate Python bindings
 
 The following build tools should be available:
 - [CMake](https://cmake.org/) (>= 3.0)
-- Modern C++ compiler (with support for at least C++14), e.g. GCC >= 6.0 or clang >= 3.8
+- Modern C++ compiler (with support for at least C++17), e.g. GCC >= 7.0 or clang >= 4.0
 
 The library is being tested on Fedora 24 and Arch Linux, but the code should be portable to other platforms.
 
@@ -100,7 +100,7 @@ To build with ZMQ (and MPI), run instead of `cmake .`:
 cmake -DWITH_MPI=on -DWITH_ZMQ=on .
 ```
 
-CUDA support has been disabled for now.
+CUDA support is experimental and has no public build interface.
 
 # Writing your own algorithms
 
