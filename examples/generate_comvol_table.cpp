@@ -28,6 +28,7 @@ void compute(std::string tree_dir, std::string geometry_file, int a, int b,
 
     auto name = fs::path(geometry_file).stem().string();
     table.add_row(name + " V_b"s);
+    table.add_row(name + " V_b (reg)"s);
     table.add_row(name + " V_t"s);
     table.add_row(name + " g"s);
     table.add_row(name + " eps"s);
@@ -44,6 +45,7 @@ void compute(std::string tree_dir, std::string geometry_file, int a, int b,
         auto& geometry = *problem.acquisition_geometry;
         auto obj_vol = problem.object_volume;
         auto tree_part = tomo::load_partitioning(tree_file, obj_vol, log2(p));
+        tomo::print_tree(tree_part->splits());
 
         auto overlap_bisected =
             td::communication_volume<3_D, T>(geometry, obj_vol, *tree_part);
@@ -64,12 +66,18 @@ void compute(std::string tree_dir, std::string geometry_file, int a, int b,
         auto triv_imbalance =
             tomo::distributed::load_imbalance(obj_vol, part_trivial, geometry);
 
+        auto comvol_reg =
+            td::regularizer_volume<3_D, T>(obj_vol, *tree_part);
+
         {
             std::lock_guard<std::mutex> guard(g_result_mutex);
             table.add_result(name + " V_b"s, "p = "s + std::to_string(p),
                              overlap_bisected);
             table.add_result(name + " V_t"s, "p = "s + std::to_string(p),
                              overlap_trivial);
+            table.add_result(name + " V_b (reg)"s, "p = "s + std::to_string(p),
+                             comvol_reg);
+
             table.add_result(name + " g"s, "p = "s + std::to_string(p),
                              fmt::format("{:.1f}%", 100 * imp));
             table.add_result(name + " eps"s, "p = "s + std::to_string(p),

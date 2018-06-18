@@ -301,8 +301,9 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
     auto depth = (int)log2(processors);
     assert(1 << depth == processors);
 
-    box_t<D> bounds;
+    box_t<D> bounds = {};
     for (int d = 0; d < D; ++d) {
+        bounds[d][0] = 0;
         bounds[d][1] = object_volume.voxels()[d] - 1;
     }
 

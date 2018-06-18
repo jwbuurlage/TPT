@@ -1,9 +1,9 @@
 #include <fstream>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
-#include <thread>
-#include <mutex>
 
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
@@ -90,8 +90,9 @@ void partition(std::string meta_file, std::string output_file, int processors,
 }
 
 void usage(std::string program_name) {
-    std::cout << "USAGE: " << program_name
-              << " --in GEOMS --out OUT_DIR [-p PROCS] [-e EPS] [--preview] [--output]\n";
+    std::cout << "USAGE: " << program_name << " --in GEOMS --out OUT_DIR [-p "
+                                              "PROCS] [-e EPS] [--preview] "
+                                              "[--output]\n";
 }
 
 int main(int argc, char* argv[]) {
@@ -139,11 +140,11 @@ int main(int argc, char* argv[]) {
     table.add_column("improvement");
     table.add_column("imbalance");
 
-
     std::vector<std::thread> threads;
     for (auto in_and_out : ins_and_outs) {
-        threads.emplace_back(partition, in_and_out.first, in_and_out.second, processors, epsilon,
-                  opts.passed("--preview"), opts.passed("--output"), std::ref(table));
+        threads.emplace_back(partition, in_and_out.first, in_and_out.second,
+                             processors, epsilon, opts.passed("--preview"),
+                             opts.passed("--output"), std::ref(table));
     }
 
     for (auto& thread : threads) {

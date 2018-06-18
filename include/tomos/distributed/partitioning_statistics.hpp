@@ -17,8 +17,6 @@ long long communication_volume(const geometry::base<D, T>& geometry,
                                bulk::partitioning<D>& partitioning) {
     long long result = 0;
 
-    // TODO comvol is now wrt closest, how do we want to do this
-    // 'honest' thing is maybe wrt line kernel
     auto integrator = tomo::dim::closest<D, T>(object_volume);
     auto voxels = math::vec_to_array<D, int>(object_volume.voxels());
 
@@ -64,12 +62,25 @@ T load_imbalance(tomo::volume<D, T> v,
     return eps;
 }
 
-
-template <dimension D, typename T>
-long long regularizer_volume(const geometry::base<D, T>& geometry,
-                               volume<D, T> object_volume,
-                               bulk::rectangular_partitioning<D>& partitioning) {
+template <dimension D, typename T, dimension G>
+long long regularizer_volume(volume<D, T> object_volume,
+                   bulk::rectangular_partitioning<D, G>& partitioning) {
     long long result = 0;
+    auto p =
+        math::product<G, int>(math::array_to_vec<G, int>(partitioning.grid()));
+
+    auto boundary_voxels = [](auto& xs) {
+        return 2 * (xs[0] * xs[1] + (xs[0] - 1) * xs[2] + (xs[1] - 1) * (xs[2] - 1))
+    };
+
+    for (int s = 0; s < p; ++s) {
+        auto xs = math::array_to_vec<D, int>(partitioning.local_size(s));
+        result += boundary_voxels(xs);
+    }
+
+    auto ys = math::vec_to_array<D, int>(object_volume.voxels());
+    result -= boundary_voxels(ys);
+
     return result;
 }
 

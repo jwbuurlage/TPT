@@ -196,7 +196,7 @@ void print_bulk_node_(bulk::util::binary_tree<bulk::util::split>::node* node,
     }
 }
 
-void print_tree(bulk::util::binary_tree<bulk::util::split>& tree) {
+void print_tree(const bulk::util::binary_tree<bulk::util::split>& tree) {
     print_bulk_node_(tree.root.get());
 }
 
