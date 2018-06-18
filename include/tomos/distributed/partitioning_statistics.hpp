@@ -71,7 +71,7 @@ long long regularizer_volume(volume<D, T> object_volume,
         math::product<G, int>(math::array_to_vec<G, int>(partitioning.grid()));
 
     auto boundary_voxels = [](auto& xs) {
-        return 2 * (xs[0] * xs[1] + (xs[0] - 1) * xs[2] + (xs[1] - 1) * (xs[2] - 1))
+        return 2 * (xs[0] * xs[1] + (xs[0] - 1) * xs[2] + (xs[1] - 1) * (xs[2] - 1));
     };
 
     for (int s = 0; s < p; ++s) {

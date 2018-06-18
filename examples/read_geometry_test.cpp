@@ -10,8 +10,10 @@ int main(int argc, char* argv[]) {
     auto opt = tomo::util::args(argc, argv);
 
     try {
-        tomo::util::ext_plotter<D - 1, T> proj_plotter("tcp://localhost:5555", "Sinogram");
-        tomo::util::ext_plotter<D, T> plotter ("tcp://localhost:5555", "Geometry spec");
+        tomo::util::ext_plotter<D - 1, T> proj_plotter("tcp://localhost:5555",
+                                                       "Sinogram");
+        tomo::util::ext_plotter<D, T> plotter("tcp://localhost:5555",
+                                              "Geometry spec");
 
         auto problem = tomo::read_configuration<D, T>(opt.data);
 
@@ -38,8 +40,9 @@ int main(int argc, char* argv[]) {
 
         fmt::print("STARTING SIRT\n");
         auto z = tomo::reconstruction::sirt(
-            problem.object_volume, *problem.acquisition_geometry,
-            proj, *problem.projection_stack, opt.beta, opt.iterations, {[&](tomo::image<D, T>& image) { plotter.plot(image); }});
+            problem.object_volume, *problem.acquisition_geometry, proj,
+            *problem.projection_stack, opt.beta, opt.iterations,
+            {[&](tomo::image<D, T>& image, int) { plotter.plot(image); }});
         fmt::print("SIRT\n");
         tomo::ascii_plot(z);
         proj_plotter.plot(problem.projection_stack->get_projection(0));

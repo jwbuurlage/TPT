@@ -67,6 +67,8 @@ set(
     "boost_program_options"
     "stdc++fs"
     "opencv_highgui"
+    "opencv_core"
+    "opencv_imgcodecs"
 )
 
 foreach(source_file ${EXAMPLE_SOURCES})
@@ -82,6 +84,13 @@ if(WITH_ZMQ)
         "ext/cppzmq"
         "ext/libzmq/include"
     )
+
+    set(
+        LIB_NAMES
+        ${LIB_NAMES}
+        "zmq"
+    )   
+
     add_executable("external_plotter" "examples/external_plotter.cpp")
     target_link_libraries("external_plotter" ${LIB_NAMES})
 
@@ -134,10 +143,10 @@ endif(WITH_ZMQ)
 
 # add_subdirectory(../test/build ../test/build)
 
-find_package(MPI REQUIRED)
-find_package(OpenCV REQUIRED)
 
 if(WITH_MPI AND WITH_ZMQ)
+find_package(MPI REQUIRED)
+find_package(OpenCV REQUIRED)
 if(MPI_CXX_FOUND)
     set(
         MPI_DIR

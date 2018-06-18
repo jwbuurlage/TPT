@@ -82,7 +82,7 @@ class dummy_reconstructor : public on_demand_reconstructor<T> {
 
         auto image = tomo::reconstruction::sirt(
             volume_, geometry_, kernel_, projection_stack_, 0.5, 10,
-            {[&](tomo::image<3_D, T>& iteration_result) {
+            {[&](tomo::image<3_D, T>& iteration_result, int) {
                 {
                     std::lock_guard<std::mutex> guard(image_mutex_);
                     current_image_ = iteration_result;
