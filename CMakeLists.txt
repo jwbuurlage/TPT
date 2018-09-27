@@ -29,7 +29,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 endif(FOR_RELEASE)
 
 # ignore warnings from external libs
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ../ext/fmt/include -DFMT_HEADER_ONLY -isystem ../ext/cpptoml/include -isystem ~/.local/include -isystem ../ext/bulk/include -isystem /usr/local/cuda/include")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ../../glm/ -isystem ../ext/fmt/include -DFMT_HEADER_ONLY -isystem ../ext/cpptoml/include -isystem ~/.local/include -isystem ../ext/bulk/include -isystem /usr/local/cuda/include")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
