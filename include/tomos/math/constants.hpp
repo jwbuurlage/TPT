@@ -12,7 +12,7 @@ constexpr T epsilon = (T)1e-5;
 
 /** A constant representing pi with the precision of type T. */
 template <typename T>
-constexpr auto pi = glm::pi<T>();
+const auto pi = glm::pi<T>();
 
 /** A constant representing sqrt(2) with the precision of type T. */
 template <typename T>

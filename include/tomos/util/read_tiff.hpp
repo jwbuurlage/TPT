@@ -68,6 +68,8 @@ tiff_stack_to_projections(const tomo::geometry::base<D, T>& g,
 
 template <typename T = default_scalar_type>
 void write_png(tomo::image<2_D, T> x, std::string filename) {
+    (void)x;
+    (void)filename;
 //    auto v = x.get_volume();
 //
 //    T min = 0.0;
