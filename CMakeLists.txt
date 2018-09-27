@@ -58,6 +58,7 @@ set(
     "dose_deposition.cpp"
     "geometry_benchmark.cpp"
     "partitioning_tests.cpp"
+    "tests_berlin.cpp"
 )
 
 set(
@@ -66,9 +67,6 @@ set(
     "tomos"
     "boost_program_options"
     "stdc++fs"
-    "opencv_highgui"
-    "opencv_core"
-    "opencv_imgcodecs"
 )
 
 foreach(source_file ${EXAMPLE_SOURCES})
@@ -146,7 +144,6 @@ endif(WITH_ZMQ)
 
 if(WITH_MPI AND WITH_ZMQ)
 find_package(MPI REQUIRED)
-find_package(OpenCV REQUIRED)
 if(MPI_CXX_FOUND)
     set(
         MPI_DIR
@@ -160,21 +157,20 @@ if(MPI_CXX_FOUND)
         "count_messages.cpp"
         )
 
-message("${MPI_CXX_COMPILE_FLAGS}")
-message("${MPI_CXX_LINK_FLAGS}")
-message("${MPI_CXX_INCLUDE_PATH}")
-message("${MPI_CXX_LIBRARIES}")
+    message("${MPI_CXX_COMPILE_FLAGS}")
+    message("${MPI_CXX_LINK_FLAGS}")
+    message("${MPI_CXX_INCLUDE_PATH}")
+    message("${MPI_CXX_LIBRARIES}")
     set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${MPI_CXX_COMPILE_FLAGS})
     set(CMAKE_CXX_LINK_FLAGS ${CMAKE_CXX_LINK_FLAGS} ${MPI_CXX_LINK_FLAGS})
     include_directories(${MPI_CXX_INCLUDE_PATH})
-	include_directories( ${OpenCV_INCLUDE_DIRS} )
 
 
     # make distributed example
     foreach(source_file ${MPI_SOURCES})
         string(REPLACE ".cpp" "" source_name ${source_file})
         add_executable(mpi_${source_name} ${MPI_DIR}${source_file})
-        target_link_libraries(mpi_${source_name} ${LIB_NAMES} ${MPI_CXX_LIBRARIES} ${OpenCV_LIBS})
+        target_link_libraries(mpi_${source_name} ${LIB_NAMES} ${MPI_CXX_LIBRARIES})
     endforeach(source_file)
 else(MPI_CXX_FOUND)
     message("No MPI installation found.")

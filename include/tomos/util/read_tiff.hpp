@@ -9,7 +9,7 @@
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
 
-#include <opencv2/opencv.hpp>
+// #include <opencv2/opencv.hpp>
 
 #include "../common.hpp"
 #include "../image.hpp"
@@ -68,46 +68,45 @@ tiff_stack_to_projections(const tomo::geometry::base<D, T>& g,
 
 template <typename T = default_scalar_type>
 void write_png(tomo::image<2_D, T> x, std::string filename) {
-    auto v = x.get_volume();
-
-    T min = 0.0;
-    for (auto y : x.data()) {
-        if (y < min) {
-            min = y;
-        }
-    }
-    for (auto& y : x.mutable_data()) {
-        y -= min;
-    }
-    T max = 0.0;
-    for (auto y : x.data()) {
-        if (y > max) {
-            max = y;
-        }
-    }
-
-    auto image = cv::Mat(v.voxels()[0], v.voxels()[1], CV_16UC1);
-    for (int i = 0; i < v.voxels()[0]; ++i) {
-        for (int j = 0; j < v.voxels()[1]; ++j) {
-            image.at<unsigned short>(i, j) =
-                (unsigned short)(x[x.index({i, j})] / max *
-                                std::numeric_limits<unsigned short>::max());
-        }
-    }
-
-    std::vector<int> compression_params;
-    compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
-    compression_params.push_back(9);
-
-    try {
-	IplImage tmp = image;
-        cvSaveImage((filename + ".png").c_str(), &tmp);
-    } catch (std::runtime_error& ex) {
-        fprintf(stderr, "Exception converting image to PNG format: %s\n",
-                ex.what());
-    }
-
-    std::cout << "Saved: " << filename << ".png\n";
+//    auto v = x.get_volume();
+//
+//    T min = 0.0;
+//    for (auto y : x.data()) {
+//        if (y < min) {
+//            min = y;
+//        }
+//    }
+//    for (auto& y : x.mutable_data()) {
+//        y -= min;
+//    }
+//    T max = 0.0;
+//    for (auto y : x.data()) {
+//        if (y > max) {
+//            max = y;
+//        }
+//    }
+//
+//    auto image = cv::Mat(v.voxels()[0], v.voxels()[1], CV_16UC1);
+//    for (int i = 0; i < v.voxels()[0]; ++i) {
+//        for (int j = 0; j < v.voxels()[1]; ++j) {
+//            image.at<unsigned short>(i, j) =
+//                (unsigned short)(x[x.index({i, j})] / max *
+//                                std::numeric_limits<unsigned short>::max());
+//        }
+//    }
+//
+//    std::vector<int> compression_params;
+//    compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+//    compression_params.push_back(9);
+//
+//    try {
+//    cv::imwrite((filename + ".png").c_str(), image);
+//    } catch (std::runtime_error& ex) {
+//        fprintf(stderr, "Exception converting image to PNG format: %s\n",
+//                ex.what());
+//    }
+//
+    std::cout << "Did not save: " << filename << ".png\n";
 }
 
 
