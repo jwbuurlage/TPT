@@ -28,6 +28,7 @@ void compute(std::string tree_dir, std::string geometry_file, int a, int b,
 
     auto name = fs::path(geometry_file).stem().string();
     table.add_row(name + " V_b"s);
+    table.add_row(name + " V_cube"s);
     table.add_row(name + " V_b (reg)"s);
     table.add_row(name + " V_t"s);
     table.add_row(name + " g"s);
@@ -36,8 +37,7 @@ void compute(std::string tree_dir, std::string geometry_file, int a, int b,
     for (int p = a; p <= b; p *= 2) {
         // use tree dir and geometry file to  get tree file
         // ...
-        auto tree_file =
-            tree_dir + "/" + name + ".bsp";
+        auto tree_file = tree_dir + "/" + name + ".bsp";
 
         int k = tomo::math::min(512, p * 4);
         // auto obj_vol = tomo::volume<3_D, T>({k, k, k}, {0, 0, 0}, {1, 1, 1});
@@ -54,6 +54,7 @@ void compute(std::string tree_dir, std::string geometry_file, int a, int b,
         auto part_trivial = bulk::block_partitioning<3_D, 1>(
             tomo::math::vec_to_array<3_D, int>(obj_vol.voxels()), {p},
             {main_d});
+
         auto overlap_trivial =
             td::communication_volume<3_D, T>(geometry, obj_vol, part_trivial);
 
@@ -66,8 +67,17 @@ void compute(std::string tree_dir, std::string geometry_file, int a, int b,
         auto triv_imbalance =
             tomo::distributed::load_imbalance(obj_vol, part_trivial, geometry);
 
-        auto comvol_reg =
-            td::regularizer_volume<3_D, T>(obj_vol, *tree_part);
+        auto comvol_reg = td::regularizer_volume<3_D, T>(obj_vol, *tree_part);
+
+        auto cube_vol = 0;
+
+        if (p == 64) {
+            auto part_cube = bulk::block_partitioning<3_D, 3_D>(
+                tomo::math::vec_to_array<3_D, int>(obj_vol.voxels()),
+                {4, 4, 4});
+            cube_vol =
+                td::communication_volume<3_D, T>(geometry, obj_vol, part_cube);
+        }
 
         {
             std::lock_guard<std::mutex> guard(g_result_mutex);
@@ -77,6 +87,11 @@ void compute(std::string tree_dir, std::string geometry_file, int a, int b,
                              overlap_trivial);
             table.add_result(name + " V_b (reg)"s, "p = "s + std::to_string(p),
                              comvol_reg);
+
+            if (p == 64) {
+                table.add_result(name + " V_cube"s, "p = "s + std::to_string(p),
+                                 cube_vol);
+            }
 
             table.add_result(name + " g"s, "p = "s + std::to_string(p),
                              fmt::format("{:.1f}%", 100 * imp));
@@ -109,9 +124,10 @@ void compute(std::string tree_dir, std::string geometry_file, int a, int b,
 }
 
 void usage(std::string program_name) {
-    std::cout << "USAGE: " << program_name << " --in TREE_MAIN_FOLDER --geom "
-                                              "GEOMS -o TABLE_FILE -a MIN_PROC "
-                                              "-b MAX_PROC\n";
+    std::cout << "USAGE: " << program_name
+              << " --in TREE_MAIN_FOLDER --geom "
+                 "GEOMS -o TABLE_FILE -a MIN_PROC "
+                 "-b MAX_PROC\n";
 }
 
 int main(int argc, char* argv[]) {

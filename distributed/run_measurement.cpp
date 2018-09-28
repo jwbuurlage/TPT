@@ -395,19 +395,42 @@ void sirt(bulk::world& world,
         world.log("SIRT %s (%s)", name.c_str(), column.c_str());
     }
     auto stopwatch = bulk::util::timer();
+
+    float sum_of_avg_fp_times = 0.0f;
+    float sum_of_max_fp_times = 0.0f;
+
     float prev_t = 0.0f;
     auto total_comm_time = 0.0f;
     for (int iter = 0; iter < iters; ++iter) {
+        auto begin_fp = stopwatch.get<std::milli>();
         fp(x, gs, vs, q);
         for (auto l = 0ull; l < gs.lines(); ++l) {
             q[l] = r[l] * (p[l] - q[l]);
         }
 
-	// add two syncs to measure accurately comm time
-	world.sync();
+        // add two syncs to measure accurately comm time
+        auto fp_time = stopwatch.get<std::milli>() - begin_fp;
+        auto fp_times = bulk::gather_all(world, fp_time / 1000.0);
+
+        if (world.rank() == 0) {
+            // TODO Store avg of avg, avg of max, avg of eps, and put in table at the end
+            auto max_fp = *std::max_element(fp_times.begin(), fp_times.end());
+            auto average_fp =
+                std::accumulate(fp_times.begin(), fp_times.end(), (T)0) /
+                world.active_processors();
+            sum_of_max_fp_times += max_fp;
+            sum_of_avg_fp_times += average_fp;
+            world.log("FP time (max/avg/eps): %s %s %s",
+                      fmt::format("{:.2f} s", max_fp).c_str(),
+                      fmt::format("{:.2f} s", average_fp).c_str(),
+                      fmt::format("{:.2f}", max_fp / average_fp - (T)1).c_str());
+        }
+
+        world.sync();
+
         auto t = stopwatch.get<std::milli>();
         communicate_contributions(world, q, go_forth, and_back);
-	world.sync();
+        world.sync();
         auto dt = (stopwatch.get<std::milli>() - t);
         total_comm_time += dt;
 
@@ -433,6 +456,21 @@ void sirt(bulk::world& world,
     table.add_result(
         name, column + " (com)",
         fmt::format("{:.2f} s", total_comm_time / (1000.0 * iters)));
+
+    // FP times
+    auto avg_avg_fp_time = sum_of_avg_fp_times / iters;
+    auto avg_max_fp_time = sum_of_max_fp_times / iters;
+    table.add_result(
+        name, column + " (avg fp)",
+        fmt::format("{:.2f} s", avg_avg_fp_time));
+
+    table.add_result(
+        name, column + " (max fp)",
+        fmt::format("{:.2f} s", avg_max_fp_time));
+
+    table.add_result(
+        name, column + " (avg eps)",
+        fmt::format("{:.2f}", avg_max_fp_time / avg_avg_fp_time - 1.0));
 
     collect_orthos(world, x, global_volume, partitioning, name + "_" + column,
                    image_dir);
@@ -508,8 +546,14 @@ int main(int argc, char* argv[]) {
     auto table = tomo::util::report("Runtimes", "geometry");
     table.add_column("trivial");
     table.add_column("trivial (com)");
+    table.add_column("trivial (max fp)");
+    table.add_column("trivial (avg fp)");
+    table.add_column("trivial (avg eps)");
     table.add_column("bisected");
     table.add_column("bisected (com)");
+    table.add_column("bisected (max fp)");
+    table.add_column("bisected (avg fp)");
+    table.add_column("bisected (avg eps)");
 
     run(opts.args("--geom"), opts.arg("--part"), opts.arg_as_or<int>("-k", -1),
         opts.arg_as_or<int>("-i", 1), opts.arg("--out"), opts.arg("--images"),
