@@ -138,20 +138,22 @@ The resulting binaries will be in the `bin` folder.
 
 ## Building the Python bindings
 
-To generate the Python bindings:
+To generate and use the Python bindings:
 
 ```
-cd python/build
-cmake .
+cd build
+cmake .. -DPYTHON_BINDINGS=on 
 make
-```
+cd ../python
+pip install -e .
 
-The Python bindings can be used through `tomo.py` in the `Python` folder, which also adds some rudimentary plotting functionality on top of the bindings.
+python examples/minimal_example.py
+```
 
 ## Building with optional features
 
-To build the ZMQ and MPI based examples, run the following instead of `cmake .`.
+To build the ZMQ and MPI based examples, run the following instead of `cmake ..`.
 
 ```
-cmake -DDISTRIBUTED=on -DPYTHON_BINDINGS=on .
+cmake -DDISTRIBUTED=on ..
 ```

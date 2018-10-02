@@ -2,7 +2,7 @@
 
 ## 0.2.0
 
-2017-10-01
+2017-10-02
 
 - Add tools for partitioning
 - Update Python bindings
