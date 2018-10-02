@@ -10,9 +10,10 @@ There is support for 2D, 3D or higher dimensional reconstructions, and support f
 
 # Tools
 
-## Partitioning
+- `tomos_partition` a partitioning tool based on the _geometric recursive coordinate bisectioning_ algorithm.
 
-Tomos comes with `tomos_partition` a partitioning tool based on the _geometric recursive coordinate bisectioning_ algorithm.
+   It is also possible to perform partitioning on geometries from the ASTRA toolbox.
+   This can be done using the Python bindings, see `python/examples/astra_partition.py`.
 
 # Library
 

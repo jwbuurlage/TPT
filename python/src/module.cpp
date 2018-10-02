@@ -10,6 +10,16 @@ using namespace tomo::python;
 namespace td = tomo::dim;
 namespace tg = tomo::geometry;
 
+auto left(bulk::util::binary_tree<bulk::util::split>::node* node) {
+    return node->left.get();
+}
+auto right(bulk::util::binary_tree<bulk::util::split>::node* node) {
+    return node->right.get();
+}
+auto root(bulk::util::binary_tree<bulk::util::split>* tree) {
+    return tree->root.get();
+}
+
 void init_image(py::module& m) {
     py::class_<tomo::volume<2_D, T>>(m, "volume")
         .def(py::init<int>())
@@ -154,8 +164,20 @@ void init_algorithm(py::module& m) {
 void init_partitioning(py::module& m) {
     namespace td = tomo::distributed;
 
+    py::class_<bulk::util::split>(m, "binary_tree_split")
+        .def_readwrite("d", &bulk::util::split::d)
+        .def_readwrite("a", &bulk::util::split::a);
+
+    py::class_<bulk::util::binary_tree<bulk::util::split>::node>(
+        m, "binary_tree_node")
+        .def("left", &left, py::return_value_policy::reference)
+        .def("right", &right, py::return_value_policy::reference)
+        .def_readwrite(
+            "value", &bulk::util::binary_tree<bulk::util::split>::node::value);
+
     py::class_<bulk::util::binary_tree<bulk::util::split>>(m,
-                                                           "bulk_binary_tree");
+                                                           "bulk_binary_tree")
+        .def("root", &root, py::return_value_policy::reference);
 
     m.def("partition_bisection",
           &tomo::distributed::partition_bisection<3_D, T>,

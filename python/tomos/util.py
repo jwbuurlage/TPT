@@ -174,4 +174,19 @@ def partition_bisection_astra(astra_proj_geom, astra_vol_geom, p, eps):
             vec3f(vol_size[0], vol_size[1], vol_size[2]))
 
     # partition
-    partition_bisection(custom_geom, tomos_vol, p, eps)
+    return partition_bisection(custom_geom, tomos_vol, p, eps)
+
+
+def print_partitioning(tree):
+    node = tree.root()
+    q = [(node, 0)]
+    while q:
+        c, d = q.pop()
+
+        s = "{} ({}, {})".format('>' * (d + 1), c.value.d, c.value.a)
+        print(s)
+
+        if c.left():
+            q.append((c.left(), d + 1))
+        if c.right():
+            q.append((c.right(), d + 1))
