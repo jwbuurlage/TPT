@@ -64,8 +64,6 @@ class base {
     virtual T matrix_value(math::ray<D, T> ray, math::vec<D, int> voxel) = 0;
 
   protected:
-    virtual ~base() = default;
-
     volume<D, T> volume_;
     math::line<D, T> line_;
 

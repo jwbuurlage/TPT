@@ -80,6 +80,17 @@ class projections {
     auto begin() { return data_.begin(); }
     auto end() { return data_.end(); }
 
+    /** Get the shape of the projection stack, based on the first projection size */
+    auto shape() { 
+        auto pixels = geometry_.projection_shape(0);
+        auto result = math::vec<D, int>();
+        for (auto i = 0u; i < D - 1; ++i) {
+            result[i] = pixels[i];
+        }
+        result[D - 1] = geometry_.projection_count();
+        return result;
+    }
+
   private:
     const geometry::base<D, T>& geometry_;
     std::vector<T> data_;

@@ -6,173 +6,142 @@ include(FeatureSummary)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(FOR_RELEASE "Build with all optimizations turned on")
-option(WITH_MPI "Build MPI specific parts")
-option(WITH_ZMQ "Build ZeroMQ support for visualization servers")
+option(DISTRIBUTED "Build distributed examples based on MPI and ZMQ")
+option(PYTHON_BINDINGS "Build python bindings")
 
 feature_summary(WHAT ALL)
 
-link_directories("~/.local/lib")
+set(LIB_NAME "tomos")
+add_library(${LIB_NAME} INTERFACE)
 
-include_directories(
-    "include"
+# Add compiler options for Tomos applications
+target_compile_options(${LIB_NAME} INTERFACE
+    -std=c++17
+    -Wall
+    -Wextra
+    -Wno-missing-braces
+    -Wfatal-errors
+    -Werror
+    -pedantic
+    -O3
+    -march=native)
+
+# Add include directories
+target_include_directories(${LIB_NAME} INTERFACE "include")
+
+# Ignore warnings from external libs
+target_compile_definitions(${LIB_NAME} INTERFACE
+     -DFMT_HEADER_ONLY)
+target_include_directories(${LIB_NAME} SYSTEM INTERFACE
     "ext/fmt/include/"
     "ext/cpptoml/include/"
     "ext/bulk/include"
     "../glm"
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -Wno-missing-braces -Wfatal-errors -Werror -pedantic -O3 -march=native")
+# Optional optimizations
 if(FOR_RELEASE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG")
+    # Add NDEBUG define
+    target_compile_options(${LIB_NAME} INTERFACE -DNDEBUG)
 else(FOR_RELEASE)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+    # Add debug flag
+    target_compile_options(${LIB_NAME} INTERFACE -g)
 endif(FOR_RELEASE)
 
-# ignore warnings from external libs
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ../../glm/ -isystem ../ext/fmt/include -DFMT_HEADER_ONLY -isystem ../ext/cpptoml/include -isystem ~/.local/include -isystem ../ext/bulk/include -isystem /usr/local/cuda/include")
-
+# Set output for binaries
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 
-set(LIB_NAME "tomos")
-
-set(
-    LIB_SOURCES
-    "src/phantoms.cpp"
+# Link against external libraries
+target_link_libraries(
+    ${LIB_NAME} INTERFACE
+    pthread
+    stdc++fs
 )
 
-add_library( ${LIB_NAME} SHARED ${LIB_SOURCES} )
-
-set(
-    EXAMPLE_DIR
-    "examples/"
-)
+# -----------------------------------------------------
+# Basic (non-MPI) Examples
+set(EXAMPLE_DIR "examples/")
 
 set(
     EXAMPLE_SOURCES
-    "minimal_example.cpp"
     "generate_mtx.cpp"
-    "reconstruction.cpp"
-    "read_tiff.cpp"
-    "dose_deposition.cpp"
-    "geometry_benchmark.cpp"
-    "partitioning_tests.cpp"
-    "tests_berlin.cpp"
-)
-
-set(
-    LIB_NAMES
-    "pthread"
-    "tomos"
-    "boost_program_options"
-    "stdc++fs"
+    "minimal_example.cpp"
 )
 
 foreach(source_file ${EXAMPLE_SOURCES})
     string(REPLACE ".cpp" "" source_name ${source_file})
     add_executable(${source_name} ${EXAMPLE_DIR}${source_file})
-    target_link_libraries( ${source_name} ${LIB_NAMES} )
+    target_link_libraries(${source_name} ${LIB_NAME})
 endforeach(source_file)
 
-if(WITH_ZMQ)
-    link_directories("ext/libzmq/build/lib")
-    include_directories(
+# -----------------------------------------------------
+# Basic tools
+
+# -----------------------------------------------------
+# MPI specific code
+
+if(DISTRIBUTED)
+find_package(MPI REQUIRED)
+if(MPI_CXX_FOUND)
+    # Find ZeroMQ
+    find_package(ZeroMQ QUIET)
+
+    if (ZeroMQ_FOUND)
+        add_library(zmq INTERFACE)
+        target_include_directories(zmq INTERFACE ${ZeroMQ_INCLUDE_DIR})
+        target_link_libraries(zmq INTERFACE ${ZeroMQ_LIBRARY})
+    else()
+        message("'zmq' not installed on the system, building from source...")
+
+        execute_process(COMMAND git submodule update --init -- ext/libzmq
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+        set(ZMQ_BUILD_TESTS OFF CACHE BOOL "disable tests" FORCE)
+        add_subdirectory(${CMAKE_SOURCE_DIR}/ext/libzmq)
+        set(ZMQ_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/ext/libzmq/include)
+
+        # ZeroMQ names their target libzmq, which is inconsistent => create a ghost dependency
+        add_library(zmq INTERFACE)
+        target_link_libraries(zmq INTERFACE libzmq)
+    endif()
+
+    target_include_directories(${LIB_NAME} INTERFACE
         "ext/tomopackets/include"
         "ext/cppzmq"
         "ext/libzmq/include"
     )
 
+    target_link_libraries(${LIB_NAME} INTERFACE "zmq")   
+
     set(
-        LIB_NAMES
-        ${LIB_NAMES}
-        "zmq"
-    )   
-
-    add_executable("external_plotter" "examples/external_plotter.cpp")
-    target_link_libraries("external_plotter" ${LIB_NAMES})
-
-    add_executable("read_geometry_test" "examples/read_geometry_test.cpp")
-    target_link_libraries("read_geometry_test" ${LIB_NAMES})
-
-    #    add_executable("read_legoscan_test" "examples/read_legoscan_test.cpp")
-    #    target_link_libraries("read_legoscan_test" ${LIB_NAMES})
-
-    add_executable("reserialize" "examples/reserialize.cpp")
-    target_link_libraries("reserialize" ${LIB_NAMES})
-
-    add_executable("partition" "examples/partition.cpp")
-    target_link_libraries("partition" ${LIB_NAMES})
-
-    add_executable("comvol" "examples/generate_comvol_table.cpp")
-    target_link_libraries("comvol" ${LIB_NAMES})
-
-    add_executable("preview" "examples/preview.cpp")
-    target_link_libraries("preview" ${LIB_NAMES})
-endif(WITH_ZMQ)
-
-#find_package(CUDA 7.5 QUIET)
-#
-#if(CUDA_FOUND)
-#    set(CUDA_64_BIT_DEVICE_CODE ON)
-#    set(CUDA_PROPAGATE_HOST_FLAGS OFF)
-#
-#    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --gpu-architecture=sm_52 -std=c++11 --expt-extended-lambda -ccbin /opt/sw/gcc-5.4.0/bin")
-#
-#    set(
-#        CUDA_LIB_SOURCES
-#        "../cuda/forward_project.cu"
-#        "../cuda/sart.cu"
-#        "../cuda/sirt.cu"
-#    )
-#
-#    set(
-#        CUDA_EXAMPLE_SOURCES
-#        "../examples/cuda_reconstruction.cpp"
-#    )
-#
-#    set(CUDA_LIB_NAME "tomos_cuda")
-#
-#    cuda_add_library(${CUDA_LIB_NAME} SHARED ${CUDA_LIB_SOURCES})
-#    cuda_add_executable("cuda_reconstruction" ${CUDA_EXAMPLE_SOURCES})
-#    target_link_libraries("cuda_reconstruction" ${LIB_NAMES} ${CUDA_LIB_NAME})
-#
-#endif(CUDA_FOUND)
-
-# add_subdirectory(../test/build ../test/build)
-
-
-if(WITH_MPI AND WITH_ZMQ)
-find_package(MPI REQUIRED)
-if(MPI_CXX_FOUND)
-    set(
-        MPI_DIR
-        "distributed/"
+        TOOLS_DIR
+        "tools/"
         )
 
     set(
-        MPI_SOURCES
-        "simple_distributed.cpp"
+        TOOLS_SOURCES
+        "partition.cpp"
         "run_measurement.cpp"
         "count_messages.cpp"
         )
 
-    message("${MPI_CXX_COMPILE_FLAGS}")
-    message("${MPI_CXX_LINK_FLAGS}")
-    message("${MPI_CXX_INCLUDE_PATH}")
-    message("${MPI_CXX_LIBRARIES}")
     set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${MPI_CXX_COMPILE_FLAGS})
     set(CMAKE_CXX_LINK_FLAGS ${CMAKE_CXX_LINK_FLAGS} ${MPI_CXX_LINK_FLAGS})
     include_directories(${MPI_CXX_INCLUDE_PATH})
 
-
     # make distributed example
-    foreach(source_file ${MPI_SOURCES})
+    foreach(source_file ${TOOLS_SOURCES})
         string(REPLACE ".cpp" "" source_name ${source_file})
-        add_executable(mpi_${source_name} ${MPI_DIR}${source_file})
-        target_link_libraries(mpi_${source_name} ${LIB_NAMES} ${MPI_CXX_LIBRARIES})
+        add_executable(tomos_${source_name} ${TOOLS_DIR}${source_file})
+        target_link_libraries(tomos_${source_name} ${MPI_CXX_LIBRARIES} ${LIB_NAME})
     endforeach(source_file)
 else(MPI_CXX_FOUND)
     message("No MPI installation found.")
 endif(MPI_CXX_FOUND)
-endif(WITH_MPI AND WITH_ZMQ)
+endif(DISTRIBUTED)
+
+if(PYTHON_BINDINGS)
+add_subdirectory(python/build)
+endif(PYTHON_BINDINGS)

@@ -1,5 +1,4 @@
 #include "tomos/tomos.hpp"
-#include "tomos/util/matrix_sums.hpp"
 
 using namespace tomo;
 

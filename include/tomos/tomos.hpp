@@ -41,6 +41,7 @@
 #include "util/read_metadata.hpp"
 #include "util/read_tiff.hpp"
 #include "util/image_processing.hpp"
+#include "util/trees.hpp"
 
 #include "algorithms/art.hpp"
 #include "algorithms/sart.hpp"
@@ -53,7 +54,8 @@
 #include "distributed/restricted_geometry.hpp"
 
 #include "geometries/cone.hpp"
-//#include "geometries/dual_axis_parallel.hpp"
+#include "geometries/custom.hpp"
+#include "geometries/dual_axis_parallel.hpp"
 #include "geometries/dynamic_cone_beam.hpp"
 #include "geometries/fan.hpp"
 #include "geometries/helical_cone_beam.hpp"

@@ -397,7 +397,7 @@ partition_bisection(const tomo::geometry::base<D, T>& geometry,
         }
     }
 
-    std::cout << "I think it is: " << total_overlap << "\n";
+    std::cout << "Partitioning succeeded with volume: " << total_overlap << "\n";
 
     return result;
 }

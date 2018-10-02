@@ -1,4 +1,6 @@
-/* This ile contains some utilities for working with partitioning trees. */
+#pragma once
+
+/* This file contains some utilities for working with partitioning trees. */
 
 #include <fstream>
 #include <memory>
@@ -6,6 +8,10 @@
 #include <string>
 
 #include <bulk/bulk.hpp>
+
+namespace bulk {
+using namespace experimental;
+}
 
 namespace tomo {
 

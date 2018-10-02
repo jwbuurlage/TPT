@@ -10,11 +10,4 @@ build/**
 test/build/**
 !test/build/CMakeLists.txt
 
-python/**
-!python/build/CMakeLists.txt
-!python/src/*
-!python/include/*
-!python/tomo.py
-!python/vpython_tomo.py
-
 data/*

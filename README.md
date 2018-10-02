@@ -2,16 +2,21 @@
 
 ![](doc/images/logo.png)
 
-Tomos is a library with many tools for tomographic reconstruction, with the following features:
+Tomos is a software library and tools for tomographic reconstruction.
 
-- Modular system, where projectors, geometries, volumes and algorithmic skeletons are all independent and can be mixed and matched.
-- Tomos supports a general model for distributed computing, enabling the resulting algorithms to run on clusters
-- It is not bound to CUDA, MATLAB, or Python, although Python bindings and GPU computing are supported
-- Written in modern C++, with OO / generic programming style like STL, enabling abstractions without performance penalties.
-- It has efficient CPU implementations for the algorithms.
-- Support for 2D, 3D or higher dimensional reconstructions.
+It uses a modular system, where kernels, geometries, algorithmic skeletons are independent and can be mixed and matched.
+We support a general model for distributed computing, enabling the resulting algorithms to run on clusters
+There is support for 2D, 3D or higher dimensional reconstructions, and support for arbitrary floating point types.
 
-# Code example
+# Tools
+
+## Partitioning
+
+Tomos comes with `tomos_partition` a partitioning tool based on the _geometric recursive coordinate bisectioning_ algorithm.
+
+# Library
+
+## Code example
 
 Reconstructing a Shepp-Logan phantom using SIRT:
 
@@ -34,77 +39,7 @@ int main() {
 }
 ```
 
-# Dependencies
-
-The following libraries are required:
-
-External:
-- [glm](http://glm.g-truc.net/0.9.8/index.html) header only mathematics library mimicking GLSL
-- [boost::program_options](boost.org) for portable program options
-- (optional) [zeromq](zeromq.org) for communicating with visualization servers
-- (optional) [boost::hana](http://www.boost.org/doc/libs/1_61_0/libs/hana/doc/html/index.html) is used to generate the Python bindings.
-- (optional) [CUDA](http://www.nvidia.com/object/cuda_home_new.html) (>= 7.0)
-
-Provided as submodules
-- [Catch](https://github.com/philsquared/Catch), for unit tests
-- [fmt](https://github.com/fmtlib/fmt) as an iostream replacement
-- [bulk](https://github.com/jwbuurlage/Bulk) for distributed computing
-- [cpptoml](https://github.com/skystrife/cpptoml) for reading specification and configuration files
-- (optional) [RECAST3D](https://github.com/cicwi/RECAST3D) as an visualization server
-- (optional) [pybind11](https://github.com/pybind/pybind11) to generate Python bindings
-
-The following build tools should be available:
-- [CMake](https://cmake.org/) (>= 3.0)
-- Modern C++ compiler (with support for at least C++17), e.g. GCC >= 7.0 or clang >= 4.0
-
-The library is being tested on Fedora 24 and Arch Linux, but the code should be portable to other platforms.
-
-# Building
-
-## Examples
-
-The core of the library is header only, so it does not have to be built itself. We start with initializing the submodules:
-
-```
-git submodule init
-git submodule update --remote
-```
-
-To build the examples:
-
-```
-cd build
-cmake ..
-make
-```
-
-The resulting binaries will be in the `bin` folder.
-
-# Building the Python bindings
-
-To generate the Python bindings:
-
-```
-cd python/build
-cmake .
-make
-```
-
-The Python bindings can be used through `tomo.py` in the `Python` folder, which also adds some rudimentary plotting functionality on top of the bindings.
-
-# Building with optional features
-
-To build with ZMQ (and MPI), run instead of `cmake .`:
-
-```
-cmake -DWITH_MPI=on -DWITH_ZMQ=on .
-```
-
-CUDA support is experimental and has no public build interface.
-
-# Writing your own algorithms
-
-## C++
+### C++
 
 First of all, have a look at the examples provided in the `examples` folder.
 
@@ -152,6 +87,70 @@ Using this approach, many interesting algorithms can be written in an efficient 
 
 There are also some standard algorithms implemented, including `ART`, `SART`, and `SIRT`.
 
-## Python
+### Python
 
 The Python bindings expose the different concepts (images, volumes, geometries and dims) as well as the standard implemented algorithms.
+
+# Building
+
+## Dependencies
+
+The following libraries are required:
+
+External:
+- [glm](http://glm.g-truc.net/0.9.8/index.html) header only mathematics library mimicking GLSL
+- (optional) [MPI](http://www.nvidia.com/object/cuda_home_new.html) (>= 7.0)
+- (optional) [RECAST3D](https://github.com/cicwi/RECAST3D) as an visualization server
+
+Provided as submodules
+- [Catch](https://github.com/philsquared/Catch), for unit tests
+- [fmt](https://github.com/fmtlib/fmt) as an iostream replacement
+- [bulk](https://github.com/jwbuurlage/Bulk) for distributed computing
+- [cpptoml](https://github.com/skystrife/cpptoml) for reading specification and configuration files
+- (optional) [zeromq](zeromq.org) for communicating with visualization servers
+- (optional) [pybind11](https://github.com/pybind/pybind11) to generate Python bindings
+
+The following build tools should be available on the system:
+- [CMake](https://cmake.org/) (>= 3.0)
+- Modern C++ compiler (with support for at least C++17), e.g. GCC >= 7.0 or clang >= 4.0
+
+The library is being tested on Fedora 28, but is intended to be portable to other Linux distributions.
+
+## Building process
+
+The core of the library is header only, so it does not have to be built itself. We start with initializing the submodules:
+
+```
+git submodule init
+git submodule update --remote
+```
+
+To build the examples:
+
+```
+cd build
+cmake ..
+make
+```
+
+The resulting binaries will be in the `bin` folder.
+
+## Building the Python bindings
+
+To generate the Python bindings:
+
+```
+cd python/build
+cmake .
+make
+```
+
+The Python bindings can be used through `tomo.py` in the `Python` folder, which also adds some rudimentary plotting functionality on top of the bindings.
+
+## Building with optional features
+
+To build the ZMQ and MPI based examples, run the following instead of `cmake .`.
+
+```
+cmake -DDISTRIBUTED=on -DPYTHON_BINDINGS=on .
+```

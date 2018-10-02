@@ -1,4 +1,3 @@
-#define NDEBUG
 /*
  * FIXME:
  * - Can we group sends together? this should greatly reduce data size
@@ -8,8 +7,8 @@
 #include <cassert>
 #include <sstream>
 
-#include "bulk/backends/mpi/mpi.hpp"
-#include "bulk/bulk.hpp"
+#include <bulk/backends/mpi/mpi.hpp>
+#include <bulk/bulk.hpp>
 
 namespace bulk {
 using namespace experimental;
@@ -20,7 +19,7 @@ using namespace experimental;
 #include "tomos/util/simple_args.hpp"
 #include "tomos/util/trees.hpp"
 
-#include "overlaps.hpp"
+#include "tomos/distributed/overlaps.hpp"
 
 using namespace tomo;
 
@@ -180,10 +179,7 @@ compute_contributions(bulk::world& world,
     auto contributions = std::vector<std::vector<pixel_message>>(p);
     auto responsibilities = std::vector<std::vector<pixel_message>>(p);
 
-    for (auto& xs : my_contributions) {
-        auto& owners = std::get<0>(xs);
-        auto& locals = std::get<1>(xs);
-        auto& remotes = std::get<2>(xs);
+    for (auto& [owners, locals, remotes] : my_contributions) {
         for (auto i = 0u; i < owners.size(); ++i) {
             contributions[owners[i]].push_back({locals[i], remotes[i]});
         }
@@ -200,280 +196,44 @@ compute_contributions(bulk::world& world,
     return {std::move(contributions), std::move(responsibilities)};
 }
 
-void communicate_contributions(
-    bulk::world& world, projections<3_D, T>& projs,
-    const std::vector<std::vector<pixel_message>>& contributions,
-    const std::vector<std::vector<pixel_message>>& results) {
-    std::vector<int> remotes_buf;
-    std::vector<T> values_buf;
-    int p = world.active_processors();
-    auto q = bulk::queue<int[], T[]>(world);
-    auto share = [&, p](const auto& xs) {
-        for (int t = 0; t < p; ++t) {
-            remotes_buf.clear();
-            values_buf.clear();
-            for (auto result : xs[t]) {
-                auto local = result.local_line;
-                auto remote = result.remote_line;
-                remotes_buf.push_back(remote);
-                values_buf.push_back(projs[local]);
-            }
-            q(t).send(remotes_buf, values_buf);
-        }
-    };
-
-    share(contributions);
-    world.sync();
-    for (auto& work : q) {
-        auto& idxs = std::get<0>(work);
-        auto& values = std::get<1>(work);
-        for (auto i = 0u; i < idxs.size(); ++i) {
-            projs[idxs[i]] += values[i];
-        }
-    }
-    share(results);
-    world.sync();
-    for (auto& work : q) {
-        auto& idxs = std::get<0>(work);
-        auto& values = std::get<1>(work);
-        for (auto i = 0u; i < idxs.size(); ++i) {
-            projs[idxs[i]] = values[i];
-        }
-    }
-}
-
-void collect_orthos(bulk::world& world, tomo::image<3_D, T> x,
-                    tomo::volume<3_D, T> global_volume,
-                    bulk::rectangular_partitioning<3, 1>& part,
-                    std::string name, std::string output_dir) {
-    auto s = world.rank();
-
-    auto voxels = global_volume.voxels();
-    auto center = voxels / 2;
-    auto xy = bulk::queue<int, int, T>(world);
-    auto yz = bulk::queue<int, int, T>(world);
-    auto xz = bulk::queue<int, int, T>(world);
-
-    if (center[0] >= part.origin(s)[0] &&
-        part.local_size(s)[0] > center[0] - part.origin(s)[0]) {
-        for (int i = 0; i < part.local_size(s)[1]; ++i) {
-            for (int j = 0; j < part.local_size(s)[2]; ++j) {
-                yz(0).send(i + part.origin(s)[1], j + part.origin(s)[2],
-                           x[x.index({center[0] - part.origin(s)[0], i, j})]);
-            }
-        }
-    }
-
-    if (center[1] >= part.origin(s)[1] &&
-        part.local_size(s)[1] > center[1] - part.origin(s)[1]) {
-        for (int i = 0; i < part.local_size(s)[0]; ++i) {
-            for (int j = 0; j < part.local_size(s)[2]; ++j) {
-                xz(0).send(i + part.origin(s)[0], j + part.origin(s)[2],
-                           x[x.index({i, center[1] - part.origin(s)[1], j})]);
-            }
-        }
-    }
-
-    if (center[2] >= part.origin(s)[2] &&
-        part.local_size(s)[2] > center[2] - part.origin(s)[2]) {
-        for (int i = 0; i < part.local_size(s)[0]; ++i) {
-            for (int j = 0; j < part.local_size(s)[1]; ++j) {
-                xy(0).send(i + part.origin(s)[0], j + part.origin(s)[1],
-                           x[x.index({i, j, center[2] - part.origin(s)[2]})]);
-            }
-        }
-    }
-
-    world.sync();
-
-    if (s == 0) {
-        auto slice_xy =
-            tomo::image<2_D, T>(tomo::volume<2_D, T>({voxels[0], voxels[1]}));
-        auto slice_xz =
-            tomo::image<2_D, T>(tomo::volume<2_D, T>({voxels[0], voxels[2]}));
-        auto slice_yz =
-            tomo::image<2_D, T>(tomo::volume<2_D, T>({voxels[1], voxels[2]}));
-
-        for (auto result : xy) {
-            auto i = std::get<0>(result);
-            auto j = std::get<1>(result);
-            auto value = std::get<2>(result);
-            slice_xy[slice_xy.index({i, j})] = value;
-        }
-
-        for (auto result : xz) {
-            auto i = std::get<0>(result);
-            auto j = std::get<1>(result);
-            auto value = std::get<2>(result);
-            slice_xz[slice_xz.index({i, j})] = value;
-        }
-
-        for (auto result : yz) {
-            auto i = std::get<0>(result);
-            auto j = std::get<1>(result);
-            auto value = std::get<2>(result);
-            slice_yz[slice_yz.index({i, j})] = value;
-        }
-
-        tomo::write_png(slice_xy, output_dir + name + "_slice_xy");
-        tomo::write_png(slice_xz, output_dir + name + "_slice_xz");
-        tomo::write_png(slice_yz, output_dir + name + "_slice_yz");
-    }
-}
-
-void sirt(bulk::world& world,
+void count_messages(bulk::world& world,
           bulk::rectangular_partitioning<3, 1>& partitioning,
           tomo::volume<3_D, T> global_volume,
           geometry::trajectory<3_D, T>& global_geometry,
           tomo::util::report& table, std::string name, std::string column,
           std::string image_dir, int iters) {
+(void)global_volume;
+(void)image_dir;
+(void)iters;
+auto p = world.active_processors();
 
     if (world.rank() == 0) {
         world.log("Running %s (%s)", name.c_str(), column.c_str());
     }
 
     auto vs = calculate_local_volume(partitioning, world.rank());
-    image<3_D, T> phantom(vs);
-    fill_ellipsoids_(phantom, mshl_ellipsoids_<T>(), vs, global_volume);
-
     auto gs = distributed::restricted_geometry<T>(global_geometry, vs);
-    auto p = projections<3_D, T>(gs);
 
-    using dimmer = dim::joseph<3_D, T>;
-    auto fp = [&](const auto& f, const auto& g, const auto& v, auto& q) {
-        auto proj = dimmer(v);
-        for (auto [line_idx, line] : g) {
-            for (auto elem : proj(line)) {
-                q[line_idx] += f[elem.index] * elem.value;
-            }
-        }
-    };
-
-    if (world.rank() == 0) {
-        world.log("Running experiment %s (%s)", name.c_str(), column.c_str());
-    }
-    fp(phantom, gs, vs, p);
-
-    auto bp = [](const auto& p_, const auto& g, const auto& v, auto& x_) {
-        auto proj = dimmer(v);
-        for (auto [line_idx, line] : g) {
-            for (auto elem : proj(line)) {
-                x_[elem.index] += p_[line_idx] * elem.value;
-            }
-        }
-    };
-    if (world.rank() == 0) {
-        world.log("Computing contributions %s (%s)", name.c_str(),
-                  column.c_str());
-    }
     auto result = compute_contributions(world, gs);
     auto& go_forth = result.first;
     auto& and_back = result.second;
 
-    // communicate row and column sums
-    if (world.rank() == 0) {
-        world.log("Compute R and C %s (%s)", name.c_str(), column.c_str());
+    auto x = bulk::var<int>(world, 0);
+for (int t = 0; t < p; ++t) {
+	if (!go_forth[t].empty()) {
+	x += 1;
+	}
+	if (!and_back[t].empty()) {
+	x += 1;
+        }
     }
-    auto invert = [](auto x) { return (T)1.0 / x; };
-    auto invert_all = [&](auto& xs) {
-        std::transform(xs.begin(), xs.end(), xs.begin(), invert);
-    };
-    auto r = projections<3_D, T>(gs);
-    fp(image<3_D, T>(vs, (T)1.0), gs, vs, r);
-    communicate_contributions(world, r, go_forth, and_back);
-    invert_all(r.mutable_data());
-    auto c = image<3_D, T>(vs);
-    bp(projections<3_D, T>(gs, (T)1.0), gs, vs, c);
-    invert_all(c.mutable_data());
-
-    // buffer proj stack
-    auto q = projections<3_D, T>(gs);
-    auto z = image<3_D, T>(vs);
-    auto x = image<3_D, T>(vs);
+    auto messages = bulk::foldl(x, [](int& lhs, int rhs) { lhs += rhs; });
 
     if (world.rank() == 0) {
-        world.log("SIRT %s (%s)", name.c_str(), column.c_str());
-    }
-    auto stopwatch = bulk::util::timer();
-
-    float sum_of_avg_fp_times = 0.0f;
-    float sum_of_max_fp_times = 0.0f;
-
-    float prev_t = 0.0f;
-    auto total_comm_time = 0.0f;
-    for (int iter = 0; iter < iters; ++iter) {
-        auto begin_fp = stopwatch.get<std::milli>();
-        fp(x, gs, vs, q);
-        for (auto l = 0ull; l < gs.lines(); ++l) {
-            q[l] = r[l] * (p[l] - q[l]);
-        }
-
-        // add two syncs to measure accurately comm time
-        auto fp_time = stopwatch.get<std::milli>() - begin_fp;
-        auto fp_times = bulk::gather_all(world, fp_time / 1000.0);
-
-        if (world.rank() == 0) {
-            // TODO Store avg of avg, avg of max, avg of eps, and put in table at the end
-            auto max_fp = *std::max_element(fp_times.begin(), fp_times.end());
-            auto average_fp =
-                std::accumulate(fp_times.begin(), fp_times.end(), (T)0) /
-                world.active_processors();
-            sum_of_max_fp_times += max_fp;
-            sum_of_avg_fp_times += average_fp;
-            world.log("FP time (max/avg/eps): %s %s %s",
-                      fmt::format("{:.2f} s", max_fp).c_str(),
-                      fmt::format("{:.2f} s", average_fp).c_str(),
-                      fmt::format("{:.2f}", max_fp / average_fp - (T)1).c_str());
-        }
-
-        world.sync();
-
-        auto t = stopwatch.get<std::milli>();
-        communicate_contributions(world, q, go_forth, and_back);
-        world.sync();
-        auto dt = (stopwatch.get<std::milli>() - t);
-        total_comm_time += dt;
-
-        bp(q, gs, vs, z);
-        for (auto i = 0ull; i < vs.cells(); ++i) {
-            x[i] += c[i] * z[i];
-        }
-
-        z.clear();
-        q.clear();
-
-        if (world.rank() == 0) {
-            auto ti = stopwatch.get<std::milli>();
-            world.log("SIRT %i: %s", iter,
-                      fmt::format("{:.2f} s", (ti - prev_t) / 1000.0).c_str());
-            prev_t = ti;
-        }
+        world.log("messages: %i", messages);
     }
 
-    table.add_result(name, column,
-                     fmt::format("{:.2f} s", stopwatch.get<std::milli>() /
-                                                 (1000.0 * iters)));
-    table.add_result(
-        name, column + " (com)",
-        fmt::format("{:.2f} s", total_comm_time / (1000.0 * iters)));
-
-    // FP times
-    auto avg_avg_fp_time = sum_of_avg_fp_times / iters;
-    auto avg_max_fp_time = sum_of_max_fp_times / iters;
-    table.add_result(
-        name, column + " (avg fp)",
-        fmt::format("{:.2f} s", avg_avg_fp_time));
-
-    table.add_result(
-        name, column + " (max fp)",
-        fmt::format("{:.2f} s", avg_max_fp_time));
-
-    table.add_result(
-        name, column + " (avg eps)",
-        fmt::format("{:.2f}", avg_max_fp_time / avg_avg_fp_time - 1.0));
-
-    collect_orthos(world, x, global_volume, partitioning, name + "_" + column,
-                   image_dir);
+    table.add_result(name, column, messages);
 }
 
 void run(const std::vector<std::string>& geoms, std::string part_dir, int k,
@@ -509,12 +269,12 @@ void run(const std::vector<std::string>& geoms, std::string part_dir, int k,
                 {main_d});
 
             if (trivial) {
-                sirt(world, block_partitioning, global_volume,
+                count_messages(world, block_partitioning, global_volume,
                      (tomo::geometry::trajectory<3_D, T>&)global_geometry,
                      table, name, "trivial", image_dir, iters);
             }
             if (bisected) {
-                sirt(world, *tree_partitioning, global_volume,
+                count_messages(world, *tree_partitioning, global_volume,
                      (tomo::geometry::trajectory<3_D, T>&)global_geometry,
                      table, name, "bisected", image_dir, iters);
             }
@@ -532,13 +292,13 @@ void usage(std::string program_name) {
     std::cout << "Usage: " << program_name
               << " --geom GEOMS --part PART_DIR "
                  "--out TABLE_FILE --images IMAGE_DIR [-k SIZE] [-i "
-                 "ITERS]\n";
+                 "ITERS] [--trivial] [--bisected]\n";
 }
 
 int main(int argc, char* argv[]) {
     auto opts = options{argc, argv};
 
-    if (!opts.required_arguments({"--geom", "--part", "--out", "--images"})) {
+    if (!opts.required_arguments({"--geom", "--part", "--out"})) {
         usage(argv[0]);
         return -1;
     }
@@ -546,17 +306,11 @@ int main(int argc, char* argv[]) {
     auto table = tomo::util::report("Runtimes", "geometry");
     table.add_column("trivial");
     table.add_column("trivial (com)");
-    table.add_column("trivial (max fp)");
-    table.add_column("trivial (avg fp)");
-    table.add_column("trivial (avg eps)");
     table.add_column("bisected");
     table.add_column("bisected (com)");
-    table.add_column("bisected (max fp)");
-    table.add_column("bisected (avg fp)");
-    table.add_column("bisected (avg eps)");
 
     run(opts.args("--geom"), opts.arg("--part"), opts.arg_as_or<int>("-k", -1),
-        opts.arg_as_or<int>("-i", 1), opts.arg("--out"), opts.arg("--images"),
+        opts.arg_as_or<int>("-i", 1), opts.arg("--out"), "fake",
         table, opts.passed("--trivial"), opts.passed("--bisected"));
 
     return 0;

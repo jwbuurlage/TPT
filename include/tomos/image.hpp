@@ -73,6 +73,9 @@ class image {
     /** Obtain an iterator that points beyond the last first voxel. */
     auto end() { return data_.end(); }
 
+    /** Return the image shape */
+    auto shape() { return v_.voxels(); }
+
   private:
     volume<D, T> v_;
     std::vector<T> data_;
