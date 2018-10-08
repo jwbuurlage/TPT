@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0
+
+Unreleased
+
+- Remove old dependencies
+
 ## 0.2.0
 
 2017-10-02

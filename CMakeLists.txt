@@ -99,6 +99,7 @@ if(MPI_CXX_FOUND)
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
         set(ZMQ_BUILD_TESTS OFF CACHE BOOL "disable tests" FORCE)
+        set(WITH_PERF_TOOL OFF CACHE BOOL "disable perf-tools" FORCE)
         add_subdirectory(${CMAKE_SOURCE_DIR}/ext/libzmq)
         set(ZMQ_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/ext/libzmq/include)
 
