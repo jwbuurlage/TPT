@@ -8,6 +8,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(FOR_RELEASE "Build with all optimizations turned on")
 option(DISTRIBUTED "Build distributed examples based on MPI and ZMQ")
 option(PYTHON_BINDINGS "Build python bindings")
+option(TOMOS_LIB_ONLY "Do not build examples and tools")
 
 feature_summary(WHAT ALL)
 
@@ -65,19 +66,22 @@ target_link_libraries(
 
 # -----------------------------------------------------
 # Basic (non-MPI) Examples
-set(EXAMPLE_DIR "examples/")
 
-set(
-    EXAMPLE_SOURCES
-    "generate_mtx.cpp"
-    "minimal_example.cpp"
-)
+if (NOT TOMOS_LIB_ONLY)
+  set(EXAMPLE_DIR "examples/")
 
-foreach(source_file ${EXAMPLE_SOURCES})
-    string(REPLACE ".cpp" "" source_name ${source_file})
-    add_executable(${source_name} ${EXAMPLE_DIR}${source_file})
-    target_link_libraries(${source_name} ${LIB_NAME})
-endforeach(source_file)
+  set(
+      EXAMPLE_SOURCES
+      "generate_mtx.cpp"
+      "minimal_example.cpp"
+  )
+
+  foreach(source_file ${EXAMPLE_SOURCES})
+      string(REPLACE ".cpp" "" source_name ${source_file})
+      add_executable(${source_name} ${EXAMPLE_DIR}${source_file})
+      target_link_libraries(${source_name} ${LIB_NAME})
+  endforeach(source_file)
+endif()
 
 # -----------------------------------------------------
 # Basic tools
@@ -85,7 +89,7 @@ endforeach(source_file)
 # -----------------------------------------------------
 # MPI specific code
 
-if(DISTRIBUTED)
+if(DISTRIBUTED AND (NOT TOMOS_LIB_ONLY))
 find_package(MPI REQUIRED)
 if(MPI_CXX_FOUND)
     # Find ZeroMQ
@@ -144,7 +148,7 @@ if(MPI_CXX_FOUND)
 else(MPI_CXX_FOUND)
     message("No MPI installation found.")
 endif(MPI_CXX_FOUND)
-endif(DISTRIBUTED)
+endif()
 
 if(PYTHON_BINDINGS)
 add_subdirectory(python/build)
