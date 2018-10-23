@@ -36,7 +36,6 @@ target_include_directories(${LIB_NAME} SYSTEM INTERFACE
     "ext/fmt/include/"
     "ext/cpptoml/include/"
     "ext/bulk/include"
-    "../glm"
 )
 
 # Optional optimizations
@@ -53,11 +52,15 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 
+# Add GLM as dependency
+find_package(glm REQUIRED)
+
 # Link against external libraries
 target_link_libraries(
     ${LIB_NAME} INTERFACE
     pthread
     stdc++fs
+    glm
 )
 
 # -----------------------------------------------------
@@ -114,7 +117,7 @@ if(MPI_CXX_FOUND)
         "ext/libzmq/include"
     )
 
-    target_link_libraries(${LIB_NAME} INTERFACE "zmq")   
+    target_link_libraries(${LIB_NAME} INTERFACE "zmq")
 
     set(
         TOOLS_DIR
