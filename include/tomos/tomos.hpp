@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2016 Jan-Willem Buurlage
+ * Copyright (c) 2016--2018 Jan-Willem Buurlage
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -67,6 +67,7 @@
 #include "projectors/closest.hpp"
 #include "projectors/joseph.hpp"
 #include "projectors/linear.hpp"
+#include "projectors/siddon.hpp"
 
 /** The overarching namespace for the tomos library. */
 namespace tomo {

@@ -157,7 +157,6 @@ typename VecLike::value_type dot(VecLike x, VecLike y) {
     return result;
 }
 
-
 template <typename VecLike>
 typename VecLike::value_type min_value(VecLike x) {
     using T = typename VecLike::value_type;
@@ -209,6 +208,18 @@ T max_element(vec<D, T> v) {
         }
     }
     return max;
+}
+
+/** Return the value of the minimum component. */
+template <dimension D, typename T>
+T min_element(vec<D, T> v) {
+    auto min = std::numeric_limits<T>::max();
+    for (int d = 0; d < D; ++d) {
+        if (v[d] < min) {
+            min = v[d];
+        }
+    }
+    return min;
 }
 
 /** Return the index of the maximum component. */
