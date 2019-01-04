@@ -1,4 +1,3 @@
-#include "bulk/backends/mpi/mpi.hpp"
 #include "bulk/bulk.hpp"
 
 namespace bulk {
