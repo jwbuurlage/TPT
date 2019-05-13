@@ -56,12 +56,20 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 # Add GLM as dependency
 find_package(glm REQUIRED)
 
+# Add Boost as dependency
+find_package (Boost 1.61 REQUIRED)
+
+# Add CLI11 as dependency
+add_subdirectory("ext/CLI11")
+
 # Link against external libraries
 target_link_libraries(
     ${LIB_NAME} INTERFACE
     pthread
     stdc++fs
     glm
+    Boost::boost
+    CLI11::CLI11
 )
 
 # -----------------------------------------------------
@@ -130,6 +138,9 @@ if(MPI_CXX_FOUND)
 
     set(
         TOOLS_SOURCES
+        "grcb.cpp"
+        "stats.cpp"
+        "overlap.cpp"
         "partition.cpp"
         "run_measurement.cpp"
         "count_messages.cpp"
