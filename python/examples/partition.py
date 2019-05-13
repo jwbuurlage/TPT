@@ -1,9 +1,9 @@
-import tomos
+import tpt
 
 n = 64
 
-big_vol = tomos.volume_3d(tomos.vec3i(n, n, n))
-cone = tomos.cone_beam(big_vol, 100, tomos.vec2f(1, 1), tomos.vec2i(n, n), 1.0, 1.0)
+big_vol = tpt.volume_3d(tpt.vec3i(n, n, n))
+cone = tpt.cone_beam(big_vol, 100, tpt.vec2f(1, 1), tpt.vec2i(n, n), 1.0, 1.0)
 
-tree = tomos.partition_bisection(cone, big_vol, 8, 0.05)
-tomos.print_partitioning(tree)
+tree = tpt.partition_bisection(cone, big_vol, 8, 0.05)
+tpt.print_partitioning(tree)

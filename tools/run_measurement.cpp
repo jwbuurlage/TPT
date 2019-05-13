@@ -18,14 +18,14 @@ namespace bulk {
 using namespace experimental;
 }
 
-#include "tomos/tomos.hpp"
-#include "tomos/util/read_tiff.hpp"
-#include "tomos/util/simple_args.hpp"
-#include "tomos/util/trees.hpp"
+#include "tpt/tpt.hpp"
+#include "tpt/util/read_tiff.hpp"
+#include "tpt/util/simple_args.hpp"
+#include "tpt/util/trees.hpp"
 
-#include "tomos/distributed/overlaps.hpp"
+#include "tpt/distributed/overlaps.hpp"
 
-using namespace tomo;
+using namespace tpt;
 
 using T = float;
 
@@ -245,8 +245,8 @@ void communicate_contributions(
     }
 }
 
-void collect_orthos(bulk::world& world, tomo::image<3_D, T> x,
-                    tomo::volume<3_D, T> global_volume,
+void collect_orthos(bulk::world& world, tpt::image<3_D, T> x,
+                    tpt::volume<3_D, T> global_volume,
                     bulk::rectangular_partitioning<3, 1>& part,
                     std::string name, std::string output_dir) {
     auto s = world.rank();
@@ -291,11 +291,11 @@ void collect_orthos(bulk::world& world, tomo::image<3_D, T> x,
 
     if (s == 0) {
         auto slice_xy =
-            tomo::image<2_D, T>(tomo::volume<2_D, T>({voxels[0], voxels[1]}));
+            tpt::image<2_D, T>(tpt::volume<2_D, T>({voxels[0], voxels[1]}));
         auto slice_xz =
-            tomo::image<2_D, T>(tomo::volume<2_D, T>({voxels[0], voxels[2]}));
+            tpt::image<2_D, T>(tpt::volume<2_D, T>({voxels[0], voxels[2]}));
         auto slice_yz =
-            tomo::image<2_D, T>(tomo::volume<2_D, T>({voxels[1], voxels[2]}));
+            tpt::image<2_D, T>(tpt::volume<2_D, T>({voxels[1], voxels[2]}));
 
         for (auto result : xy) {
             auto i = std::get<0>(result);
@@ -318,17 +318,17 @@ void collect_orthos(bulk::world& world, tomo::image<3_D, T> x,
             slice_yz[slice_yz.index({i, j})] = value;
         }
 
-        tomo::write_png(slice_xy, output_dir + name + "_slice_xy");
-        tomo::write_png(slice_xz, output_dir + name + "_slice_xz");
-        tomo::write_png(slice_yz, output_dir + name + "_slice_yz");
+        tpt::write_png(slice_xy, output_dir + name + "_slice_xy");
+        tpt::write_png(slice_xz, output_dir + name + "_slice_xz");
+        tpt::write_png(slice_yz, output_dir + name + "_slice_yz");
     }
 }
 
 void sirt(bulk::world& world,
           bulk::rectangular_partitioning<3, 1>& partitioning,
-          tomo::volume<3_D, T> global_volume,
+          tpt::volume<3_D, T> global_volume,
           geometry::trajectory<3_D, T>& global_geometry,
-          tomo::util::report& table, std::string name, std::string column,
+          tpt::util::report& table, std::string name, std::string column,
           std::string image_dir, int iters) {
 
     if (world.rank() == 0) {
@@ -481,7 +481,7 @@ void sirt(bulk::world& world,
 
 void run(const std::vector<std::string>& geoms, std::string part_dir, int k,
          int iters, std::string outfile, std::string image_dir,
-         tomo::util::report& table, bool trivial, bool bisected) {
+         tpt::util::report& table, bool trivial, bool bisected) {
     bulk::mpi::environment env;
 
     auto processors = env.available_processors();
@@ -494,7 +494,7 @@ void run(const std::vector<std::string>& geoms, std::string part_dir, int k,
             table.add_row(name);
 
             // this creates a volume [0, 1]^3, with k voxels in each axis
-            auto problem = tomo::read_configuration<3_D, T>(geom_file, k);
+            auto problem = tpt::read_configuration<3_D, T>(geom_file, k);
             auto& global_geometry = *problem.acquisition_geometry;
             auto global_volume = problem.object_volume;
 
@@ -502,23 +502,23 @@ void run(const std::vector<std::string>& geoms, std::string part_dir, int k,
                              name + ".bsp";
 
             auto tree_partitioning =
-                tomo::load_partitioning(tree_file, global_volume, log2(p));
+                tpt::load_partitioning(tree_file, global_volume, log2(p));
 
             auto main_d = tree_partitioning->splits().root->value.d;
 
             // which dimension, the first split decides.....
             auto block_partitioning = bulk::block_partitioning<3, 1>(
-                tomo::math::vec_to_array<3_D, int>(global_volume.voxels()), {p},
+                tpt::math::vec_to_array<3_D, int>(global_volume.voxels()), {p},
                 {main_d});
 
             if (trivial) {
                 sirt(world, block_partitioning, global_volume,
-                     (tomo::geometry::trajectory<3_D, T>&)global_geometry,
+                     (tpt::geometry::trajectory<3_D, T>&)global_geometry,
                      table, name, "trivial", image_dir, iters);
             }
             if (bisected) {
                 sirt(world, *tree_partitioning, global_volume,
-                     (tomo::geometry::trajectory<3_D, T>&)global_geometry,
+                     (tpt::geometry::trajectory<3_D, T>&)global_geometry,
                      table, name, "bisected", image_dir, iters);
             }
         }
@@ -546,7 +546,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    auto table = tomo::util::report("Runtimes", "geometry");
+    auto table = tpt::util::report("Runtimes", "geometry");
     table.add_column("trivial");
     table.add_column("trivial (com)");
     table.add_column("trivial (max fp)");

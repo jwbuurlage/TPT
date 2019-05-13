@@ -1,6 +1,6 @@
 #pragma once
 
-namespace tomo {
+namespace tpt {
 namespace python {
 
 using namespace std::string_literals;
@@ -8,4 +8,4 @@ using namespace std::string_literals;
 using T = double;
 
 } // namespace python
-} // namespace tomo
+} // namespace tpt

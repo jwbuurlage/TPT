@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.0)
-project(tomos)
+project(tpt)
 
 include(FeatureSummary)
 
@@ -8,14 +8,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(FOR_RELEASE "Build with all optimizations turned on")
 option(DISTRIBUTED "Build distributed examples based on MPI and ZMQ")
 option(PYTHON_BINDINGS "Build python bindings")
-option(TOMOS_LIB_ONLY "Do not build examples and tools")
+option(TPT_LIB_ONLY "Do not build examples and tools")
 
 feature_summary(WHAT ALL)
 
-set(LIB_NAME "tomos")
+set(LIB_NAME "tpt")
 add_library(${LIB_NAME} INTERFACE)
 
-# Add compiler options for Tomos applications
+# Add compiler options for TPT applications
 target_compile_options(${LIB_NAME} INTERFACE
     -std=c++17
     -Wall
@@ -67,7 +67,7 @@ target_link_libraries(
 # -----------------------------------------------------
 # Basic (non-MPI) Examples
 
-if (NOT TOMOS_LIB_ONLY)
+if (NOT TPT_LIB_ONLY)
   set(EXAMPLE_DIR "examples/")
 
   set(
@@ -89,7 +89,7 @@ endif()
 # -----------------------------------------------------
 # MPI specific code
 
-if(DISTRIBUTED AND (NOT TOMOS_LIB_ONLY))
+if(DISTRIBUTED AND (NOT TPT_LIB_ONLY))
 find_package(MPI REQUIRED)
 if(MPI_CXX_FOUND)
     # Find ZeroMQ
@@ -142,8 +142,8 @@ if(MPI_CXX_FOUND)
     # make distributed example
     foreach(source_file ${TOOLS_SOURCES})
         string(REPLACE ".cpp" "" source_name ${source_file})
-        add_executable(tomos_${source_name} ${TOOLS_DIR}${source_file})
-        target_link_libraries(tomos_${source_name} ${MPI_CXX_LIBRARIES} ${LIB_NAME})
+        add_executable(tpt_${source_name} ${TOOLS_DIR}${source_file})
+        target_link_libraries(tpt_${source_name} ${MPI_CXX_LIBRARIES} ${LIB_NAME})
     endforeach(source_file)
 else(MPI_CXX_FOUND)
     message("No MPI installation found.")
@@ -151,5 +151,5 @@ endif(MPI_CXX_FOUND)
 endif()
 
 if(PYTHON_BINDINGS)
-add_subdirectory(python/build)
+add_subdirectory(python)
 endif(PYTHON_BINDINGS)

@@ -10,71 +10,71 @@ namespace fs = std::experimental::filesystem;
 
 #include "fmt/format.h"
 
-#include "tomos/tomos.hpp"
-#include "tomos/util/plotter.hpp"
-#include "tomos/util/simple_args.hpp"
-#include "tomos/util/trees.hpp"
+#include "tpt/tpt.hpp"
+#include "tpt/util/plotter.hpp"
+#include "tpt/util/simple_args.hpp"
+#include "tpt/util/trees.hpp"
 
 std::mutex g_result_mutex;
 
 using T = float;
-constexpr tomo::dimension D = 3_D;
+constexpr tpt::dimension D = 3_D;
 
 void partition(std::string meta_file, std::string output_file, int processors,
                T epsilon, bool preview, bool output,
-               tomo::util::report& table) {
-    int k = tomo::math::min(512, processors * 4);
-    auto problem = tomo::read_configuration<3_D, T>(meta_file, k);
+               tpt::util::report& table) {
+    int k = tpt::math::min(512, processors * 4);
+    auto problem = tpt::read_configuration<3_D, T>(meta_file, k);
 
     // now partition using problem.acquisition_geometry and
     // problem.object_volume
-    auto tree = tomo::distributed::partition_bisection<D, T>(
+    auto tree = tpt::distributed::partition_bisection<D, T>(
         *problem.acquisition_geometry, problem.object_volume, processors,
         epsilon);
-    auto neutral = tomo::to_neutral_tree<T>(tree, problem.object_volume);
+    auto neutral = tpt::to_neutral_tree<T>(tree, problem.object_volume);
 
     // then save to:
-    tomo::serialize_tree(neutral, output_file);
+    tpt::serialize_tree(neutral, output_file);
     std::cout << "Saved: " << output_file << "\n";
 
     auto large_tree =
-        tomo::from_neutral_tree<T>(neutral, problem.object_volume);
+        tpt::from_neutral_tree<T>(neutral, problem.object_volume);
 
     if (output) {
         std::lock_guard<std::mutex> guard(g_result_mutex);
 
         auto part_bisected = bulk::tree_partitioning<D>(
-            tomo::math::vec_to_array<D, int>(problem.object_volume.voxels()),
+            tpt::math::vec_to_array<D, int>(problem.object_volume.voxels()),
             processors, std::move(large_tree));
 
         if (preview) {
-            tomo::util::ext_plotter<D, T> plotter("tcp://localhost:5555",
+            tpt::util::ext_plotter<D, T> plotter("tcp://localhost:5555",
                                                   "PP: " + output_file);
             plotter.send_partition_information(part_bisected, processors,
                                                problem.object_volume);
 
             auto proj_stack =
-                tomo::projections<3_D, T>(*problem.acquisition_geometry);
+                tpt::projections<3_D, T>(*problem.acquisition_geometry);
             plotter.send_projection_data(
-                (tomo::geometry::trajectory<3_D, T>&)(*(
+                (tpt::geometry::trajectory<3_D, T>&)(*(
                     problem.acquisition_geometry)),
                 proj_stack, problem.object_volume);
         }
 
-        auto part_trivial = tomo::distributed::partition_trivial(
+        auto part_trivial = tpt::distributed::partition_trivial(
             *problem.acquisition_geometry, problem.object_volume, processors);
 
         // Store result to table
-        auto overlap_trivial = tomo::distributed::communication_volume<D, T>(
+        auto overlap_trivial = tpt::distributed::communication_volume<D, T>(
             *problem.acquisition_geometry, problem.object_volume, part_trivial);
-        auto overlap_bisected = tomo::distributed::communication_volume<D, T>(
+        auto overlap_bisected = tpt::distributed::communication_volume<D, T>(
             *problem.acquisition_geometry, problem.object_volume,
             part_bisected);
         T imp = (T)0.0;
         if (overlap_trivial != 0)
             imp = (overlap_trivial - overlap_bisected) / (T)overlap_trivial;
 
-        auto imbalance = tomo::distributed::load_imbalance(
+        auto imbalance = tpt::distributed::load_imbalance(
             problem.object_volume, part_bisected,
             *problem.acquisition_geometry);
 
@@ -96,7 +96,7 @@ void usage(std::string program_name) {
 }
 
 int main(int argc, char* argv[]) {
-    auto opts = tomo::options{argc, argv};
+    auto opts = tpt::options{argc, argv};
 
     std::vector<std::pair<std::string, std::string>> ins_and_outs;
     int processors = 16;
@@ -123,7 +123,7 @@ int main(int argc, char* argv[]) {
                            return out_dir + stem.string() + ".bsp";
                        });
 
-        ins_and_outs = tomo::zip(ins, outs);
+        ins_and_outs = tpt::zip(ins, outs);
     }
 
     if (opts.passed("-p")) {
@@ -133,7 +133,7 @@ int main(int argc, char* argv[]) {
         epsilon = opts.arg_as<T>("-e");
     }
 
-    auto table = tomo::util::report(
+    auto table = tpt::util::report(
         "Detector overlaps for geometric partitioning", "geometry");
     table.add_column("trivial");
     table.add_column("binary");

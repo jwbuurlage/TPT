@@ -12,10 +12,10 @@ namespace fs = std::experimental::filesystem;
 
 #include "fmt/format.h"
 
-#include "tomos/tomos.hpp"
-#include "tomos/util/plotter.hpp"
-#include "tomos/util/simple_args.hpp"
-#include "tomos/util/trees.hpp"
+#include "tpt/tpt.hpp"
+#include "tpt/util/plotter.hpp"
+#include "tpt/util/simple_args.hpp"
+#include "tpt/util/trees.hpp"
 
 namespace td = tomo::distributed;
 

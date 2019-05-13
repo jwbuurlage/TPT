@@ -1,16 +1,16 @@
-import tomos
+import tpt
 
 n = 256
 
-v = tomos.volume(n)
-f = tomos.modified_sl_phantom(v)
-tomos.plot(f)
+v = tpt.volume(n)
+f = tpt.modified_sl_phantom(v)
+tpt.plot(f)
 
-k = tomos.closest(v);
-g = tomos.parallel(v, n)
-p = tomos.forward_project(f, g, k)
-tomos.plot(p)
+k = tpt.closest(v);
+g = tpt.parallel(v, n)
+p = tpt.forward_project(f, g, k)
+tpt.plot(p)
 
-r = tomos.sirt(v, g, k, p, beta = 1.0, iterations = 10)
-tomos.plot(r)
+r = tpt.sirt(v, g, k, p, beta = 1.0, iterations = 10)
+tpt.plot(r)
 

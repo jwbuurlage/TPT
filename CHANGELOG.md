@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+YYYY-MM-DD
+
+- Rename to TPT
+- Add support for projection-based partitioning methods
+
 ## 0.2.1
 
 2019-01-03
