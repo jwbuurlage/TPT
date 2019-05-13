@@ -3,8 +3,7 @@
 #include <array>
 #include <limits>
 
-#include "tpt/tpt.hpp"
-
+#include "../../math.hpp"
 #include "datatypes.hpp"
 
 namespace tpt::grcb {

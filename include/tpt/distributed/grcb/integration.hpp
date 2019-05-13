@@ -4,7 +4,9 @@
 #include <random>
 #include <vector>
 
-#include "tpt/tpt.hpp"
+#include "datatypes.hpp"
+#include "../../math.hpp"
+#include "../../geometry.hpp"
 
 namespace tpt::grcb {
 

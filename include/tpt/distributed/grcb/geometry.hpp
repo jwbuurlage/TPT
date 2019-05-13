@@ -3,7 +3,8 @@
 #include <array>
 #include <utility>
 
-#include "tpt/tpt.hpp"
+#include "../../math.hpp"
+#include "../../geometry.hpp"
 
 #include <boost/geometry.hpp>
 namespace bg = boost::geometry;

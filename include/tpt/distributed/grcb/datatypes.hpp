@@ -2,7 +2,8 @@
 
 #include <array>
 
-#include "tpt/tpt.hpp"
+#include "../../math.hpp"
+#include "../../geometry.hpp"
 
 namespace tpt::grcb {
 

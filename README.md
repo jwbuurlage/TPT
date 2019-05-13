@@ -21,8 +21,6 @@ It is also possible to perform partitioning on geometries from the ASTRA
 toolbox. This can be done using the Python bindings, see
 `python/examples/astra_partition.py`.
 
-
-
 # Library
 
 ## Code examples for reconstruction tasks

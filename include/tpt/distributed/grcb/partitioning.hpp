@@ -4,7 +4,6 @@
 #include <memory>
 
 #include "geometry.hpp"
-#include "tpt/tpt.hpp"
 
 namespace tpt::grcb {
 
