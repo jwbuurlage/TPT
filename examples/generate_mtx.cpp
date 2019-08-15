@@ -1,35 +1,56 @@
+#include <CLI/CLI.hpp>
+
 #include "tpt/tpt.hpp"
 using namespace tpt;
 
-int main() {
+#include <filesystem>
+#include <string>
+namespace fst = std::filesystem;
+using namespace std::string_literals;
+
+int main(int argc, char** argv) {
+    CLI::App app{"Generate a .mtx from a configuration"};
+
     using T = float;
-    constexpr dimension D = 2_D;
+    constexpr dimension D = 3_D;
 
-    int size = 16;
-    auto v = volume<D, T>(size);
-    auto g = geometry::parallel<D, T>(v, size / 2);
-    auto f = modified_shepp_logan_phantom<T>(v);
-    auto k = dim::joseph<D, T>(v);
-    auto p = forward_projection<D, T>(f, g, k);
+    std::vector<std::string> geometry_files;
 
-    int nzs = 0;
-    for (auto [idx, line] : g) {
-        (void)idx;
-        for (auto elem : k(line)) {
-            (void)elem;
-            nzs++;
+    app.add_option("--geometry", geometry_files,
+                   "the input geometries (.toml files)")
+        ->required();
+
+    CLI11_PARSE(app, argc, argv);
+
+    for (auto geometry_file : geometry_files) {
+        auto name = fst::path(geometry_file).stem().string();
+        auto problem = tpt::read_configuration<3_D, T>(geometry_file);
+
+        auto v = problem.object_volume;
+        auto& g = *problem.acquisition_geometry;
+        auto kernel = dim::joseph<D, T>(v);
+
+        {
+            auto fout = std::ofstream(name + ".mtx");
+
+            int nzs = 0;
+            for (auto [idx, line] : g) {
+                (void)idx;
+                for (auto elem : kernel(line)) {
+                    (void)elem;
+                    nzs++;
+                }
+            }
+
+            fout << "%%MatrixMarket matrix coordinate real general\n";
+            fout << g.lines() << " " << v.cells() << " " << nzs << "\n";
+            for (auto [idx, line] : g) {
+                (void)idx;
+                for (auto elem : kernel(line)) {
+                    fout << idx + 1 << " " << elem.index + 1 << " "
+                         << elem.value << "\n";
+                }
+            }
         }
     }
-
-    std::cout << "%%MatrixMarket matrix coordinate real general\n";
-    std::cout << g.lines() << " " << v.cells() << " " << nzs << "\n";
-    for (auto [idx, line] : g) {
-        (void)idx;
-        for (auto elem : k(line)) {
-            std::cout << idx + 1 << " " << elem.index + 1 << " 1.0\n";
-        }
-    }
-
-    //    auto x = reconstruction::sirt(v, g, k, p);
-    //    ascii_plot(x);
 }

@@ -6,6 +6,7 @@ YYYY-MM-DD
 
 - Rename to TPT
 - Add support for projection-based partitioning methods
+- Add default `operator=` for `pixel_iterator`
 
 ## 0.2.1
 

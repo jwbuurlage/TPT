@@ -74,6 +74,8 @@ class base {
               current_location_(other.current_location_),
               parallel_(other.parallel_), pixel_(other.pixel_) {}
 
+        constexpr pixel_iterator& operator=(const pixel_iterator& other) = default;
+
         /** Increase the iterator. */
         pixel_iterator& operator++(int) {
             auto current = *this;
