@@ -4,6 +4,7 @@
 #include <random>
 #include <vector>
 
+#include "../../math/stringify.hpp"
 #include "geometry.hpp"
 #include "integration.hpp"
 
@@ -51,8 +52,8 @@ std::tuple<cube<T>, cube<T>> split_at(cube<T> corners, T c, size_t d) {
    (a, b, c, d) -> ((a, e, c, f), (e, b, f, d))
  */
 template <typename T>
-T split_midway(const geometry::base<3_D, T>& g[[maybe_unused]], cube<T> corners,
-               size_t d) {
+T split_midway(const geometry::base<3_D, T>& g [[maybe_unused]],
+               cube<T> corners, size_t d) {
     std::sort(corners.begin(), corners.end(),
               [&](auto& lhs, auto& rhs) { return lhs[d] < rhs[d]; });
 
@@ -272,10 +273,7 @@ T split_smart(precision level, const geometry::base<3_D, T>& g, cube<T> v,
     auto engine = std::mt19937(rd());
     auto distribution = std::uniform_real_distribution<T>((T)0, (T)1);
 
-    //    auto s = math::product<2_D, T>(math::restrict<3_D, T>(a, d) *
-    //                                         math::restrict<3_D, T>(b, d));
-
-    auto f = [&](auto x) {
+      auto f = [&](auto x) {
         auto sum = (T)0;
         for (auto i = 0; i < g.projection_count(); ++i) {
             auto s = g.source_location(i);
@@ -495,8 +493,8 @@ template <typename T>
 T split_smart_simple(precision level, const geometry::base<3_D, T>& g,
                      cube<T> v, size_t d) {
 
-    auto n = std::map<precision, int>{{precision::low, 500},
-                                      {precision::medium, 2500},
+    auto n = std::map<precision, int>{{precision::low, 2500},
+                                      {precision::medium, 5000},
                                       {precision::high, 20000}}[level];
 
     auto sources = std::vector<math::vec3<T>>();

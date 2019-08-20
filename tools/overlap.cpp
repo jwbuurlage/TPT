@@ -81,8 +81,7 @@ int main(int argc, char** argv) {
         tpt::grcb::plot::overlaps(g.get_projection(0), root, corners,
                                   "full_overlap_" + name, 1 << q);
 
-        auto halfvol =
-            tpt::volume<3_D, T>({1, 1, 1}, {0.25, 0.25, 0.25}, {0.5, 0.5, 0.5});
+        auto halfvol = v;
         auto hvcorners = halfvol.corners();
         auto hcorners = std::array<tpt::grcb::vec3<T>, 8>{};
         std::copy(hvcorners.begin(), hvcorners.end(), hcorners.begin());

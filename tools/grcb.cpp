@@ -15,14 +15,17 @@ namespace td = tpt::distributed;
 int main(int argc, char** argv) {
     CLI::App app{"GRCB partitioner for distributed tomography"};
 
-    int p = 2;
-    int k = p * 8;
+    std::vector<int> ps;
     std::vector<std::string> geometries;
     std::string partitioning_dir = ".";
+    bool discrete = false;
+    bool gradient = false;
 
     // basic options for partitioning
-    app.add_option("-p", p, "number of processors to partition for", p);
-    app.add_option("-k", k, "number of voxels for stats", k);
+    app.add_option("-p", ps, "number of processors to partition for");
+
+    app.add_flag("--discrete", discrete, "use discrete partitioning model");
+    app.add_flag("--gradient", gradient, "consider gradient regularizer");
 
     // file input / output
     app.add_option("--geometries", geometries,
@@ -74,38 +77,56 @@ int main(int argc, char** argv) {
     fst::create_directories(partitioning_dir);
 
     auto flags = std::vector<tpt::grcb::flag>{kind, level, strategy};
+    if (gradient) {
+        flags.push_back(tpt::grcb::flag::gradient_volume);
+    }
 
     // next we actually run the experiment
 
     auto report = bulk::util::table("Results"s, "geometry");
-    report.columns("V", "epsilon", "part time", "eval time");
+    report.columns("p", "V", "Vg", "epsilon", "messages", "part time");
 
-    for (auto geometry_file : geometries) {
-        auto name = fst::path(geometry_file).stem().string();
-        auto problem = tpt::read_configuration<3_D, T>(geometry_file, k);
+    for (auto p : ps) {
+        auto k = std::min(4 * p, 512);
+        for (auto geometry_file : geometries) {
+            auto name = fst::path(geometry_file).stem().string();
+            auto problem = tpt::read_configuration<3_D, T>(geometry_file, k);
 
-        auto v = problem.object_volume;
-        auto& g = *problem.acquisition_geometry;
-        auto dt = bulk::util::timer();
-        auto root = tpt::grcb::partition(v, g, std::log2(p), flags);
-        auto part_time = dt.get();
+            auto v = problem.object_volume;
+            auto& g = *problem.acquisition_geometry;
 
-        auto outfile = fst::path(partitioning_dir) / name;
-        outfile += ".bsp";
+            auto outfile = fst::path(partitioning_dir) / name;
+            outfile += std::string("_") + std::to_string(p) + ".bsp";
 
-        {
-            auto of = std::ofstream(outfile);
-            tpt::grcb::print_tree(root, of);
+            auto part_time = 0.0f;
+            if (!discrete) {
+                auto dt = bulk::util::timer();
+                auto root = tpt::grcb::partition(v, g, std::log2(p), flags);
+                part_time = dt.get();
+                {
+                    auto of = std::ofstream(outfile);
+                    tpt::grcb::print_tree(root, of);
+                    std::cout << "Wrote: " << outfile << " to disk.\n";
+                }
+            } else {
+                auto dt = bulk::util::timer();
+                // the original GRCB method
+                auto tree = tpt::distributed::partition_bisection<3_D, T>(
+                    g, v, p, 0.05);
+                auto neutral = tpt::to_neutral_tree<T>(tree, v);
+                part_time = dt.get();
 
-            std::cout << "Wrote: " << outfile << " to disk.\n";
+                // then save to:
+                tpt::serialize_tree(neutral, outfile);
+            }
+
+            auto tree_part = tpt::load_partitioning(outfile, v, log2(p));
+            auto imbalance = td::load_imbalance(v, *tree_part, g);
+            auto mu = td::message_count<3_D, T>(g, v, *tree_part, p);
+            auto comvol = td::communication_volume<3_D, T>(g, v, *tree_part);
+            auto regcomvol = td::regularizer_volume(v, *tree_part);
+            report.row(name, p, comvol, regcomvol, imbalance, mu, part_time);
         }
-
-        auto dt2 = bulk::util::timer();
-        auto tree_part = tpt::load_partitioning(outfile, v, log2(p));
-        auto imbalance = td::load_imbalance(v, *tree_part, g);
-        auto comvol = td::communication_volume<3_D, T>(g, v, *tree_part);
-        auto eval_time = dt2.get();
-        report.row(name, comvol, imbalance, part_time, eval_time);
     }
 
     std::cout << report.print() << "\n";

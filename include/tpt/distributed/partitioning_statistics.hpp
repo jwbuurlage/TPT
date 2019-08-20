@@ -35,6 +35,41 @@ long long communication_volume(const geometry::base<D, T>& geometry,
     return result;
 }
 
+template <dimension D, typename T>
+long long message_count(const geometry::base<D, T>& geometry,
+                        volume<D, T> object_volume,
+                        bulk::partitioning<D>& partitioning, int p) {
+
+    auto partners = std::vector<std::set<int>>(p);
+
+    auto integrator = dim::closest<D, T>(object_volume);
+    auto voxels = math::vec_to_array<D, int>(object_volume.voxels());
+
+    std::set<int> owners;
+    for (auto [idx, line] : geometry) {
+        (void)idx;
+        owners.clear();
+        for (auto elem : integrator(line)) {
+            auto voxel_idx = bulk::util::unflatten<D>(voxels, elem.index);
+            auto owner = partitioning.owner(voxel_idx);
+            owners.insert(owner);
+        }
+
+        for (auto x : owners) {
+            for (auto y : owners) {
+                partners[x].insert(y);
+            }
+        }
+    }
+
+    auto result = 0u;
+    for (auto mates : partners) {
+        result += mates.size();
+    }
+
+    return result - p;
+}
+
 template <dimension D, typename T, dimension G>
 T load_imbalance(volume<D, T> v,
                  bulk::rectangular_partitioning<D, G>& partitioning,
@@ -64,14 +99,16 @@ T load_imbalance(volume<D, T> v,
 }
 
 template <dimension D, typename T, dimension G>
-long long regularizer_volume(volume<D, T> object_volume,
+long long
+regularizer_volume(volume<D, T> object_volume,
                    bulk::rectangular_partitioning<D, G>& partitioning) {
     long long result = 0;
     auto p =
         math::product<G, int>(math::array_to_vec<G, int>(partitioning.grid()));
 
     auto boundary_voxels = [](auto& xs) {
-        return 2 * (xs[0] * xs[1] + (xs[0] - 1) * xs[2] + (xs[1] - 1) * (xs[2] - 1));
+        return 2 * (xs[0] * xs[1] + (xs[0] - 1) * xs[2] +
+                    (xs[1] - 1) * (xs[2] - 1));
     };
 
     for (int s = 0; s < p; ++s) {
