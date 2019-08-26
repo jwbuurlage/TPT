@@ -3,8 +3,8 @@
 #include <array>
 #include <utility>
 
-#include "../../math.hpp"
 #include "../../geometry.hpp"
+#include "../../math.hpp"
 
 #include <boost/geometry.hpp>
 namespace bg = boost::geometry;
@@ -17,7 +17,7 @@ namespace tpt::grcb {
 /** Get detector polygon */
 template <typename T>
 bg::model::polygon<math::vec2<T>> detector(geometry::projection<3_D, T> pi) {
-    auto hds = 0.5f * pi.detector_size;
+    auto hds = (T)0.5 * pi.detector_size;
     return bg::model::polygon<math::vec2<T>>{
         {-hds, math::vec2<T>{-hds[0], hds[1]}, hds, {hds[0], -hds[1]}, -hds},
         {}};

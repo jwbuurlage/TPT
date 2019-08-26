@@ -16,11 +16,17 @@ BOOST_GEOMETRY_REGISTER_POINT_2D(tpt::math::vec2<float>, float,
 BOOST_GEOMETRY_REGISTER_POINT_3D(tpt::math::vec3<float>, float,
                                  bg::cs::cartesian, x, y, z);
 BOOST_GEOMETRY_REGISTER_MULTI_POINT(std::vector<tpt::math::vec2<float>>);
+BOOST_GEOMETRY_REGISTER_POINT_2D(tpt::math::vec2<double>, double,
+                                 bg::cs::cartesian, x, y);
+BOOST_GEOMETRY_REGISTER_POINT_3D(tpt::math::vec3<double>, double,
+                                 bg::cs::cartesian, x, y, z);
+BOOST_GEOMETRY_REGISTER_MULTI_POINT(std::vector<tpt::math::vec2<double>>);
 
 template <typename T>
 using mvec2 = std::array<tpt::math::vec2<T>, 8>;
 
 BOOST_GEOMETRY_REGISTER_MULTI_POINT(mvec2<float>);
+BOOST_GEOMETRY_REGISTER_MULTI_POINT(mvec2<double>);
 #pragma GCC diagnostic pop
 
 #include "cube.hpp"

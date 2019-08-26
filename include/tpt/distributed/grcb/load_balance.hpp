@@ -8,6 +8,8 @@
 #include "geometry.hpp"
 #include "integration.hpp"
 
+#include "fmt/core.h"
+
 namespace tpt::grcb {
 
 template <typename T>
@@ -273,7 +275,7 @@ T split_smart(precision level, const geometry::base<3_D, T>& g, cube<T> v,
     auto engine = std::mt19937(rd());
     auto distribution = std::uniform_real_distribution<T>((T)0, (T)1);
 
-      auto f = [&](auto x) {
+    auto f = [&](auto x) {
         auto sum = (T)0;
         for (auto i = 0; i < g.projection_count(); ++i) {
             auto s = g.source_location(i);
@@ -489,55 +491,27 @@ T split_smart(precision level, const geometry::base<3_D, T>& g, cube<T> v,
     return c;
 }
 
+// TODO optimize performance to avoid allocations each time
 template <typename T>
-T split_smart_simple(precision level, const geometry::base<3_D, T>& g,
-                     cube<T> v, size_t d) {
-
-    auto n = std::map<precision, int>{{precision::low, 2500},
-                                      {precision::medium, 5000},
-                                      {precision::high, 20000}}[level];
-
-    auto sources = std::vector<math::vec3<T>>();
-    for (auto i = 0; i < g.projection_count(); ++i) {
-        sources.push_back(g.source_location(i));
-    }
-
+T split_smart_simple(cube<T> v, size_t d,
+                     const std::vector<std::pair<math::vec3<T>, T>>& samples) {
     auto [a, b] = min_max_cube<T>(v);
 
-    auto rd = std::random_device();
-    auto engine = std::mt19937(rd());
-    auto distribution = std::uniform_real_distribution<T>((T)0, (T)1);
-
-    auto f = [&](auto x) {
-        auto sum = (T)0;
-        for (auto i = 0; i < g.projection_count(); ++i) {
-            auto s = g.source_location(i);
-            auto pi = g.get_projection(i);
-            auto proj_point = world_to_detector(pi, project(pi, x).value());
-            auto hds = (T)0.5 * pi.detector_size;
-            bool outside = false;
-            for (int d = 0; d < 2; ++d) {
-                if (proj_point[d] < (T)-hds[d] || proj_point[d] > (T)hds[d]) {
-                    outside = true;
-                    break;
-                }
-            }
-            if (!outside) {
-                sum += (T)1 / math::sum<3_D, T>((x - s) * (x - s));
-            }
+    auto xs = std::vector<std::pair<T, T>>();
+    for (auto [x, fx] : samples) {
+        // copy relevant samples to xs, using d-th coordinate
+        if ((x[0] > a[0] && x[0] < b[0]) && (x[1] > a[1] && x[1] < b[1]) &&
+            (x[2] > a[2] && x[2] < b[2])) {
+            xs.push_back({x[d], fx});
         }
-        return sum;
-    };
+    }
+    std::sort(xs.begin(), xs.end());
 
-    using point = std::pair<T, T>;
-
-    auto sample = [&, a, b, d]() {
-        auto x = vec3<T>();
-        for (auto k = 0u; k < 3; ++k) {
-            x[k] = a[k] + (b[k] - a[k]) * distribution(engine);
-        }
-        return point{x[d], f(x)};
-    };
+    if (xs.size() < 10) {
+        std::cerr << "Warning: too few samples for computing a simple split, "
+                     "splitting midway instead\n";
+        return (T)0.5 * (a[d] + b[d]);
+    }
 
     auto compute_c = [a, b, d](auto max_l, auto min_r, auto avg_l, auto avg_r) {
         auto c = (avg_r * b[d] + avg_l * a[d]) / (avg_l + avg_r);
@@ -552,22 +526,17 @@ T split_smart_simple(precision level, const geometry::base<3_D, T>& g,
         return c;
     };
 
-    auto xs = std::vector<point>();
-    for (int i = 0; i < n; ++i) {
-        xs.push_back(sample());
-    }
-
-    std::sort(xs.begin(), xs.end());
-
     auto sum = (T)0;
     for (auto [x, fx] : xs) {
         sum += fx;
     }
 
+    auto N = xs.size();
+
     auto sum_l = (T)0;
     auto r = (T)0;
-    int k = 0;
-    for (; k < n - 1; ++k) {
+    auto k = 0u;
+    for (; k < N - 1; ++k) {
         auto [x, fx] = xs[k];
         auto [y, fy] = xs[k + 1];
         // unused
@@ -578,14 +547,17 @@ T split_smart_simple(precision level, const geometry::base<3_D, T>& g,
         r = y;
 
         auto L = (sum_l / (k + 1)) * (r - a[d]);
-        auto R = ((sum - sum_l) / (n - (k + 1))) * (b[d] - r);
+        auto R = ((sum - sum_l) / (N - (k + 1))) * (b[d] - r);
         if (L > R) {
             break;
         }
     }
 
     auto c = compute_c(std::get<0>(xs[k]), std::get<0>(xs[k + 1]),
-                       sum_l / (k + 1), ((sum - sum_l) / (n - (k + 1))));
+                       sum_l / (k + 1), ((sum - sum_l) / (N - (k + 1))));
+
+    //    fmt::print("d: {}, c: {}, k: {}, N: {}, sum_l: {}, sum_r: {}\n", d, c, k, N,
+    //               sum_l, sum - sum_l);
 
     return c;
 }

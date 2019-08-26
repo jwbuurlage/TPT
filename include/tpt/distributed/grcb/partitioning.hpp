@@ -46,6 +46,7 @@ std::unique_ptr<node<T>> split(math::vec3<T> origin, math::vec3<T> lengths,
 
     for (auto a = 0u; a < 3; ++a) {
         auto c = splitter(g, v, a);
+
         auto [vL, vR] = split_at(v, c, a);
 
         auto A = 0.0;
@@ -106,7 +107,7 @@ std::unique_ptr<node<T>> partition(volume<3_D, T> v,
     };
 
     auto use_gradient = passed(flag::gradient_volume);
-    auto split_midway_passed[[maybe_unused]] = passed(flag::split_midway);
+    auto split_midway_passed [[maybe_unused]] = passed(flag::split_midway);
     auto split_equal_shadow_passed = passed(flag::split_equal_shadow);
     auto split_equal_load_passed = passed(flag::split_equal_load);
     auto split_smart_passed = passed(flag::split_smart);
@@ -137,8 +138,60 @@ std::unique_ptr<node<T>> partition(volume<3_D, T> v,
             return split_smart<T>(level, g, v, d);
         };
     } else if (split_smart_simple_passed) {
-        splitter = [=](auto& g, auto v, auto d) {
-            return split_smart_simple<T>(level, g, v, d);
+        static auto ns =
+            std::map<precision, int>{{precision::low, 100'000},
+                                     {precision::medium, 1'000'000},
+                                     {precision::high, 10'000'000}};
+        auto n = ns[level];
+
+        auto sources = std::vector<math::vec3<T>>(g.projection_count());
+        for (auto i = 0; i < g.projection_count(); ++i) {
+            sources[i] = g.source_location(i);
+        }
+
+        auto [a, b] = min_max_cube<T>(vcorners);
+
+        auto f = [&](auto x) {
+            auto sum = (T)0;
+            for (auto i = 0; i < g.projection_count(); ++i) {
+                auto s = g.source_location(i);
+                auto pi = g.get_projection(i);
+                auto proj_point = world_to_detector(pi, project(pi, x).value());
+                auto hds = (T)0.5 * pi.detector_size;
+                bool outside = false;
+                for (int d = 0; d < 2; ++d) {
+                    if (proj_point[d] < (T)-hds[d] ||
+                        proj_point[d] > (T)hds[d]) {
+                        outside = true;
+                        break;
+                    }
+                }
+                if (!outside) {
+                    sum += (T)1 / math::sum<3_D, T>((x - s) * (x - s));
+                }
+            }
+            return sum;
+        };
+
+        using sample = std::pair<math::vec3<T>, T>;
+
+        auto rd = std::random_device();
+        auto engine = std::mt19937(rd());
+        auto distribution = std::uniform_real_distribution<T>((T)0, (T)1);
+
+        auto samples = std::vector<sample>(n);
+        auto idx = 0u;
+        for (auto i = 0; i < n; ++i) {
+            auto x = math::vec3<T>{};
+            for (auto l = 0; l < 3; ++l) {
+                x[l] = a[l] + (b[l] - a[l]) * distribution(engine);
+            }
+            samples[idx++] = sample{x, f(x)};
+        }
+
+        // preprocess grid points and pass to split smart simple
+        splitter = [=](auto&, auto v, auto d) {
+            return split_smart_simple<T>(v, d, samples);
         };
     } else {
         splitter = split_midway<T>;

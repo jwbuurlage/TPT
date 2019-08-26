@@ -5,7 +5,7 @@
 namespace fst = std::filesystem;
 using namespace std::string_literals;
 
-using T = float;
+using T = double;
 
 #include "bulk/bulk.hpp"
 
@@ -20,9 +20,11 @@ int main(int argc, char** argv) {
     std::string partitioning_dir = ".";
     bool discrete = false;
     bool gradient = false;
+    int k_in = -1;
 
     // basic options for partitioning
     app.add_option("-p", ps, "number of processors to partition for");
+    app.add_option("-k", k_in, "use a fixed resolution to evaluate stats", k_in);
 
     app.add_flag("--discrete", discrete, "use discrete partitioning model");
     app.add_flag("--gradient", gradient, "consider gradient regularizer");
@@ -87,7 +89,11 @@ int main(int argc, char** argv) {
     report.columns("p", "V", "Vg", "epsilon", "messages", "part time");
 
     for (auto p : ps) {
-        auto k = std::min(4 * p, 512);
+        auto k = k_in;
+        if (k == -1) {
+            k = std::min(4 * p, 512);
+        }
+
         for (auto geometry_file : geometries) {
             auto name = fst::path(geometry_file).stem().string();
             auto problem = tpt::read_configuration<3_D, T>(geometry_file, k);
@@ -106,7 +112,8 @@ int main(int argc, char** argv) {
                 {
                     auto of = std::ofstream(outfile);
                     tpt::grcb::print_tree(root, of);
-                    std::cout << "Wrote: " << outfile << " to disk.\n";
+                    std::cout << "Wrote: " << outfile << " to disk."
+                              << std::endl;
                 }
             } else {
                 auto dt = bulk::util::timer();
@@ -126,6 +133,8 @@ int main(int argc, char** argv) {
             auto comvol = td::communication_volume<3_D, T>(g, v, *tree_part);
             auto regcomvol = td::regularizer_volume(v, *tree_part);
             report.row(name, p, comvol, regcomvol, imbalance, mu, part_time);
+
+            std::cout << report.print() << std::endl;
         }
     }
 
