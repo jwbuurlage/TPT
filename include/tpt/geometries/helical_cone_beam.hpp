@@ -4,6 +4,7 @@
 
 #include "../geometry.hpp"
 #include "../math.hpp"
+#include "../math/stringify.hpp"
 #include "../volume.hpp"
 #include "trajectory.hpp"
 
@@ -54,8 +55,9 @@ class helical_cone_beam : public trajectory<3_D, T> {
                   source_to_center * math::standard_basis<3_D, T>(0),
               math::volume_center(volume) +
                   detector_to_center * math::standard_basis<3_D, T>(0),
-              rotations, {math::standard_basis<3_D, T>(1),
-                          math::standard_basis<3_D, T>(2)}) {}
+              rotations,
+              {math::standard_basis<3_D, T>(1),
+               math::standard_basis<3_D, T>(2)}) {}
 
     math::vec<3_D, T> source_location(int projection) const override final {
         return transform_location_(source_position_, projection) +

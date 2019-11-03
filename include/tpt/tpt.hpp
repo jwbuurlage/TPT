@@ -51,6 +51,7 @@
 #include "distributed/trivial_partitioning.hpp"
 #include "distributed/partitioning_statistics.hpp"
 #include "distributed/restricted_geometry.hpp"
+#include "distributed/grcb/grcb.hpp"
 
 #include "geometries/cone.hpp"
 #include "geometries/custom.hpp"

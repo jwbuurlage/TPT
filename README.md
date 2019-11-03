@@ -13,10 +13,13 @@ for arbitrary floating point types.
 
 # Tools
 
-- `tpt_partition` a partitioning tool based on the _geometric recursive coordinate bisectioning_ algorithm.
+- `tpt_grcb` partitioning tool based on an updated _geometric recursive coordinate bisectioning_ algorithm.
+- `tpt_stats` stats tool to evaluate partitionings.
+- `tpt_partition` (deprecated), a partitioning tool based on the original _geometric recursive coordinate bisectioning_ algorithm.
 
-   It is also possible to perform partitioning on geometries from the ASTRA toolbox.
-   This can be done using the Python bindings, see `python/examples/astra_partition.py`.
+It is also possible to perform partitioning on geometries from the ASTRA
+toolbox. This can be done using the Python bindings, see
+`python/examples/astra_partition.py`.
 
 # Library
 
